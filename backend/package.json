@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build step required'",
     "test": "jest"
   },
   "keywords": ["commander", "edh", "magic", "games", "tracking"],
