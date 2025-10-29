@@ -1,12 +1,4 @@
 {
   "version": 2,
-  "name": "guerreiros-do-segundo-lugar-frontend",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@api-url"
-  },
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_API_URL": "@api-url"
-    }
-  }
+  "name": "guerreiros-do-segundo-lugar-frontend"
 }
