@@ -37,16 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check if user is logged in on initial load
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      if (token && storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error('Error parsing stored user:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
       }
     }
     
@@ -58,8 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authAPI.login({ email, password });
       const { token, user: userData } = response.data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
       setUser(userData);
     } catch (error) {
       throw error;
@@ -71,8 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authAPI.register(userData);
       const { token, user: newUser } = response.data;
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(newUser));
+      }
       setUser(newUser);
     } catch (error) {
       throw error;
@@ -80,8 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
     setUser(null);
     // Optionally call API to invalidate token on server
     authAPI.logout().catch(console.error);

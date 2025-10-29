@@ -87,17 +87,17 @@ npm run dev
 
 ### Backend (.env)
 ```
-PORT=5000
+PORT=5001
 NODE_ENV=development
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/guerreiros-do-segundo-lugar
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRE=7d
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3001
 ```
 
 ### Frontend (.env.local)
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5001
 NEXT_PUBLIC_APP_NAME=Guerreiros do Segundo Lugar
 ```
 

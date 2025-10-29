@@ -1,0 +1,788 @@
+{
+	"info": {
+		"_postman_id": "guerreiros-do-segundo-lugar-api",
+		"name": "Guerreiros do Segundo Lugar API",
+		"description": "Complete API collection for the Commander (EDH) games tracking application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "guerreiros-api"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"João Silva\",\n  \"nickname\": \"João\",\n  \"email\": \"joao@example.com\",\n  \"password\": \"password123\",\n  \"profileImage\": \"https://via.placeholder.com/150\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user account"
+					}
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('auth_token', response.token);",
+									"    pm.environment.set('user_id', response.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"joao@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with email and password"
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get current logged in user details"
+					}
+				},
+				{
+					"name": "Update User Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"João Silva Santos\",\n  \"nickname\": \"João Santos\",\n  \"profileImage\": \"https://via.placeholder.com/200\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/updatedetails",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"updatedetails"
+							]
+						},
+						"description": "Update user profile details"
+					}
+				},
+				{
+					"name": "Update Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/updatepassword",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"updatepassword"
+							]
+						},
+						"description": "Update user password"
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout user and invalidate token"
+					}
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Players",
+			"item": [
+				{
+					"name": "Get All Players",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/players?page=1&limit=25",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "25"
+								}
+							]
+						},
+						"description": "Get all players with pagination"
+					}
+				},
+				{
+					"name": "Get Player by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/players/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players",
+								"{{user_id}}"
+							]
+						},
+						"description": "Get specific player by ID"
+					}
+				},
+				{
+					"name": "Update Player",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"João Silva Santos\",\n  \"nickname\": \"João Santos\",\n  \"profileImage\": \"https://via.placeholder.com/200\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/players/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players",
+								"{{user_id}}"
+							]
+						},
+						"description": "Update player profile (own profile or admin)"
+					}
+				},
+				{
+					"name": "Delete Player (Admin Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/players/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"players",
+								"{{user_id}}"
+							]
+						},
+						"description": "Delete player (admin only)"
+					}
+				}
+			],
+			"description": "Player management endpoints"
+		},
+		{
+			"name": "Decks",
+			"item": [
+				{
+					"name": "Get All Decks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/decks?page=1&limit=25",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"decks"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "25"
+								},
+								{
+									"key": "owner",
+									"value": "{{user_id}}",
+									"disabled": true
+								},
+								{
+									"key": "colors",
+									"value": "W,U,B",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "Combo,Control",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "Atraxa",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all decks with optional filtering"
+					}
+				},
+				{
+					"name": "Get Deck by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/decks/{{deck_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"decks",
+								"{{deck_id}}"
+							]
+						},
+						"description": "Get specific deck by ID"
+					}
+				},
+				{
+					"name": "Create Deck",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('deck_id', response.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Atraxa Superfriends\",\n  \"commander\": \"Atraxa, Praetors' Voice\",\n  \"decklistLink\": \"https://moxfield.com/decks/example\",\n  \"deckImage\": \"https://via.placeholder.com/300x200\",\n  \"colorIdentity\": [\"W\", \"U\", \"B\", \"G\"],\n  \"tags\": [\"Superfriends\", \"Control\", \"Proliferate\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/decks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"decks"
+							]
+						},
+						"description": "Create a new deck"
+					}
+				},
+				{
+					"name": "Update Deck",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Atraxa Superfriends Updated\",\n  \"commander\": \"Atraxa, Praetors' Voice\",\n  \"decklistLink\": \"https://moxfield.com/decks/updated-example\",\n  \"tags\": [\"Superfriends\", \"Control\", \"Proliferate\", \"Competitive\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/decks/{{deck_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"decks",
+								"{{deck_id}}"
+							]
+						},
+						"description": "Update deck (owner or admin)"
+					}
+				},
+				{
+					"name": "Delete Deck",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/decks/{{deck_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"decks",
+								"{{deck_id}}"
+							]
+						},
+						"description": "Delete deck (owner or admin)"
+					}
+				}
+			],
+			"description": "Deck management endpoints"
+		},
+		{
+			"name": "Games",
+			"item": [
+				{
+					"name": "Get All Games",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/games?page=1&limit=25",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "25"
+								},
+								{
+									"key": "startDate",
+									"value": "2023-01-01",
+									"disabled": true
+								},
+								{
+									"key": "endDate",
+									"value": "2023-12-31",
+									"disabled": true
+								},
+								{
+									"key": "player",
+									"value": "{{user_id}}",
+									"disabled": true
+								},
+								{
+									"key": "deck",
+									"value": "{{deck_id}}",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all games with optional filtering"
+					}
+				},
+				{
+					"name": "Get Game by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/games/{{game_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"{{game_id}}"
+							]
+						},
+						"description": "Get specific game by ID"
+					}
+				},
+				{
+					"name": "Create Game",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('game_id', response.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"date\": \"2023-10-29T19:00:00.000Z\",\n  \"players\": [\n    {\n      \"player\": \"{{user_id}}\",\n      \"deck\": \"{{deck_id}}\",\n      \"placement\": 1\n    },\n    {\n      \"player\": \"player2_id_here\",\n      \"deck\": \"deck2_id_here\",\n      \"placement\": 2\n    },\n    {\n      \"player\": \"player3_id_here\",\n      \"deck\": \"deck3_id_here\",\n      \"placement\": 3\n    },\n    {\n      \"player\": \"player4_id_here\",\n      \"deck\": \"deck4_id_here\",\n      \"placement\": 4\n    }\n  ],\n  \"durationMinutes\": 120,\n  \"notes\": \"Great game! Very close finish.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games"
+							]
+						},
+						"description": "Create a new game (replace player and deck IDs with actual values)"
+					}
+				},
+				{
+					"name": "Update Game",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"durationMinutes\": 150,\n  \"notes\": \"Great game! Very close finish. Updated notes.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/{{game_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"{{game_id}}"
+							]
+						},
+						"description": "Update game (creator or admin)"
+					}
+				},
+				{
+					"name": "Delete Game",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/games/{{game_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"{{game_id}}"
+							]
+						},
+						"description": "Delete game (creator or admin)"
+					}
+				}
+			],
+			"description": "Game management endpoints"
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "Get Player Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/stats/player/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"stats",
+								"player",
+								"{{user_id}}"
+							]
+						},
+						"description": "Get detailed statistics for a specific player"
+					}
+				},
+				{
+					"name": "Get Deck Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/stats/deck/{{deck_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"stats",
+								"deck",
+								"{{deck_id}}"
+							]
+						},
+						"description": "Get detailed statistics for a specific deck"
+					}
+				},
+				{
+					"name": "Get Global Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/stats/global",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"stats",
+								"global"
+							]
+						},
+						"description": "Get global statistics and leaderboards"
+					}
+				}
+			],
+			"description": "Statistics and analytics endpoints"
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Health check endpoint to verify API is running"
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5001",
+			"type": "string"
+		}
+	]
+}
