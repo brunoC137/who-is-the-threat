@@ -61,8 +61,8 @@ export default function DecksPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setDecks(data);
+          const result = await response.json();
+          setDecks(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching decks:', error);
@@ -296,7 +296,7 @@ export default function DecksPage() {
                       </a>
                     </Button>
                   )}
-                  {(user?.isAdmin || user?._id === deck.owner._id) && (
+                  {(user?.isAdmin || user?.id === deck.owner._id) && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/decks/${deck._id}/edit`}>Edit</Link>
                     </Button>

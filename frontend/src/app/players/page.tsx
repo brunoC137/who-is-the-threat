@@ -45,8 +45,8 @@ export default function PlayersPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setPlayers(data);
+          const result = await response.json();
+          setPlayers(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching players:', error);
@@ -164,10 +164,10 @@ export default function PlayersPage() {
                 )}
                 
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" asChild className="flex-1">
+                  <Button variant="default" size="sm" asChild className="flex-1">
                     <Link href={`/players/${player._id}`}>View Profile</Link>
                   </Button>
-                  {(user?.isAdmin || user?._id === player._id) && (
+                  {(user?.isAdmin || user?.id === player._id) && (
                     <Button variant="outline" size="sm" asChild className="flex-1">
                       <Link href={`/players/${player._id}/edit`}>Edit</Link>
                     </Button>

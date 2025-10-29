@@ -72,8 +72,8 @@ export default function StatsPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setStats(data);
+          const result = await response.json();
+          setStats(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching global stats:', error);

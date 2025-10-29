@@ -49,8 +49,8 @@ export default function DashboardPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setStats(data);
+          const result = await response.json();
+          setStats(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);

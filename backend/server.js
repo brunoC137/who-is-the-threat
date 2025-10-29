@@ -47,14 +47,14 @@ mongoose.connect(process.env.MONGODB_URI, {
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
-app.use('/auth', authRoutes);
-app.use('/players', playerRoutes);
-app.use('/decks', deckRoutes);
-app.use('/games', gameRoutes);
-app.use('/stats', statsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/players', playerRoutes);
+app.use('/api/decks', deckRoutes);
+app.use('/api/games', gameRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Guerreiros do Segundo Lugar API is running',

@@ -30,13 +30,6 @@ const DeckSchema = new mongoose.Schema({
   },
   deckImage: {
     type: String,
-    trim: true,
-    validate: {
-      validator: function(v) {
-        return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
-      },
-      message: 'Deck image must be a valid URL to an image file'
-    }
   },
   colorIdentity: [{
     type: String,

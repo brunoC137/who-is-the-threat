@@ -117,9 +117,7 @@ router.post('/', protect, [
     .isURL()
     .withMessage('Decklist link must be a valid URL'),
   body('deckImage')
-    .optional()
-    .isURL()
-    .withMessage('Deck image must be a valid URL'),
+    .optional(),
   body('colorIdentity')
     .optional()
     .isArray()
@@ -196,9 +194,7 @@ router.put('/:id', protect, [
     .isURL()
     .withMessage('Decklist link must be a valid URL'),
   body('deckImage')
-    .optional()
-    .isURL()
-    .withMessage('Deck image must be a valid URL'),
+    .optional(),
   body('colorIdentity')
     .optional()
     .isArray()

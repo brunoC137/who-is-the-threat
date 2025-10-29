@@ -58,8 +58,8 @@ export default function GamesPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setGames(data);
+          const result = await response.json();
+          setGames(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching games:', error);
@@ -86,9 +86,9 @@ export default function GamesPage() {
       // Filter by type
       let matchesFilter = true;
       if (filterBy === 'my-games') {
-        matchesFilter = game.players.some(p => p.player._id === user?._id);
+        matchesFilter = game.players.some(p => p.player._id === user?.id);
       } else if (filterBy === 'my-wins') {
-        matchesFilter = game.players.some(p => p.player._id === user?._id && p.placement === 1);
+        matchesFilter = game.players.some(p => p.player._id === user?.id && p.placement === 1);
       }
 
       return matchesSearch && matchesFilter;
@@ -239,7 +239,7 @@ export default function GamesPage() {
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/games/${game._id}`}>View Details</Link>
                     </Button>
-                    {(user?.isAdmin || user?._id === game.createdBy._id) && (
+                    {(user?.isAdmin || user?.id === game.createdBy._id) && (
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/games/${game._id}/edit`}>Edit</Link>
                       </Button>
