@@ -1,0 +1,30 @@
+# Render deployment configuration for backend
+version: "1"
+
+services:
+  - type: web
+    name: guerreiros-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: guerreiros-mongodb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://guerreiros-do-segundo-lugar.vercel.app
+
+databases:
+  - name: guerreiros-mongodb
+    databaseName: guerreiros-do-segundo-lugar
+    user: guerreiros-user
