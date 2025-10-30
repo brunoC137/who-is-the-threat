@@ -93,7 +93,71 @@ router.get('/player/:id', protect, async (req, res, next) => {
     // Calculate placement distribution
     const placementDistribution = {};
     placements.forEach(placement => {
-      placementDistribution[placement] = (placementDistribution[placement] || 0) + 1;
+      if (placement && !isNaN(placement)) {
+        placementDistribution[placement] = (placementDistribution[placement] || 0) + 1;
+      }
+    });
+
+    // Calculate player vs player matchup data
+    const playerMatchups = {};
+    games.forEach(game => {
+      const thisPlayer = game.players.find(p => p.player.toString() === playerId);
+      const otherPlayers = game.players.filter(p => p.player.toString() !== playerId);
+      
+      otherPlayers.forEach(opponent => {
+        const opponentId = opponent.player.toString();
+        if (!playerMatchups[opponentId]) {
+          playerMatchups[opponentId] = {
+            opponent: null, // Will be populated later
+            gamesPlayed: 0,
+            wins: 0,
+            losses: 0,
+            winRate: 0,
+            averagePositionDifference: 0,
+            positionDifferences: [],
+            headToHeadWins: 0 // Direct 1v1 placement comparison
+          };
+        }
+        
+        playerMatchups[opponentId].gamesPlayed++;
+        const positionDiff = opponent.placement - thisPlayer.placement;
+        playerMatchups[opponentId].positionDifferences.push(positionDiff);
+        
+        if (thisPlayer.placement < opponent.placement) {
+          playerMatchups[opponentId].wins++;
+          playerMatchups[opponentId].headToHeadWins++;
+        } else if (thisPlayer.placement > opponent.placement) {
+          playerMatchups[opponentId].losses++;
+        }
+      });
+    });
+
+    // Calculate averages and populate player info
+    const playerMatchupsArray = [];
+    for (const [opponentId, matchup] of Object.entries(playerMatchups)) {
+      if (matchup.gamesPlayed >= 2) { // Only show matchups with at least 2 games
+        const opponent = await Player.findById(opponentId)
+          .select('name nickname profileImage');
+        
+        if (opponent) {
+          matchup.opponent = opponent;
+          matchup.winRate = matchup.gamesPlayed > 0 ? 
+            ((matchup.headToHeadWins / matchup.gamesPlayed) * 100).toFixed(1) : 0;
+          matchup.averagePositionDifference = 
+            matchup.positionDifferences.length > 0 ?
+            (matchup.positionDifferences.reduce((sum, diff) => sum + diff, 0) / matchup.positionDifferences.length).toFixed(1) : 0;
+          delete matchup.positionDifferences;
+          playerMatchupsArray.push(matchup);
+        }
+      }
+    }
+
+    // Sort by games played, then by win rate
+    playerMatchupsArray.sort((a, b) => {
+      if (b.gamesPlayed !== a.gamesPlayed) {
+        return b.gamesPlayed - a.gamesPlayed;
+      }
+      return parseFloat(b.winRate) - parseFloat(a.winRate);
     });
 
     res.status(200).json({
@@ -112,6 +176,7 @@ router.get('/player/:id', protect, async (req, res, next) => {
           averagePlacement: parseFloat(averagePlacement),
           placementDistribution
         },
+        matchups: playerMatchupsArray,
         deckUsage: sortedDeckUsage,
         recentGames
       }
@@ -174,6 +239,67 @@ router.get('/deck/:id', protect, async (req, res, next) => {
       placementDistribution[placement] = (placementDistribution[placement] || 0) + 1;
     });
 
+    // Calculate matchup data against other decks
+    const deckMatchups = {};
+    games.forEach(game => {
+      const thisDeckPlayer = game.players.find(p => p.deck.toString() === deckId);
+      const otherDecks = game.players.filter(p => p.deck.toString() !== deckId);
+      
+      otherDecks.forEach(opponent => {
+        const opponentDeckId = opponent.deck.toString();
+        if (!deckMatchups[opponentDeckId]) {
+          deckMatchups[opponentDeckId] = {
+            opponentDeck: null, // Will be populated later
+            gamesPlayed: 0,
+            wins: 0,
+            losses: 0,
+            winRate: 0,
+            averagePositionDifference: 0,
+            positionDifferences: []
+          };
+        }
+        
+        deckMatchups[opponentDeckId].gamesPlayed++;
+        const positionDiff = opponent.placement - thisDeckPlayer.placement;
+        deckMatchups[opponentDeckId].positionDifferences.push(positionDiff);
+        
+        if (thisDeckPlayer.placement < opponent.placement) {
+          deckMatchups[opponentDeckId].wins++;
+        } else if (thisDeckPlayer.placement > opponent.placement) {
+          deckMatchups[opponentDeckId].losses++;
+        }
+      });
+    });
+
+    // Calculate averages and populate deck info
+    const deckMatchupsArray = [];
+    for (const [opponentDeckId, matchup] of Object.entries(deckMatchups)) {
+      if (matchup.gamesPlayed >= 2) { // Only show matchups with at least 2 games
+        const opponentDeck = await Deck.findById(opponentDeckId)
+          .populate('owner', 'name nickname')
+          .select('name commander deckImage colorIdentity owner');
+        
+        if (opponentDeck) {
+          matchup.opponentDeck = opponentDeck;
+          matchup.winRate = matchup.gamesPlayed > 0 ? 
+            ((matchup.wins / matchup.gamesPlayed) * 100).toFixed(1) : 0;
+          matchup.averagePositionDifference = 
+            matchup.positionDifferences.length > 0 ?
+            (matchup.positionDifferences.reduce((sum, diff) => sum + diff, 0) / matchup.positionDifferences.length).toFixed(1) : 0;
+          delete matchup.positionDifferences;
+          deckMatchupsArray.push(matchup);
+        }
+      }
+    }
+
+    // Sort by games played, then by win rate
+    deckMatchupsArray.sort((a, b) => {
+      if (b.gamesPlayed !== a.gamesPlayed) {
+        return b.gamesPlayed - a.gamesPlayed;
+      }
+      return parseFloat(b.winRate) - parseFloat(a.winRate);
+    });
+
     res.status(200).json({
       success: true,
       data: {
@@ -193,10 +319,117 @@ router.get('/deck/:id', protect, async (req, res, next) => {
           averagePlacement: parseFloat(averagePlacement),
           placementDistribution
         },
+        matchups: deckMatchupsArray,
         recentGames
       }
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get user-specific dashboard statistics
+// @route   GET /stats/dashboard
+// @access  Private
+router.get('/dashboard', protect, async (req, res, next) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+
+    // Get user's deck stats
+    const userDecks = await Deck.find({ owner: userId });
+    const userDeckIds = userDecks.map(deck => deck._id);
+
+    // Get user's recent games
+    const userRecentGames = await Game.find({ 'players.player': userId })
+      .populate('players.player', 'name nickname')
+      .populate('players.deck', 'name commander')
+      .sort({ date: -1 })
+      .limit(5);
+
+    // Get user's top performing decks
+    const userDeckStats = await Game.aggregate([
+      { $unwind: '$players' },
+      { $match: { 'players.deck': { $in: userDeckIds } } },
+      {
+        $group: {
+          _id: '$players.deck',
+          gamesPlayed: { $sum: 1 },
+          wins: {
+            $sum: {
+              $cond: [{ $eq: ['$players.placement', 1] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          winRate: {
+            $cond: [
+              { $gt: ['$gamesPlayed', 0] },
+              { $multiply: [{ $divide: ['$wins', '$gamesPlayed'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { winRate: -1, gamesPlayed: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // Populate deck info
+    await Deck.populate(userDeckStats, {
+      path: '_id',
+      select: 'name commander deckImage owner',
+      populate: {
+        path: 'owner',
+        select: 'name nickname'
+      }
+    });
+
+    // Calculate user's personal win rate
+    const userGameStats = await Game.aggregate([
+      { $unwind: '$players' },
+      { $match: { 'players.player': userId } },
+      {
+        $group: {
+          _id: null,
+          totalGames: { $sum: 1 },
+          wins: {
+            $sum: {
+              $cond: [{ $eq: ['$players.placement', 1] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    const userWinRate = userGameStats.length > 0 && userGameStats[0].totalGames > 0 ? 
+      Math.round((userGameStats[0].wins / userGameStats[0].totalGames) * 100) : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        personalStats: {
+          totalDecks: userDecks.length,
+          totalGames: userGameStats.length > 0 ? userGameStats[0].totalGames : 0,
+          wins: userGameStats.length > 0 ? userGameStats[0].wins : 0,
+          winRate: userWinRate
+        },
+        topUserDecks: userDeckStats.map(stat => ({
+          _id: stat._id._id,
+          name: stat._id.name,
+          commander: stat._id.commander,
+          deckImage: stat._id.deckImage,
+          owner: stat._id.owner,
+          gamesPlayed: stat.gamesPlayed,
+          wins: stat.wins,
+          winRate: Math.round(stat.winRate * 100) / 100
+        })),
+        recentUserGames: userRecentGames
+      }
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
     next(error);
   }
 });
@@ -210,6 +443,24 @@ router.get('/global', protect, async (req, res, next) => {
     const totalPlayers = await Player.countDocuments();
     const totalDecks = await Deck.countDocuments();
     const totalGames = await Game.countDocuments();
+
+    // Calculate average game length
+    const gameStatsAgg = await Game.aggregate([
+      {
+        $match: {
+          durationMinutes: { $exists: true, $ne: null, $gt: 0 }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          averageDuration: { $avg: '$durationMinutes' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const averageGameLength = gameStatsAgg.length > 0 ? Math.round(gameStatsAgg[0].averageDuration) : 0;
 
     // Get most active players (by games played)
     const playerStats = await Game.aggregate([
@@ -229,17 +480,22 @@ router.get('/global', protect, async (req, res, next) => {
       {
         $addFields: {
           winRate: {
-            $multiply: [
-              { $divide: ['$wins', '$gamesPlayed'] },
-              100
+            $cond: [
+              { $gt: ['$gamesPlayed', 0] },
+              { $multiply: [{ $divide: ['$wins', '$gamesPlayed'] }, 100] },
+              0
             ]
           },
           averagePlacement: {
-            $divide: ['$totalPlacement', '$gamesPlayed']
+            $cond: [
+              { $gt: ['$gamesPlayed', 0] },
+              { $divide: ['$totalPlacement', '$gamesPlayed'] },
+              0
+            ]
           }
         }
       },
-      { $sort: { gamesPlayed: -1 } },
+      { $sort: { winRate: -1, gamesPlayed: -1 } },
       { $limit: 10 }
     ]);
 
@@ -266,14 +522,15 @@ router.get('/global', protect, async (req, res, next) => {
       {
         $addFields: {
           winRate: {
-            $multiply: [
-              { $divide: ['$wins', '$gamesPlayed'] },
-              100
+            $cond: [
+              { $gt: ['$gamesPlayed', 0] },
+              { $multiply: [{ $divide: ['$wins', '$gamesPlayed'] }, 100] },
+              0
             ]
           }
         }
       },
-      { $sort: { gamesPlayed: -1 } },
+      { $sort: { winRate: -1, gamesPlayed: -1 } },
       { $limit: 10 }
     ]);
 
@@ -287,15 +544,41 @@ router.get('/global', protect, async (req, res, next) => {
       }
     });
 
-    // Get most popular commanders
-    const commanderStats = await Deck.aggregate([
+    // Get most popular commanders with win rates
+    const commanderStats = await Game.aggregate([
+      { $unwind: '$players' },
       {
-        $group: {
-          _id: '$commander',
-          deckCount: { $sum: 1 }
+        $lookup: {
+          from: 'decks',
+          localField: 'players.deck',
+          foreignField: '_id',
+          as: 'deckInfo'
         }
       },
-      { $sort: { deckCount: -1 } },
+      { $unwind: '$deckInfo' },
+      {
+        $group: {
+          _id: '$deckInfo.commander',
+          count: { $sum: 1 },
+          wins: {
+            $sum: {
+              $cond: [{ $eq: ['$players.placement', 1] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          winRate: {
+            $cond: [
+              { $gt: ['$count', 0] },
+              { $multiply: [{ $divide: ['$wins', '$count'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { count: -1 } },
       { $limit: 10 }
     ]);
 
@@ -307,29 +590,49 @@ router.get('/global', protect, async (req, res, next) => {
       .sort({ date: -1 })
       .limit(10);
 
+    // Create recent activity feed
+    const recentActivity = recentGames.map(game => {
+      const winner = game.players.find(p => p.placement === 1);
+      return {
+        type: 'game',
+        description: `${winner?.player.nickname || winner?.player.name || 'Someone'} won with ${winner?.deck.commander || 'their deck'}`,
+        date: game.date
+      };
+    });
+
     res.status(200).json({
       success: true,
       data: {
-        overview: {
-          totalPlayers,
-          totalDecks,
-          totalGames
-        },
+        totalGames,
+        totalPlayers,
+        totalDecks,
+        averageGameLength,
         topPlayers: playerStats.map(stat => ({
-          player: stat._id,
+          _id: stat._id._id,
+          name: stat._id.name,
+          nickname: stat._id.nickname,
+          profileImage: stat._id.profileImage,
           gamesPlayed: stat.gamesPlayed,
           wins: stat.wins,
           winRate: Math.round(stat.winRate * 100) / 100,
           averagePlacement: Math.round(stat.averagePlacement * 100) / 100
         })),
         topDecks: deckStats.map(stat => ({
-          deck: stat._id,
+          _id: stat._id._id,
+          name: stat._id.name,
+          commander: stat._id.commander,
+          deckImage: stat._id.deckImage,
+          owner: stat._id.owner,
           gamesPlayed: stat.gamesPlayed,
           wins: stat.wins,
           winRate: Math.round(stat.winRate * 100) / 100
         })),
-        popularCommanders: commanderStats,
-        recentGames
+        mostPopularCommanders: commanderStats.map(stat => ({
+          commander: stat._id,
+          count: stat.count,
+          winRate: Math.round(stat.winRate * 100) / 100
+        })),
+        recentActivity
       }
     });
   } catch (error) {

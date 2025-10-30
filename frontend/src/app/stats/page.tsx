@@ -39,6 +39,7 @@ interface GlobalStats {
     _id: string;
     name: string;
     commander: string;
+    deckImage?: string;
     owner: {
       name: string;
       nickname?: string;
@@ -178,19 +179,19 @@ export default function StatsPage() {
                       #{index + 1}
                     </Badge>
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={player.profileImage} alt={player.name} />
+                      <AvatarImage src={player.profileImage} alt={player.name || 'Player'} />
                       <AvatarFallback>
-                        {player.name.charAt(0).toUpperCase()}
+                        {player.name?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{player.nickname || player.name}</p>
+                      <p className="font-medium">{player.nickname || player.name || 'Unknown Player'}</p>
                       <p className="text-sm text-muted-foreground">
                         {player.wins} wins • {player.gamesPlayed} games
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">{player.winRate}%</p>
+                      <p className="font-bold text-lg">{Math.round(player.winRate)}%</p>
                       <p className="text-xs text-muted-foreground">Win Rate</p>
                     </div>
                   </div>
@@ -276,12 +277,12 @@ export default function StatsPage() {
                     >
                       #{index + 1}
                     </Badge>
-                    <span className="font-bold text-lg">{deck.winRate}%</span>
+                    <span className="font-bold text-lg">{Math.round(deck.winRate)}%</span>
                   </div>
                   <h3 className="font-semibold">{deck.name}</h3>
                   <p className="text-sm text-muted-foreground mb-2">{deck.commander}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>by {deck.owner.nickname || deck.owner.name}</span>
+                    <span>by {deck.owner?.nickname || deck.owner?.name || 'Unknown'}</span>
                     <span>{deck.wins}/{deck.gamesPlayed} wins</span>
                   </div>
                 </div>

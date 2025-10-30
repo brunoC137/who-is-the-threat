@@ -113,6 +113,14 @@ Include the JWT token in the Authorization header: `Bearer <token>`
 
 ## Statistics
 
+### Dashboard Statistics
+**GET** `/stats/dashboard`
+
+Returns user-specific dashboard data:
+- Personal statistics (total decks, games, wins, win rate)
+- Top performing user decks
+- Recent user games
+
 ### Player Statistics
 **GET** `/stats/player/:id`
 
@@ -122,6 +130,7 @@ Returns:
 - Average placement
 - Deck usage statistics
 - Recent games
+- Player vs player matchups
 
 ### Deck Statistics
 **GET** `/stats/deck/:id`
@@ -131,16 +140,19 @@ Returns:
 - Win rate
 - Average placement
 - Recent games
+- Deck vs deck matchups
+- Placement distribution
 
 ### Global Statistics
 **GET** `/stats/global`
 
 Returns:
-- Overall statistics
-- Top players
-- Most used decks
-- Popular commanders
-- Recent activity
+- Overall statistics (total players, decks, games)
+- Top players by win rate
+- Top performing decks
+- Popular commanders with win rates
+- Recent activity feed
+- Average game length
 
 ## Error Responses
 

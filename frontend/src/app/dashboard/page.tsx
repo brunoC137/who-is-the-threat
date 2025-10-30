@@ -6,14 +6,64 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Plus, Users, Package, Trophy, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { statsAPI } from '@/lib/api';
 
-interface DashboardStats {
+interface GlobalStats {
   totalPlayers: number;
   totalDecks: number;
   totalGames: number;
-  userWinRate: number;
-  recentGames: Array<{
-    id: string;
+  topPlayers: Array<{
+    _id: string;
+    name: string;
+    nickname?: string;
+    profileImage?: string;
+    gamesPlayed: number;
+    wins: number;
+    winRate: number;
+    averagePlacement: number;
+  }>;
+  topDecks: Array<{
+    _id: string;
+    name: string;
+    commander: string;
+    deckImage?: string;
+    owner: {
+      name: string;
+      nickname?: string;
+    };
+    gamesPlayed: number;
+    wins: number;
+    winRate: number;
+  }>;
+  recentActivity: Array<{
+    type: 'game' | 'deck' | 'player';
+    description: string;
+    date: string;
+  }>;
+}
+
+interface UserStats {
+  personalStats: {
+    totalDecks: number;
+    totalGames: number;
+    wins: number;
+    winRate: number;
+  };
+  topUserDecks: Array<{
+    _id: string;
+    name: string;
+    commander: string;
+    deckImage?: string;
+    owner: {
+      name: string;
+      nickname?: string;
+    };
+    gamesPlayed: number;
+    wins: number;
+    winRate: number;
+  }>;
+  recentUserGames: Array<{
+    _id: string;
     date: string;
     players: Array<{
       player: { name: string; nickname: string };
@@ -21,37 +71,28 @@ interface DashboardStats {
       placement: number;
     }>;
   }>;
-  topDecks: Array<{
-    id: string;
-    name: string;
-    commander: string;
-    gamesPlayed: number;
-    winRate: number;
-  }>;
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!token) return;
+        // Fetch both global and user-specific stats
+        const [globalResponse, userResponse] = await Promise.all([
+          statsAPI.getGlobalStats(),
+          statsAPI.getDashboardStats()
+        ]);
 
-        // Fetch dashboard stats (you'll need to implement this endpoint)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const globalResult = globalResponse.data;
+        setGlobalStats(globalResult.data || globalResult);
 
-        if (response.ok) {
-          const result = await response.json();
-          setStats(result.data || result);
-        }
+        const userResult = userResponse.data;
+        setUserStats(userResult.data || userResult);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -128,7 +169,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalPlayers || 0}</div>
+            <div className="text-2xl font-bold">{globalStats?.totalPlayers || 0}</div>
             <p className="text-xs text-muted-foreground">Active players</p>
           </CardContent>
         </Card>
@@ -139,47 +180,47 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalDecks || 0}</div>
+            <div className="text-2xl font-bold">{userStats?.personalStats?.totalDecks || 0}</div>
             <p className="text-xs text-muted-foreground">Decks in your collection</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Games Played</CardTitle>
+            <CardTitle className="text-sm font-medium">Your Games</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalGames || 0}</div>
-            <p className="text-xs text-muted-foreground">Total games</p>
+            <div className="text-2xl font-bold">{userStats?.personalStats?.totalGames || 0}</div>
+            <p className="text-xs text-muted-foreground">Games you&apos;ve played</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Your Win Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.userWinRate || 0}%</div>
-            <p className="text-xs text-muted-foreground">Your success rate</p>
+            <div className="text-2xl font-bold">{userStats?.personalStats?.winRate || 0}%</div>
+            <p className="text-xs text-muted-foreground">Your personal win rate</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Games & Top Decks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Games */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Your Recent Games */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Games</CardTitle>
+            <CardTitle>Your Recent Games</CardTitle>
             <CardDescription>Your latest Commander matches</CardDescription>
           </CardHeader>
           <CardContent>
-            {stats?.recentGames && stats.recentGames.length > 0 ? (
+            {userStats?.recentUserGames && userStats.recentUserGames.length > 0 ? (
               <div className="space-y-4">
-                {stats.recentGames.slice(0, 5).map((game) => (
-                  <div key={game.id} className="flex items-center justify-between p-3 border rounded-lg">
+                {userStats.recentUserGames.slice(0, 5).map((game) => (
+                  <div key={game._id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-semibold text-sm">
                         {new Date(game.date).toLocaleDateString()}
@@ -210,20 +251,93 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Top Performing Decks */}
+        {/* Your Top Performing Decks */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Performing Decks</CardTitle>
+            <CardTitle>Your Top Performing Decks</CardTitle>
             <CardDescription>Your most successful commanders</CardDescription>
           </CardHeader>
           <CardContent>
-            {stats?.topDecks && stats.topDecks.length > 0 ? (
+            {userStats?.topUserDecks && userStats.topUserDecks.length > 0 ? (
               <div className="space-y-4">
-                {stats.topDecks.slice(0, 5).map((deck) => (
-                  <div key={deck.id} className="flex items-center justify-between p-3 border rounded-lg">
+                {userStats.topUserDecks.slice(0, 5).map((deck) => (
+                  <div key={deck._id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-semibold text-sm">{deck.name}</p>
                       <p className="text-xs text-muted-foreground">{deck.commander}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{deck.winRate}% WR</p>
+                      <p className="text-xs text-muted-foreground">
+                        {deck.gamesPlayed} games
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No decks added yet</p>
+                <Link href="/decks/new">
+                  <Button size="sm">Add Your First Deck</Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Global Recent Games & Top Decks */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* All Recent Games */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Games (All Players)</CardTitle>
+            <CardDescription>Latest games from the entire playgroup</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {globalStats?.recentActivity && globalStats.recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {globalStats.recentActivity.slice(0, 5).map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-semibold text-sm">
+                        {new Date(activity.date).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No games recorded yet</p>
+                <Link href="/games/new">
+                  <Button size="sm">Record Your First Game</Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* All Top Performing Decks */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performing Decks (All Players)</CardTitle>
+            <CardDescription>Most successful commanders across all players</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {globalStats?.topDecks && globalStats.topDecks.length > 0 ? (
+              <div className="space-y-4">
+                {globalStats.topDecks.slice(0, 5).map((deck) => (
+                  <div key={deck._id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-semibold text-sm">{deck.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {deck.commander} • {deck.owner?.nickname || deck.owner?.name}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">{deck.winRate}% WR</p>

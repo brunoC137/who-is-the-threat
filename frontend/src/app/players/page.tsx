@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Trophy, Target, TrendingUp, User } from 'lucide-react';
+import { Search, Trophy, Target, TrendingUp, User, Share2, UserPlus, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
+import { playersAPI } from '@/lib/api';
 
 interface Player {
   _id: string;
@@ -31,23 +32,14 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!token) return;
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          setPlayers(result.data || result);
-        }
+        const response = await playersAPI.getAll();
+        const result = response.data;
+        setPlayers(result.data || result);
       } catch (error) {
         console.error('Error fetching players:', error);
       } finally {
@@ -62,6 +54,32 @@ export default function PlayersPage() {
     player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (player.nickname && player.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleShareInvite = async () => {
+    const registerUrl = `${window.location.origin}/register`;
+    
+    try {
+      await navigator.clipboard.writeText(registerUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch (err) {
+      // Fallback for browsers that don't support clipboard API
+      console.error('Failed to copy to clipboard:', err);
+      // Create a temporary input element for fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = registerUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,10 +101,34 @@ export default function PlayersPage() {
             All registered players in your Commander group
           </p>
         </div>
-        {user?.isAdmin && (
-          <Button asChild className="mt-4 sm:mt-0">
-            <Link href="/players/invite">Invite Player</Link>
-          </Button>
+        
+        {user && (
+          <div className="flex gap-2 mt-4 sm:mt-0">
+            {/* Invite/Share button - shown to all users */}
+            <Button onClick={handleShareInvite} variant="outline">
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Invite Player
+                </>
+              )}
+            </Button>
+            
+            {/* Create Player button - shown only to admins */}
+            {user.isAdmin && (
+              <Button asChild>
+                <Link href="/players/new">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Create Player
+                </Link>
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -187,10 +229,21 @@ export default function PlayersPage() {
               : "No players have been registered yet."
             }
           </p>
-          {user?.isAdmin && !searchTerm && (
-            <Button asChild>
-              <Link href="/players/invite">Invite First Player</Link>
-            </Button>
+          {user && !searchTerm && (
+            <div className="flex gap-2 justify-center">
+              <Button onClick={handleShareInvite}>
+                <Share2 className="h-4 w-4 mr-2" />
+                {copied ? 'Copied!' : 'Invite Player'}
+              </Button>
+              {user.isAdmin && (
+                <Button variant="outline" asChild>
+                  <Link href="/players/new">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Player
+                  </Link>
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

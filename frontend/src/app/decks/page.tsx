@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Plus, ExternalLink, Trophy, Target, Layers, Filter } from 'lucide-react';
+import { Search, Plus, ExternalLink, Trophy, Target, Layers, Filter, Users, User } from 'lucide-react';
 import Link from 'next/link';
 
 interface Deck {
@@ -47,6 +47,7 @@ export default function DecksPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showAllDecks, setShowAllDecks] = useState(false); // Default to showing only user's decks
 
   useEffect(() => {
     const fetchDecks = async () => {
@@ -78,6 +79,9 @@ export default function DecksPage() {
   const allTags = Array.from(new Set(decks.flatMap(deck => deck.tags || [])));
 
   const filteredDecks = decks.filter(deck => {
+    // First filter by ownership if not showing all decks
+    const matchesOwnership = showAllDecks || (user && deck.owner._id === user.id);
+
     const matchesSearch = 
       deck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deck.commander.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,7 +94,7 @@ export default function DecksPage() {
     const matchesTags = selectedTags.length === 0 || 
       (deck.tags && selectedTags.some(tag => deck.tags!.includes(tag)));
 
-    return matchesSearch && matchesColors && matchesTags;
+    return matchesOwnership && matchesSearch && matchesColors && matchesTags;
   });
 
   const toggleColorFilter = (color: string) => {
@@ -126,15 +130,36 @@ export default function DecksPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Decks</h1>
           <p className="text-muted-foreground">
-            All Commander decks in your playgroup
+            {showAllDecks 
+              ? "All Commander decks in your playgroup" 
+              : "Your Commander decks"
+            }
           </p>
         </div>
-        <Button asChild className="mt-4 sm:mt-0">
-          <Link href="/decks/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Deck
-          </Link>
-        </Button>
+        <div className="flex gap-2 mt-4 sm:mt-0">
+          <Button 
+            variant={showAllDecks ? "default" : "outline"}
+            onClick={() => setShowAllDecks(!showAllDecks)}
+          >
+            {showAllDecks ? (
+              <>
+                <User className="h-4 w-4 mr-2" />
+                Show My Decks
+              </>
+            ) : (
+              <>
+                <Users className="h-4 w-4 mr-2" />
+                Show All Decks
+              </>
+            )}
+          </Button>
+          <Button asChild>
+            <Link href="/decks/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Deck
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -313,48 +338,71 @@ export default function DecksPage() {
           <p className="text-muted-foreground mb-6">
             {searchTerm || selectedColors.length > 0 || selectedTags.length > 0
               ? "No decks match your current filters"
-              : "No decks have been created yet."
+              : showAllDecks 
+                ? "No decks have been created yet."
+                : "You haven't created any decks yet."
             }
           </p>
           {(!searchTerm && selectedColors.length === 0 && selectedTags.length === 0) && (
-            <Button asChild>
-              <Link href="/decks/new">Create Your First Deck</Link>
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button asChild>
+                <Link href="/decks/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Deck
+                </Link>
+              </Button>
+              {!showAllDecks && decks.length > 0 && (
+                <Button variant="outline" onClick={() => setShowAllDecks(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  View All Decks
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
 
       {/* Quick Stats */}
-      {decks.length > 0 && (
+      {filteredDecks.length > 0 && (
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{decks.length}</CardTitle>
-              <CardDescription>Total Decks</CardDescription>
+              <CardTitle className="text-2xl">
+                {showAllDecks ? decks.length : (user ? decks.filter(d => d.owner._id === user.id).length : 0)}
+              </CardTitle>
+              <CardDescription>
+                {showAllDecks ? "Total Decks" : "Your Decks"}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          {showAllDecks && (
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">
+                  {user ? decks.filter(d => d.owner._id === user.id).length : 0}
+                </CardTitle>
+                <CardDescription>Your Decks</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">
+                {new Set(filteredDecks.map(d => d.commander)).size}
+              </CardTitle>
+              <CardDescription>
+                {showAllDecks ? "Unique Commanders" : "Your Commanders"}
+              </CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? decks.filter(d => d.owner._id === user.id).length : 0}
+                {Array.from(new Set(filteredDecks.flatMap(deck => deck.tags || []))).length}
               </CardTitle>
-              <CardDescription>Your Decks</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                {new Set(decks.map(d => d.commander)).size}
-              </CardTitle>
-              <CardDescription>Unique Commanders</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                {allTags.length}
-              </CardTitle>
-              <CardDescription>Different Archetypes</CardDescription>
+              <CardDescription>
+                {showAllDecks ? "Different Archetypes" : "Your Archetypes"}
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>

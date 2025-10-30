@@ -113,7 +113,7 @@ router.post('/', protect, [
     .isLength({ min: 1, max: 100 })
     .withMessage('Commander name must be between 1 and 100 characters'),
   body('decklistLink')
-    .optional()
+    .optional({ checkFalsy: true })
     .isURL()
     .withMessage('Decklist link must be a valid URL'),
   body('deckImage')
@@ -190,7 +190,7 @@ router.put('/:id', protect, [
     .isLength({ min: 1, max: 100 })
     .withMessage('Commander name must be between 1 and 100 characters'),
   body('decklistLink')
-    .optional()
+    .optional({ checkFalsy: true })
     .isURL()
     .withMessage('Decklist link must be a valid URL'),
   body('deckImage')

@@ -41,39 +41,40 @@ export default api;
 
 // API endpoints
 export const authAPI = {
-  register: (data: any) => api.post('/auth/register', data),
-  login: (data: any) => api.post('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
-  getMe: () => api.get('/auth/me'),
-  updateDetails: (data: any) => api.put('/auth/updatedetails', data),
-  updatePassword: (data: any) => api.put('/auth/updatepassword', data),
+  register: (data: any) => api.post('/api/auth/register', data),
+  login: (data: any) => api.post('/api/auth/login', data),
+  logout: () => api.post('/api/auth/logout'),
+  getMe: () => api.get('/api/auth/me'),
+  updateDetails: (data: any) => api.put('/api/auth/updatedetails', data),
+  updatePassword: (data: any) => api.put('/api/auth/updatepassword', data),
 };
 
 export const playersAPI = {
-  getAll: (params?: any) => api.get('/players', { params }),
-  getById: (id: string) => api.get(`/players/${id}`),
-  update: (id: string, data: any) => api.put(`/players/${id}`, data),
-  delete: (id: string) => api.delete(`/players/${id}`),
+  getAll: (params?: any) => api.get('/api/players', { params }),
+  getById: (id: string) => api.get(`/api/players/${id}`),
+  update: (id: string, data: any) => api.put(`/api/players/${id}`, data),
+  delete: (id: string) => api.delete(`/api/players/${id}`),
 };
 
 export const decksAPI = {
-  getAll: (params?: any) => api.get('/decks', { params }),
-  getById: (id: string) => api.get(`/decks/${id}`),
-  create: (data: any) => api.post('/decks', data),
-  update: (id: string, data: any) => api.put(`/decks/${id}`, data),
-  delete: (id: string) => api.delete(`/decks/${id}`),
+  getAll: (params?: any) => api.get('/api/decks', { params }),
+  getById: (id: string) => api.get(`/api/decks/${id}`),
+  create: (data: any) => api.post('/api/decks', data),
+  update: (id: string, data: any) => api.put(`/api/decks/${id}`, data),
+  delete: (id: string) => api.delete(`/api/decks/${id}`),
 };
 
 export const gamesAPI = {
-  getAll: (params?: any) => api.get('/games', { params }),
-  getById: (id: string) => api.get(`/games/${id}`),
-  create: (data: any) => api.post('/games', data),
-  update: (id: string, data: any) => api.put(`/games/${id}`, data),
-  delete: (id: string) => api.delete(`/games/${id}`),
+  getAll: (params?: any) => api.get('/api/games', { params }),
+  getById: (id: string) => api.get(`/api/games/${id}`),
+  create: (data: any) => api.post('/api/games', data),
+  update: (id: string, data: any) => api.put(`/api/games/${id}`, data),
+  delete: (id: string) => api.delete(`/api/games/${id}`),
 };
 
 export const statsAPI = {
-  getPlayerStats: (id: string) => api.get(`/stats/player/${id}`),
-  getDeckStats: (id: string) => api.get(`/stats/deck/${id}`),
-  getGlobalStats: () => api.get('/stats/global'),
+  getPlayerStats: (id: string) => api.get(`/api/stats/player/${id}`),
+  getDeckStats: (id: string) => api.get(`/api/stats/deck/${id}`),
+  getGlobalStats: () => api.get('/api/stats/global'),
+  getDashboardStats: () => api.get('/api/stats/dashboard'),
 };

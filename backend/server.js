@@ -20,17 +20,24 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting (more lenient in development)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 100 in production, 1000 in development
   message: 'Too many requests from this IP, please try again later.'
 });
-app.use(limiter);
+
+// Only apply rate limiting in production or if explicitly enabled
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_RATE_LIMITING === 'true') {
+  app.use(limiter);
+  console.log('🛡️  Rate limiting enabled');
+} else {
+  console.log('🔓 Rate limiting disabled for development');
+}
 
 // CORS configuration
 const allowedOrigins = [
-  'http://localhost:3000',
+  'http://localhost:3001',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
