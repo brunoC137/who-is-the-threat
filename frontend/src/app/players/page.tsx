@@ -147,70 +147,87 @@ export default function PlayersPage() {
       {filteredPlayers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredPlayers.map((player) => (
-            <Card key={player._id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="text-center pb-4">
-                <Avatar className="w-20 h-20 mx-auto mb-4">
+            <Card key={player._id} className="group relative overflow-hidden border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-glow-md hover:-translate-y-2">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="text-center pb-4 relative">
+                <Avatar className="w-24 h-24 mx-auto mb-4 ring-4 ring-border/50 group-hover:ring-primary/50 transition-all">
                   <AvatarImage src={player.profileImage} alt={player.name} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-accent/20">
                     {player.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <CardTitle className="text-lg">
+                <CardTitle className="text-lg font-bold">
                   {player.nickname || player.name}
                   {player.isAdmin && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
+                    <Badge variant="secondary" className="ml-2 text-xs bg-gradient-to-r from-warning to-warning/80 text-white border-0">
                       Admin
                     </Badge>
                   )}
                 </CardTitle>
                 {player.nickname && (
-                  <CardDescription>{player.name}</CardDescription>
+                  <CardDescription className="text-muted-foreground/80">{player.name}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative">
                 {player.stats ? (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-yellow-500" />
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <span className="flex items-center gap-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                          <Trophy className="h-4 w-4 text-warning" />
+                        </div>
                         Games Played
                       </span>
-                      <span className="font-semibold">{player.stats.gamesPlayed}</span>
+                      <span className="font-bold text-lg">{player.stats.gamesPlayed}</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-green-500" />
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <span className="flex items-center gap-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                          <Target className="h-4 w-4 text-success" />
+                        </div>
                         Wins
                       </span>
-                      <span className="font-semibold">{player.stats.wins}</span>
+                      <span className="font-bold text-lg text-success">{player.stats.wins}</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <span className="flex items-center gap-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                        </div>
                         Win Rate
                       </span>
-                      <span className="font-semibold">{player.stats.winRate}%</span>
+                      <span className={`font-bold text-lg ${
+                        player.stats.winRate >= 40 ? 'text-success' :
+                        player.stats.winRate >= 25 ? 'text-warning' :
+                        'text-muted-foreground'
+                      }`}>
+                        {player.stats.winRate}%
+                      </span>
                     </div>
                     {player.stats.favoriteCommander && (
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Favorite Commander</p>
-                        <p className="text-sm font-medium">{player.stats.favoriteCommander}</p>
+                      <div className="pt-3 mt-3 border-t border-border/50">
+                        <p className="text-xs text-muted-foreground mb-2">Favorite Commander</p>
+                        <p className="text-sm font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                          {player.stats.favoriteCommander}
+                        </p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <User className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                      <User className="h-8 w-8 text-muted-foreground" />
+                    </div>
                     <p className="text-sm text-muted-foreground">No games played yet</p>
                   </div>
                 )}
                 
                 <div className="mt-4 flex gap-2">
-                  <Button variant="default" size="sm" asChild className="flex-1">
+                  <Button variant="default" size="sm" asChild className="flex-1 shadow-glow-sm">
                     <Link href={`/players/${player._id}`}>View Profile</Link>
                   </Button>
                   {(user?.isAdmin || user?.id === player._id) && (
-                    <Button variant="outline" size="sm" asChild className="flex-1">
+                    <Button variant="outline" size="sm" asChild className="flex-1 hover:border-accent/50">
                       <Link href={`/players/${player._id}/edit`}>Edit</Link>
                     </Button>
                   )}

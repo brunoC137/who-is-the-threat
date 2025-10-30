@@ -209,12 +209,14 @@ export default function GamesPage() {
       {filteredAndSortedGames.length > 0 ? (
         <div className="space-y-6">
           {filteredAndSortedGames.map((game) => (
-            <Card key={game._id} className="hover:shadow-md transition-shadow">
+            <Card key={game._id} className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-glow-md">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
                       {new Date(game.date).toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
@@ -222,25 +224,25 @@ export default function GamesPage() {
                         day: 'numeric'
                       })}
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {game.players.length} players
+                    <CardDescription className="flex items-center gap-4 mt-3 ml-11">
+                      <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
+                        <Users className="h-4 w-4 text-accent" />
+                        <span className="font-medium">{game.players.length} players</span>
                       </span>
                       {game.durationMinutes && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {formatDuration(game.durationMinutes)}
+                        <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
+                          <Clock className="h-4 w-4 text-warning" />
+                          <span className="font-medium">{formatDuration(game.durationMinutes)}</span>
                         </span>
                       )}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2 mt-4 sm:mt-0">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="default" size="sm" asChild className="shadow-glow-sm">
                       <Link href={`/games/${game._id}`}>View Details</Link>
                     </Button>
                     {(user?.isAdmin || user?.id === game.createdBy._id) && (
-                      <Button variant="outline" size="sm" asChild>
+                      <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
                         <Link href={`/games/${game._id}/edit`}>Edit</Link>
                       </Button>
                     )}
@@ -256,32 +258,35 @@ export default function GamesPage() {
                     .map((participant) => (
                     <div
                       key={`${participant.player._id}-${participant.deck._id}`}
-                      className="flex items-center gap-3 p-3 border rounded-lg"
+                      className="group relative overflow-hidden rounded-xl border-2 border-border/50 bg-muted/20 p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-glow-sm"
                     >
-                      <Badge 
-                        variant="outline"
-                        className={`px-2 py-1 font-bold ${getPlacementColor(participant.placement)}`}
-                      >
-                        {getPlacementText(participant.placement)}
-                      </Badge>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Avatar className="w-6 h-6">
-                            <AvatarImage 
-                              src={participant.player.profileImage} 
-                              alt={participant.player.name} 
-                            />
-                            <AvatarFallback className="text-xs">
-                              {participant.player.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm truncate">
-                            {participant.player.nickname || participant.player.name}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          <div className="font-medium">{participant.deck.name}</div>
-                          <div>{participant.deck.commander}</div>
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative flex items-start gap-3">
+                        <Badge 
+                          variant="outline"
+                          className={`px-3 py-1.5 font-bold text-sm border-2 ${getPlacementColor(participant.placement)}`}
+                        >
+                          {getPlacementText(participant.placement)}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Avatar className="w-7 h-7 ring-2 ring-border/50">
+                              <AvatarImage 
+                                src={participant.player.profileImage} 
+                                alt={participant.player.name} 
+                              />
+                              <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
+                                {participant.player.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-semibold text-sm truncate">
+                              {participant.player.nickname || participant.player.name}
+                            </span>
+                          </div>
+                          <div className="text-xs space-y-1">
+                            <div className="font-semibold text-foreground/90">{participant.deck.name}</div>
+                            <div className="text-muted-foreground">{participant.deck.commander}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -290,21 +295,23 @@ export default function GamesPage() {
 
                 {/* Notes */}
                 {game.notes && (
-                  <div className="border-t pt-4">
-                    <div className="flex items-start gap-2">
-                      <StickyNote className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        <div className="text-sm font-medium mb-1">Notes</div>
-                        <p className="text-sm text-muted-foreground">{game.notes}</p>
+                  <div className="border-t border-border/50 pt-4 mt-4">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30">
+                      <div className="p-2 rounded-lg bg-warning/10">
+                        <StickyNote className="h-4 w-4 text-warning" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold mb-2">Game Notes</div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{game.notes}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Game Creator */}
-                <div className="border-t pt-4 mt-4">
+                <div className="border-t border-border/50 pt-4 mt-4">
                   <p className="text-xs text-muted-foreground">
-                    Recorded by {game.createdBy.nickname || game.createdBy.name} • {' '}
+                    Recorded by <span className="font-medium text-foreground">{game.createdBy.nickname || game.createdBy.name}</span> • {' '}
                     {new Date(game.createdAt).toLocaleDateString()}
                   </p>
                 </div>
