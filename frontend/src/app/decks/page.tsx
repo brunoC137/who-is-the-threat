@@ -235,18 +235,21 @@ export default function DecksPage() {
       {filteredDecks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredDecks.map((deck) => (
-            <Card key={deck._id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-4">
+            <Card key={deck._id} className="group relative overflow-hidden border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-glow-md hover:-translate-y-2">
+              <CardHeader className="pb-4 relative">
                 {deck.deckImage ? (
-                  <div className="w-full h-48 rounded-lg mb-4 bg-cover bg-center" 
-                       style={{ backgroundImage: `url(${deck.deckImage})` }} />
+                  <div className="relative w-full h-48 rounded-lg mb-4 overflow-hidden">
+                    <div className="w-full h-full bg-cover bg-center transition-transform duration-300 group-hover:scale-110" 
+                         style={{ backgroundImage: `url(${deck.deckImage})` }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 ) : (
-                  <div className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
-                    <Layers className="h-12 w-12 text-white" />
+                  <div className="w-full h-48 bg-gradient-to-br from-primary via-accent to-primary/80 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden animated-gradient">
+                    <Layers className="h-12 w-12 text-white drop-shadow-lg relative z-10" />
                   </div>
                 )}
-                <CardTitle className="text-lg">{deck.name}</CardTitle>
-                <CardDescription className="font-medium text-foreground">
+                <CardTitle className="text-lg font-bold">{deck.name}</CardTitle>
+                <CardDescription className="font-medium text-foreground/90">
                   {deck.commander}
                 </CardDescription>
               </CardHeader>
@@ -254,9 +257,9 @@ export default function DecksPage() {
               <CardContent className="space-y-4">
                 {/* Owner */}
                 <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6">
+                  <Avatar className="w-7 h-7 ring-2 ring-border/50">
                     <AvatarImage src={deck.owner.profileImage} alt={deck.owner.name} />
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
                       {deck.owner.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -267,24 +270,23 @@ export default function DecksPage() {
 
                 {/* Color Identity */}
                 {deck.colorIdentity && deck.colorIdentity.length > 0 && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-1.5">
                     {deck.colorIdentity.map(color => (
-                      <Badge
+                      <div
                         key={color}
-                        variant="outline"
-                        className={`text-xs ${colorMap[color]?.color || 'bg-gray-100 text-gray-800'}`}
+                        className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold border-2 transition-transform hover:scale-110 ${colorMap[color]?.color || 'bg-gray-100 text-gray-800'}`}
                       >
                         {color}
-                      </Badge>
+                      </div>
                     ))}
                   </div>
                 )}
 
                 {/* Tags */}
                 {deck.tags && deck.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {deck.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                      <Badge key={tag} variant="secondary" className="text-xs px-2 py-0.5 bg-muted/50 hover:bg-muted transition-colors">
                         {tag}
                       </Badge>
                     ))}
@@ -293,36 +295,42 @@ export default function DecksPage() {
 
                 {/* Stats */}
                 {deck.stats && (
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center">
-                      <div className="font-semibold">{deck.stats.gamesPlayed}</div>
-                      <div className="text-muted-foreground">Games</div>
+                  <div className="grid grid-cols-3 gap-3 pt-2">
+                    <div className="text-center rounded-lg bg-muted/30 p-2">
+                      <div className="text-lg font-bold text-foreground">{deck.stats.gamesPlayed}</div>
+                      <div className="text-xs text-muted-foreground">Games</div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-semibold">{deck.stats.wins}</div>
-                      <div className="text-muted-foreground">Wins</div>
+                    <div className="text-center rounded-lg bg-muted/30 p-2">
+                      <div className="text-lg font-bold text-success">{deck.stats.wins}</div>
+                      <div className="text-xs text-muted-foreground">Wins</div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-semibold">{deck.stats.winRate}%</div>
-                      <div className="text-muted-foreground">Win Rate</div>
+                    <div className="text-center rounded-lg bg-muted/30 p-2">
+                      <div className={`text-lg font-bold ${
+                        deck.stats.winRate >= 50 ? 'text-success' :
+                        deck.stats.winRate >= 30 ? 'text-warning' :
+                        'text-muted-foreground'
+                      }`}>
+                        {deck.stats.winRate}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">WR</div>
                     </div>
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" asChild className="flex-1">
+                  <Button variant="default" size="sm" asChild className="flex-1 shadow-glow-sm">
                     <Link href={`/decks/${deck._id}`}>View</Link>
                   </Button>
                   {deck.decklistLink && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="hover:border-primary/50">
                       <a href={deck.decklistLink} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </Button>
                   )}
                   {(user?.isAdmin || user?.id === deck.owner._id) && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
                       <Link href={`/decks/${deck._id}/edit`}>Edit</Link>
                     </Button>
                   )}
