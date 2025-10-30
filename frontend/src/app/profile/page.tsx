@@ -53,25 +53,12 @@ export default function ProfilePage() {
     profileImage: user?.profileImage || '',
   });
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name,
-        nickname: user.nickname || '',
-        profileImage: user.profileImage || '',
-      });
-      
-      // Fetch user stats
-      fetchUserStats();
-    }
-  }, [user, fetchUserStats]);
-
   const fetchUserStats = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token || !user) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/player/${user._id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/player/${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -86,6 +73,19 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        nickname: user.nickname || '',
+        profileImage: user.profileImage || '',
+      });
+      
+      // Fetch user stats
+      fetchUserStats();
+    }
+  }, [user, fetchUserStats]);
+
   const handleSave = async () => {
     if (!user) return;
     
@@ -94,7 +94,7 @@ export default function ProfilePage() {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players/${user._id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +209,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                    <span>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</span>
                   </div>
                 </div>
               )}

@@ -336,7 +336,7 @@ export default function DecksPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? decks.filter(d => d.owner._id === user._id).length : 0}
+                {user ? decks.filter(d => d.owner._id === user.id).length : 0}
               </CardTitle>
               <CardDescription>Your Decks</CardDescription>
             </CardHeader>

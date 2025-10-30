@@ -342,7 +342,7 @@ export default function GamesPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player._id === user._id)).length : 0}
+                {user ? games.filter(g => g.players.some(p => p.player._id === user.id)).length : 0}
               </CardTitle>
               <CardDescription>Games You Played</CardDescription>
             </CardHeader>
@@ -350,9 +350,9 @@ export default function GamesPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player._id === user._id && p.placement === 1)).length : 0}
+                {user ? games.filter(g => g.players.some(p => p.player._id === user.id && p.placement === 1)).length : 0}
               </CardTitle>
-              <CardDescription>Your Wins</CardDescription>
+              <CardDescription>Games You Won</CardDescription>
             </CardHeader>
           </Card>
           <Card>

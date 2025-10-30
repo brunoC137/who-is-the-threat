@@ -10,6 +10,7 @@ interface User {
   email: string;
   profileImage?: string;
   isAdmin: boolean;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -31,7 +32,7 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
