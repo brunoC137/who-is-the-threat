@@ -126,6 +126,12 @@ export default function NewGame3Page() {
     ));
   };
 
+  const clearPlacement = (id: string) => {
+    setGamePlayers(gamePlayers.map(p => 
+      p.id === id ? { ...p, placement: undefined } : p
+    ));
+  };
+
   const getPlayerById = (playerId: string) => {
     return players.find(p => p._id === playerId);
   };
@@ -450,7 +456,7 @@ export default function NewGame3Page() {
                       {gp.placement && (
                         <button
                           type="button"
-                          onClick={() => setPlacement(gp.id, undefined as any)}
+                          onClick={() => clearPlacement(gp.id)}
                           className="px-3 py-1.5 rounded-md border-2 border-gray-300 bg-white text-gray-600 hover:bg-gray-50 font-medium text-xs"
                         >
                           Clear
