@@ -20,6 +20,7 @@ interface AuthContextType {
   register: (userData: any) => Promise<void>;
   logout: () => void;
   updateUser: (userData: any) => Promise<void>;
+  setUserData: (userData: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,6 +123,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const setUserData = (userData: User) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+    setUser(userData);
+  };
+
   const value = {
     user,
     loading,
@@ -129,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     register,
     logout,
     updateUser,
+    setUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

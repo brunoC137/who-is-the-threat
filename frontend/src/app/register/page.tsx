@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, User, Mail, Loader2, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Loader2, UserPlus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -140,25 +140,53 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-900/50 to-slate-950" />
+      
+      {/* Floating Particles Effect */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${3 + Math.random() * 4}s`
+            }}
+          >
+            <UserPlus className="h-2 w-2 text-purple-400/30" />
+          </div>
+        ))}
+      </div>
+
+      <div className="relative z-10 max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-primary mb-2">
+          <div className="relative inline-block mb-6">
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-30 animate-pulse"></div>
+            <div className="relative bg-slate-900/90 backdrop-blur-sm rounded-full p-4 border border-slate-700/50">
+              <UserPlus className="h-12 w-12 text-purple-400 mx-auto" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">
             Join the Playgroup
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-400">
             Create your account to start tracking Commander games
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-900/90 backdrop-blur-sm border-slate-700/50 shadow-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-white text-xl">
+              <UserPlus className="h-5 w-5 text-purple-400" />
               Create Account
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-400">
               Fill in your details to join Guerreiros do Segundo Lugar
             </CardDescription>
           </CardHeader>
@@ -166,7 +194,7 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
-                <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+                <label htmlFor="name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Full Name *
                 </label>
@@ -176,16 +204,16 @@ export default function RegisterPage() {
                   value={formData.name}
                   onChange={handleInputChange('name')}
                   placeholder="Enter your full name"
-                  className={errors.name ? 'border-red-500' : ''}
+                  className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.name ? 'border-red-500' : ''}`}
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                  <p className="text-sm text-red-400 mt-1">{errors.name}</p>
                 )}
               </div>
 
               {/* Nickname */}
               <div>
-                <label htmlFor="nickname" className="text-sm font-medium">
+                <label htmlFor="nickname" className="text-sm font-medium text-gray-300">
                   Nickname (Optional)
                 </label>
                 <Input
@@ -194,15 +222,16 @@ export default function RegisterPage() {
                   value={formData.nickname}
                   onChange={handleInputChange('nickname')}
                   placeholder="Display name for games"
+                  className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   This will be shown during games if provided
                 </p>
               </div>
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+                <label htmlFor="email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
                   Email Address *
                 </label>
@@ -212,16 +241,16 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleInputChange('email')}
                   placeholder="Enter your email"
-                  className={errors.email ? 'border-red-500' : ''}
+                  className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.email ? 'border-red-500' : ''}`}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                  <p className="text-sm text-red-400 mt-1">{errors.email}</p>
                 )}
               </div>
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="text-sm font-medium">
+                <label htmlFor="password" className="text-sm font-medium text-gray-300">
                   Password *
                 </label>
                 <div className="relative">
@@ -231,30 +260,30 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleInputChange('password')}
                     placeholder="Create a secure password"
-                    className={errors.password ? 'border-red-500' : ''}
+                    className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-300"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                  <p className="text-sm text-red-400 mt-1">{errors.password}</p>
                 )}
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-300">
                   Confirm Password *
                 </label>
                 <div className="relative">
@@ -264,30 +293,30 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange('confirmPassword')}
                     placeholder="Confirm your password"
-                    className={errors.confirmPassword ? 'border-red-500' : ''}
+                    className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-300"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm text-red-500 mt-1">{errors.confirmPassword}</p>
+                  <p className="text-sm text-red-400 mt-1">{errors.confirmPassword}</p>
                 )}
               </div>
 
               {/* Profile Image */}
               <div>
-                <label htmlFor="profileImage" className="text-sm font-medium">
+                <label htmlFor="profileImage" className="text-sm font-medium text-gray-300">
                   Profile Image URL (Optional)
                 </label>
                 <Input
@@ -296,18 +325,22 @@ export default function RegisterPage() {
                   value={formData.profileImage}
                   onChange={handleInputChange('profileImage')}
                   placeholder="https://example.com/your-photo.jpg"
-                  className={errors.profileImage ? 'border-red-500' : ''}
+                  className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.profileImage ? 'border-red-500' : ''}`}
                 />
                 {errors.profileImage && (
-                  <p className="text-sm text-red-500 mt-1">{errors.profileImage}</p>
+                  <p className="text-sm text-red-400 mt-1">{errors.profileImage}</p>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Link to your profile picture (Gravatar, social media, etc.)
                 </p>
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 text-base border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -322,21 +355,28 @@ export default function RegisterPage() {
               </Button>
 
               {errors.submit && (
-                <div className="text-center">
-                  <p className="text-sm text-red-500">{errors.submit}</p>
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm text-center">{errors.submit}</p>
                 </div>
               )}
 
               {/* Login Link */}
-              <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="text-primary hover:underline">
-                  Sign in here
-                </Link>
+              <div className="text-center pt-4 border-t border-slate-700/50">
+                <p className="text-gray-400 text-sm">
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
+                    Sign in here
+                  </Link>
+                </p>
               </div>
             </form>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <p className="mt-8 text-center text-xs text-gray-500">
+          Welcome to the multiverse of Commander! 🎯
+        </p>
       </div>
     </div>
   );
