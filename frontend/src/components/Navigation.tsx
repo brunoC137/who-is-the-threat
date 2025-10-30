@@ -69,10 +69,15 @@ export function Navigation({ children }: NavigationProps) {
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 border-r">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card/50 backdrop-blur-xl border-r border-border/50 px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <Link href="/dashboard" className="text-xl font-bold text-primary">
-              Guerreiros do Segundo Lugar
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-sm">
+                <Trophy className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Guerreiros
+              </span>
             </Link>
           </div>
           <nav className="flex flex-1 flex-col">
@@ -85,13 +90,13 @@ export function Navigation({ children }: NavigationProps) {
                       <li key={item.name}>
                         <Link
                           href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors ${
+                          className={`group flex gap-x-3 rounded-lg p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
                             isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                              ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-glow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }`}
                         >
-                          <item.icon className="h-6 w-6 shrink-0" />
+                          <item.icon className={`h-6 w-6 shrink-0 ${isActive ? 'text-white' : ''}`} />
                           {item.name}
                         </Link>
                       </li>
@@ -100,25 +105,25 @@ export function Navigation({ children }: NavigationProps) {
                 </ul>
               </li>
               <li className="mt-auto">
-                <div className="border-t pt-4">
+                <div className="border-t border-border/50 pt-4">
                   <div className="flex items-center gap-x-4 px-2 py-3 text-sm font-semibold text-foreground">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4" />
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-primary/30">
+                      <User className="h-5 w-5 text-primary" />
                     </div>
                     <span className="sr-only">Your profile</span>
-                    <span>{user?.nickname || user?.name}</span>
+                    <span className="truncate">{user?.nickname || user?.name}</span>
                   </div>
                   <div className="mt-2 space-y-1">
                     <Link
                       href="/profile"
-                      className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                     >
                       <User className="h-6 w-6 shrink-0" />
                       Profile
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                     >
                       <LogOut className="h-6 w-6 shrink-0" />
                       Sign out
@@ -133,7 +138,7 @@ export function Navigation({ children }: NavigationProps) {
 
       {/* Mobile Navigation */}
       <div className="lg:hidden">
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b bg-background px-4 shadow-sm sm:gap-x-6 sm:px-6">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-border/50 bg-card/80 backdrop-blur-xl px-4 shadow-sm sm:gap-x-6 sm:px-6">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -146,11 +151,16 @@ export function Navigation({ children }: NavigationProps) {
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1 items-center justify-between">
-              <Link href="/dashboard" className="text-lg font-bold text-primary">
-                Guerreiros
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-sm">
+                  <Trophy className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Guerreiros
+                </span>
               </Link>
               <Link href="/games/new">
-                <Button size="sm">
+                <Button size="sm" className="shadow-glow-sm">
                   <Plus className="h-4 w-4 mr-2" />
                   New Game
                 </Button>
@@ -163,17 +173,22 @@ export function Navigation({ children }: NavigationProps) {
         {isOpen && (
           <>
             <div 
-              className="fixed inset-0 z-40 bg-black/50"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
             />
-            <div className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r">
+            <div className="fixed inset-y-0 left-0 z-50 w-72 bg-card/95 backdrop-blur-xl border-r border-border/50">
               <div className="flex h-16 shrink-0 items-center px-6">
                 <Link 
                   href="/dashboard" 
-                  className="text-lg font-bold text-primary"
+                  className="flex items-center gap-2"
                   onClick={() => setIsOpen(false)}
                 >
-                  Guerreiros do Segundo Lugar
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-sm">
+                    <Trophy className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    Guerreiros
+                  </span>
                 </Link>
               </div>
               <nav className="flex flex-1 flex-col px-6 pb-4">
@@ -187,13 +202,13 @@ export function Navigation({ children }: NavigationProps) {
                             <Link
                               href={item.href}
                               onClick={() => setIsOpen(false)}
-                              className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors ${
+                              className={`group flex gap-x-3 rounded-lg p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
                                 isActive
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-glow-sm'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                               }`}
                             >
-                              <item.icon className="h-6 w-6 shrink-0" />
+                              <item.icon className={`h-6 w-6 shrink-0 ${isActive ? 'text-white' : ''}`} />
                               {item.name}
                             </Link>
                           </li>
@@ -202,25 +217,25 @@ export function Navigation({ children }: NavigationProps) {
                     </ul>
                   </li>
                   <li className="mt-auto">
-                    <div className="border-t pt-4">
+                    <div className="border-t border-border/50 pt-4">
                       <div className="flex items-center gap-x-4 px-2 py-3 text-sm font-semibold text-foreground">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-4 w-4" />
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-primary/30">
+                          <User className="h-5 w-5 text-primary" />
                         </div>
-                        <span>{user?.nickname || user?.name}</span>
+                        <span className="truncate">{user?.nickname || user?.name}</span>
                       </div>
                       <div className="mt-2 space-y-1">
                         <Link
                           href="/profile"
                           onClick={() => setIsOpen(false)}
-                          className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-accent"
+                          className="group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                         >
                           <User className="h-6 w-6 shrink-0" />
                           Profile
                         </Link>
                         <button
                           onClick={handleLogout}
-                          className="group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-accent"
+                          className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                         >
                           <LogOut className="h-6 w-6 shrink-0" />
                           Sign out
