@@ -31,18 +31,23 @@ app.use(limiter);
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://guerreiros-do-segundo-lugar-cqx63p5lvercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps or curl requests)  
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Allow all Vercel deployment URLs (including preview deployments)
+    if (origin && (
+      origin.includes('vercel.app') ||
+      origin.includes('localhost') ||
+      allowedOrigins.includes(origin)
+    )) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
