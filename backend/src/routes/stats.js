@@ -198,9 +198,20 @@ router.get('/player/:id', protect, async (req, res, next) => {
     });
 
     // Populate player info for elimination stats
+    const allEliminationPlayerIds = [
+      ...Object.keys(eliminationStats.playersEliminated),
+      ...Object.keys(eliminationStats.eliminatedBy)
+    ];
+    
+    const eliminationPlayers = allEliminationPlayerIds.length > 0 
+      ? await Player.find({ _id: { $in: allEliminationPlayerIds } }).select('name nickname profileImage')
+      : [];
+    
+    const playerMap = new Map(eliminationPlayers.map(p => [p._id.toString(), p]));
+
     const playersEliminatedArray = [];
     for (const [victimId, data] of Object.entries(eliminationStats.playersEliminated)) {
-      const victim = await Player.findById(victimId).select('name nickname profileImage');
+      const victim = playerMap.get(victimId);
       if (victim) {
         playersEliminatedArray.push({
           player: victim,
@@ -212,7 +223,7 @@ router.get('/player/:id', protect, async (req, res, next) => {
 
     const eliminatedByArray = [];
     for (const [eliminatorId, data] of Object.entries(eliminationStats.eliminatedBy)) {
-      const eliminator = await Player.findById(eliminatorId).select('name nickname profileImage');
+      const eliminator = playerMap.get(eliminatorId);
       if (eliminator) {
         eliminatedByArray.push({
           player: eliminator,
