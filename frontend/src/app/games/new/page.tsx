@@ -17,9 +17,27 @@ import {
   Trophy,
   Clock,
   Users,
-  Layers
+  GripVertical,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Player {
   _id: string;
@@ -40,12 +58,117 @@ interface Deck {
 }
 
 interface GamePlayer {
+  id: string; // Unique ID for drag and drop
   player: string;
   deck: string;
-  placement?: number;
 }
 
-export default function NewGamePage() {
+function SortablePlayerCard({ 
+  gamePlayer, 
+  index, 
+  selectedPlayer, 
+  selectedDeck,
+  onRemove 
+}: { 
+  gamePlayer: GamePlayer;
+  index: number;
+  selectedPlayer?: Player;
+  selectedDeck?: Deck;
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: gamePlayer.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const getPlacementBadge = (placement: number) => {
+    const badges = [
+      { text: '🥇 1st', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+      { text: '🥈 2nd', color: 'bg-gray-100 text-gray-800 border-gray-300' },
+      { text: '🥉 3rd', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+      { text: '4th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+      { text: '5th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+      { text: '6th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+    ];
+    return badges[placement - 1] || badges[3];
+  };
+
+  const placementBadge = getPlacementBadge(index + 1);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group relative bg-card border-2 border-border rounded-lg p-4 touch-none"
+    >
+      <div className="flex items-center gap-3">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing touch-none p-2 hover:bg-muted rounded"
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </div>
+
+        {/* Placement Badge */}
+        <Badge 
+          variant="outline"
+          className={`px-3 py-1.5 font-bold text-sm border-2 min-w-[60px] text-center ${placementBadge.color}`}
+        >
+          {placementBadge.text}
+        </Badge>
+
+        {/* Player Info */}
+        {selectedPlayer && selectedDeck ? (
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Avatar className="w-10 h-10 ring-2 ring-border">
+              <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
+              <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-accent/20">
+                {selectedPlayer.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">
+                {selectedPlayer.nickname || selectedPlayer.name}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {selectedDeck.name} • {selectedDeck.commander}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 text-sm text-muted-foreground">
+            Incomplete selection
+          </div>
+        )}
+
+        {/* Remove Button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function NewGame2Page() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -53,13 +176,28 @@ export default function NewGamePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
 
+  const [gamePlayers, setGamePlayers] = useState<GamePlayer[]>([]);
   const [formData, setFormData] = useState({
-    players: [] as GamePlayer[],
     durationMinutes: '',
     notes: '',
   });
 
+  // Selection state for adding new players
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [selectedDeckId, setSelectedDeckId] = useState('');
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,7 +205,6 @@ export default function NewGamePage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
 
-        // Fetch players and decks
         const [playersResponse, decksResponse] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -93,38 +230,57 @@ export default function NewGamePage() {
     fetchData();
   }, []);
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setGamePlayers((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const addPlayer = () => {
+    if (!selectedPlayerId || !selectedDeckId) {
+      setErrors({ selection: 'Please select both a player and a deck' });
+      return;
+    }
+
+    const newGamePlayer: GamePlayer = {
+      id: `${selectedPlayerId}-${selectedDeckId}-${Date.now()}`,
+      player: selectedPlayerId,
+      deck: selectedDeckId,
+    };
+
+    setGamePlayers([...gamePlayers, newGamePlayer]);
+    setSelectedPlayerId('');
+    setSelectedDeckId('');
+    setErrors({});
+  };
+
+  const removePlayer = (id: string) => {
+    setGamePlayers(gamePlayers.filter(p => p.id !== id));
+  };
+
+  const getPlayerById = (playerId: string) => {
+    return players.find(p => p._id === playerId);
+  };
+
+  const getDeckById = (deckId: string) => {
+    return decks.find(d => d._id === deckId);
+  };
+
+  const getPlayerDecks = (playerId: string) => {
+    return decks.filter(deck => deck.owner._id === playerId);
+  };
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (formData.players.length < 2) {
+    if (gamePlayers.length < 2) {
       newErrors.players = 'At least 2 players are required';
-    }
-
-    // Check if all players have decks selected
-    const playersWithoutDecks = formData.players.filter(p => !p.deck);
-    if (playersWithoutDecks.length > 0) {
-      newErrors.decks = 'All players must have a deck selected';
-    }
-
-    // Check for duplicate placements
-    const placements = formData.players
-      .map(p => p.placement)
-      .filter(p => p !== undefined && p !== null);
-    
-    const uniquePlacements = Array.from(new Set(placements));
-    if (placements.length > 0 && placements.length !== uniquePlacements.length) {
-      newErrors.placements = 'Each placement must be unique';
-    }
-
-    // Check if placements are sequential starting from 1
-    if (placements.length > 0) {
-      const sortedPlacements = placements.sort((a, b) => a! - b!);
-      for (let i = 0; i < sortedPlacements.length; i++) {
-        if (sortedPlacements[i] !== i + 1) {
-          newErrors.placements = 'Placements must be sequential starting from 1st place';
-          break;
-        }
-      }
     }
 
     if (formData.durationMinutes && (isNaN(Number(formData.durationMinutes)) || Number(formData.durationMinutes) <= 0)) {
@@ -148,8 +304,15 @@ export default function NewGamePage() {
         return;
       }
 
+      // Map gamePlayers to API format with placement based on order
+      const playersData = gamePlayers.map((gp, index) => ({
+        player: gp.player,
+        deck: gp.deck,
+        placement: index + 1, // Position in array determines placement
+      }));
+
       const gameData = {
-        players: formData.players,
+        players: playersData,
         durationMinutes: formData.durationMinutes ? Number(formData.durationMinutes) : undefined,
         notes: formData.notes || undefined,
       };
@@ -176,41 +339,6 @@ export default function NewGamePage() {
     }
   };
 
-  const addPlayer = () => {
-    setFormData(prev => ({
-      ...prev,
-      players: [...prev.players, { player: '', deck: '' }]
-    }));
-  };
-
-  const removePlayer = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      players: prev.players.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updatePlayer = (index: number, field: keyof GamePlayer, value: string | number | undefined) => {
-    setFormData(prev => ({
-      ...prev,
-      players: prev.players.map((p, i) => 
-        i === index ? { ...p, [field]: value } : p
-      )
-    }));
-  };
-
-  const getPlayerDecks = (playerId: string) => {
-    return decks.filter(deck => deck.owner._id === playerId);
-  };
-
-  const getPlayerById = (playerId: string) => {
-    return players.find(p => p._id === playerId);
-  };
-
-  const getDeckById = (deckId: string) => {
-    return decks.find(d => d._id === deckId);
-  };
-
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -234,6 +362,8 @@ export default function NewGamePage() {
     );
   }
 
+  const availableDecks = selectedPlayerId ? getPlayerDecks(selectedPlayerId) : [];
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* Header */}
@@ -243,144 +373,146 @@ export default function NewGamePage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold">Record New Game</h1>
-          <p className="text-muted-foreground">Track a Commander game session</p>
+          <p className="text-muted-foreground">Version 2: Drag to reorder placement</p>
         </div>
+        <Link href="/games/new">
+          <Button variant="outline" size="sm">Original</Button>
+        </Link>
       </div>
 
+      {/* Info Banner */}
+      <Card className="mb-6 bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 mb-1">How it works</h3>
+              <ol className="text-sm text-blue-700 space-y-1">
+                <li>1. Add players and their decks using the form below</li>
+                <li>2. Drag players to reorder them by placement (top = winner)</li>
+                <li>3. Add game details and submit!</li>
+              </ol>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Players Section */}
+        {/* Add Player Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Players & Decks
+              <Plus className="h-5 w-5" />
+              Add Player
             </CardTitle>
-            <CardDescription>Add players and their decks for this game</CardDescription>
+            <CardDescription>Select a player and their deck</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {formData.players.map((gamePlayer, index) => {
-              const selectedPlayer = getPlayerById(gamePlayer.player);
-              const selectedDeck = getDeckById(gamePlayer.deck);
-              const playerDecks = gamePlayer.player ? getPlayerDecks(gamePlayer.player) : [];
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Player Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Player</label>
+                <select
+                  value={selectedPlayerId}
+                  onChange={(e) => {
+                    setSelectedPlayerId(e.target.value);
+                    setSelectedDeckId(''); // Reset deck when player changes
+                  }}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Select Player</option>
+                  {players.map(player => (
+                    <option key={player._id} value={player._id}>
+                      {player.nickname || player.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              return (
-                <div key={index} className="p-4 border rounded-lg space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Player {index + 1}</h4>
-                    {formData.players.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removePlayer(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+              {/* Deck Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Deck</label>
+                <select
+                  value={selectedDeckId}
+                  onChange={(e) => setSelectedDeckId(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  disabled={!selectedPlayerId}
+                >
+                  <option value="">Select Deck</option>
+                  {availableDecks.map(deck => (
+                    <option key={deck._id} value={deck._id}>
+                      {deck.name} ({deck.commander})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Player Selection */}
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Player</label>
-                      <select
-                        value={gamePlayer.player}
-                        onChange={(e) => {
-                          updatePlayer(index, 'player', e.target.value);
-                          updatePlayer(index, 'deck', ''); // Reset deck when player changes
-                        }}
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="">Select Player</option>
-                        {players.map(player => (
-                          <option key={player._id} value={player._id}>
-                            {player.nickname || player.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Deck Selection */}
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Deck</label>
-                      <select
-                        value={gamePlayer.deck}
-                        onChange={(e) => updatePlayer(index, 'deck', e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                        disabled={!gamePlayer.player}
-                      >
-                        <option value="">Select Deck</option>
-                        {playerDecks.map(deck => (
-                          <option key={deck._id} value={deck._id}>
-                            {deck.name} ({deck.commander})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Placement */}
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Placement</label>
-                      <select
-                        value={gamePlayer.placement || ''}
-                        onChange={(e) => updatePlayer(index, 'placement', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="">Not finished</option>
-                        <option value="1">1st Place 🥇</option>
-                        <option value="2">2nd Place 🥈</option>
-                        <option value="3">3rd Place 🥉</option>
-                        <option value="4">4th Place</option>
-                        <option value="5">5th Place</option>
-                        <option value="6">6th Place</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Player/Deck Preview */}
-                  {selectedPlayer && selectedDeck && (
-                    <div className="flex items-center gap-3 p-2 bg-muted rounded-md">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
-                        <AvatarFallback className="text-xs">
-                          {selectedPlayer.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {selectedPlayer.nickname || selectedPlayer.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedDeck.name} • {selectedDeck.commander}
-                        </p>
-                      </div>
-                      {gamePlayer.placement && (
-                        <Badge variant={gamePlayer.placement === 1 ? "default" : "outline"}>
-                          {gamePlayer.placement === 1 ? '🥇 Winner' : `${gamePlayer.placement}${getOrdinalSuffix(gamePlayer.placement)} Place`}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            <Button type="button" onClick={addPlayer} variant="outline" className="w-full">
+            <Button 
+              type="button" 
+              onClick={addPlayer} 
+              className="w-full"
+              disabled={!selectedPlayerId || !selectedDeckId}
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Add Player
+              Add to Game
             </Button>
+
+            {errors.selection && (
+              <p className="text-sm text-red-500">{errors.selection}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Players List - Drag to Reorder */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Game Players (Drag to Reorder)
+            </CardTitle>
+            <CardDescription>
+              {gamePlayers.length > 0 
+                ? `${gamePlayers.length} player${gamePlayers.length !== 1 ? 's' : ''} • Top position = Winner`
+                : 'No players added yet'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {gamePlayers.length > 0 ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={gamePlayers.map(gp => gp.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {gamePlayers.map((gp, index) => (
+                    <SortablePlayerCard
+                      key={gp.id}
+                      gamePlayer={gp}
+                      index={index}
+                      selectedPlayer={getPlayerById(gp.player)}
+                      selectedDeck={getDeckById(gp.deck)}
+                      onRemove={() => removePlayer(gp.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Add players to start recording the game</p>
+              </div>
+            )}
 
             {errors.players && (
               <p className="text-sm text-red-500">{errors.players}</p>
-            )}
-            {errors.decks && (
-              <p className="text-sm text-red-500">{errors.decks}</p>
-            )}
-            {errors.placements && (
-              <p className="text-sm text-red-500">{errors.placements}</p>
             )}
           </CardContent>
         </Card>
@@ -389,7 +521,7 @@ export default function NewGamePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5" />
+              <Clock className="h-5 w-5" />
               Game Details
             </CardTitle>
             <CardDescription>Optional information about the game</CardDescription>
@@ -461,13 +593,4 @@ export default function NewGamePage() {
       </form>
     </div>
   );
-}
-
-function getOrdinalSuffix(num: number): string {
-  const j = num % 10;
-  const k = num % 100;
-  if (j === 1 && k !== 11) return 'st';
-  if (j === 2 && k !== 12) return 'nd';
-  if (j === 3 && k !== 13) return 'rd';
-  return 'th';
 }
