@@ -12,7 +12,7 @@ const router = express.Router();
 router.get('/', protect, async (req, res, next) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 25;
+    const limit = parseInt(req.query.limit, 10) || 100;
     const startIndex = (page - 1) * limit;
 
     // Build query object
