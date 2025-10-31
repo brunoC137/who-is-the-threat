@@ -43,6 +43,7 @@ router.get('/', protect, async (req, res, next) => {
       .populate('createdBy', 'name nickname')
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage')
+      .populate('players.eliminatedBy', 'name nickname profileImage')
       .skip(startIndex)
       .limit(limit)
       .sort({ date: -1 });
@@ -81,7 +82,8 @@ router.get('/:id', protect, async (req, res, next) => {
     const game = await Game.findById(req.params.id)
       .populate('createdBy', 'name nickname profileImage')
       .populate('players.player', 'name nickname profileImage')
-      .populate('players.deck', 'name commander deckImage colorIdentity');
+      .populate('players.deck', 'name commander deckImage colorIdentity')
+      .populate('players.eliminatedBy', 'name nickname profileImage');
 
     if (!game) {
       return res.status(404).json({
@@ -180,7 +182,8 @@ router.post('/', protect, [
     const populatedGame = await Game.findById(game._id)
       .populate('createdBy', 'name nickname')
       .populate('players.player', 'name nickname profileImage')
-      .populate('players.deck', 'name commander deckImage');
+      .populate('players.deck', 'name commander deckImage')
+      .populate('players.eliminatedBy', 'name nickname profileImage');
 
     res.status(201).json({
       success: true,
@@ -216,9 +219,15 @@ router.put('/:id', protect, [
     .isInt({ min: 1, max: 6 })
     .withMessage('Placement must be between 1 and 6'),
   body('players.*.eliminatedBy')
-    .optional({ values: 'null' })
-    .isMongoId()
-    .withMessage('EliminatedBy must be a valid MongoDB ObjectId'),
+    .optional()
+    .custom(value => {
+      // Allow undefined, null, empty string, or valid ObjectId
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
+      return /^[0-9a-fA-F]{24}$/.test(value);
+    })
+    .withMessage('EliminatedBy must be a valid MongoDB ObjectId or empty'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -313,11 +322,21 @@ router.put('/:id', protect, [
       }
     }
 
-    // Remove undefined fields
+    // Clean up the data
     const fieldsToUpdate = { ...req.body };
+    
+    // Remove undefined fields at top level
     Object.keys(fieldsToUpdate).forEach(key => 
       fieldsToUpdate[key] === undefined && delete fieldsToUpdate[key]
     );
+    
+    // Clean up players array - convert empty strings to null for eliminatedBy
+    if (fieldsToUpdate.players) {
+      fieldsToUpdate.players = fieldsToUpdate.players.map(player => ({
+        ...player,
+        eliminatedBy: player.eliminatedBy === '' || player.eliminatedBy === undefined ? null : player.eliminatedBy
+      }));
+    }
 
     game = await Game.findByIdAndUpdate(req.params.id, fieldsToUpdate, {
       new: true,
@@ -325,7 +344,8 @@ router.put('/:id', protect, [
     })
     .populate('createdBy', 'name nickname')
     .populate('players.player', 'name nickname profileImage')
-    .populate('players.deck', 'name commander deckImage');
+    .populate('players.deck', 'name commander deckImage')
+    .populate('players.eliminatedBy', 'name nickname profileImage');
 
     res.status(200).json({
       success: true,
