@@ -1,14 +1,16 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Trophy, Package, TrendingUp } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
 
   useEffect(() => {
     // If user is logged in, redirect to dashboard
@@ -20,7 +22,38 @@ export default function HomePage() {
   // Show landing page for non-authenticated users
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-12">
+      <div className="relative min-h-screen">
+        {/* MTG Artwork Easter Egg */}
+        <div 
+          className={`fixed top-4 right-4 transition-all duration-500 cursor-pointer z-50 ${
+            showEasterEgg ? 'scale-100 opacity-100' : 'scale-50 opacity-30 hover:scale-75 hover:opacity-60'
+          }`}
+          onClick={() => setShowEasterEgg(!showEasterEgg)}
+        >
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
+            <div className="relative bg-slate-900/90 backdrop-blur-sm rounded-lg p-2 border border-slate-700/50">
+              <Image 
+                src="https://i.imgur.com/YBQD2Q6.jpeg" 
+                alt="MTG Artwork Easter Egg" 
+                width={showEasterEgg ? 192 : 48}
+                height={showEasterEgg ? 267 : 48}
+                className={`transition-all duration-300 rounded ${
+                  showEasterEgg ? 'w-48 h-auto' : 'w-12 h-12 object-cover'
+                }`}
+                unoptimized
+              />
+              {showEasterEgg && (
+                <div className="mt-2 text-xs text-gray-300 text-center">
+                  <p className="font-semibold">Epic MTG Art! ✨</p>
+                  <p className="text-gray-400">Click to minimize</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-12">
         {/* Hero Section with Gradient */}
         <div className="text-center mb-16 relative">
           <div className="absolute inset-0 -z-10">
@@ -129,6 +162,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     );
