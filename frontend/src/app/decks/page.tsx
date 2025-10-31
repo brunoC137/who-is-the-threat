@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ const colorMap: { [key: string]: { name: string; color: string } } = {
 
 export default function DecksPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -389,7 +391,7 @@ export default function DecksPage() {
           {pagination.hasMore && !searchTerm && selectedColors.length === 0 && selectedTags.length === 0 && (
             <div className="flex flex-col items-center mt-8">
               <p className="text-sm text-muted-foreground mb-4">
-                Showing {decks.length} of {pagination.total} decks
+                {t('decks.showingDecks')} {decks.length} {t('decks.ofDecks')} {pagination.total} {t('decks.decks')}
               </p>
               <Button 
                 onClick={loadMoreDecks} 
@@ -400,12 +402,12 @@ export default function DecksPage() {
                 {loadingMore ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                    Loading...
+                    {t('actions.loading')}
                   </>
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4 mr-2" />
-                    Show More Decks ({pagination.total - decks.length} remaining)
+                    {t('decks.showMoreDecks')} ({pagination.total - decks.length} {t('decks.remaining')})
                   </>
                 )}
               </Button>

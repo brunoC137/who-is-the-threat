@@ -113,6 +113,11 @@ export const translations = {
       noDecksAdded: 'No decks added yet',
       addFirstDeck: 'Add Your First Deck',
       createFirstDeck: 'Create Your First Deck',
+      welcomeToGuerreiros: 'Welcome to Guerreiros do Segundo Lugar',
+      pleaseLoginDashboard: 'Please log in to access your dashboard',
+      players: 'players',
+      wr: 'WR',
+      games: 'games',
     },
     // Players
     players: {
@@ -178,6 +183,11 @@ export const translations = {
       games: 'Games',
       wins: 'Wins',
       wr: 'WR',
+      showingDecks: 'Showing',
+      ofDecks: 'of',
+      decks: 'decks',
+      showMoreDecks: 'Show More Decks',
+      remaining: 'remaining',
     },
     // Games
     games: {
@@ -483,6 +493,11 @@ export const translations = {
       noDecksAdded: 'Nenhum deck adicionado ainda',
       addFirstDeck: 'Adicione Seu Primeiro Deck',
       createFirstDeck: 'Crie Seu Primeiro Deck',
+      welcomeToGuerreiros: 'Bem-vindo ao Guerreiros do Segundo Lugar',
+      pleaseLoginDashboard: 'Por favor, faça login para acessar seu painel',
+      players: 'jogadores',
+      wr: 'TV',
+      games: 'partidas',
     },
     // Players
     players: {
@@ -548,6 +563,11 @@ export const translations = {
       games: 'Partidas',
       wins: 'Vitórias',
       wr: 'TV',
+      showingDecks: 'Mostrando',
+      ofDecks: 'de',
+      decks: 'decks',
+      showMoreDecks: 'Mostrar Mais Decks',
+      remaining: 'restantes',
     },
     // Games
     games: {
@@ -682,7 +702,7 @@ export const translations = {
       position: 'Posição',
       latestMatches: 'Suas últimas partidas de Commander',
       topPerformingDecks: 'Decks com Melhor Desempenho',
-      mostSuccessfulCommanders: 'Seus comandantes mais bem-sucedidos',
+      mostSuccessfulCommanders: 'Quem comanda memo',
       playerMatchups: 'Confrontos com Jogadores',
       performanceAgainst: 'Seu desempenho contra outros jogadores',
       mostEliminated: 'Mais Eliminados',

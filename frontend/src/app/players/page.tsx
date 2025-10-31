@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ interface Player {
 
 export default function PlayersPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,9 +98,9 @@ export default function PlayersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Players</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('players.title')}</h1>
           <p className="text-muted-foreground">
-            All registered players in your Commander group
+            {t('players.allRegistered')}
           </p>
         </div>
         
@@ -109,12 +111,12 @@ export default function PlayersPage() {
               {copied ? (
                 <>
                   <Check className="h-4 w-4 mr-2" />
-                  Copied!
+                  {t('players.copied')}
                 </>
               ) : (
                 <>
                   <Share2 className="h-4 w-4 mr-2" />
-                  Invite Player
+                  {t('players.invitePlayer')}
                 </>
               )}
             </Button>
@@ -124,7 +126,7 @@ export default function PlayersPage() {
               <Button asChild>
                 <Link href="/players/new">
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Create Player
+                  {t('players.createPlayer')}
                 </Link>
               </Button>
             )}
@@ -136,7 +138,7 @@ export default function PlayersPage() {
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="Search players by name or nickname..."
+          placeholder={t('players.searchPlayers')}
           value={searchTerm}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -176,7 +178,7 @@ export default function PlayersPage() {
                         <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
                           <Trophy className="h-4 w-4 text-warning" />
                         </div>
-                        Games Played
+                        {t('players.gamesPlayed')}
                       </span>
                       <span className="font-bold text-lg">{player.stats.gamesPlayed}</span>
                     </div>
@@ -185,7 +187,7 @@ export default function PlayersPage() {
                         <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                           <Target className="h-4 w-4 text-success" />
                         </div>
-                        Wins
+                        {t('players.wins')}
                       </span>
                       <span className="font-bold text-lg text-success">{player.stats.wins}</span>
                     </div>
@@ -194,7 +196,7 @@ export default function PlayersPage() {
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                           <TrendingUp className="h-4 w-4 text-primary" />
                         </div>
-                        Win Rate
+                        {t('profile.winRate')}
                       </span>
                       <span className={`font-bold text-lg ${
                         player.stats.winRate >= 40 ? 'text-success' :
@@ -206,7 +208,7 @@ export default function PlayersPage() {
                     </div>
                     {player.stats.favoriteCommander && (
                       <div className="pt-3 mt-3 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground mb-2">Favorite Commander</p>
+                        <p className="text-xs text-muted-foreground mb-2">{t('stats.favoriteDecks')}</p>
                         <p className="text-sm font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                           {player.stats.favoriteCommander}
                         </p>
@@ -218,17 +220,17 @@ export default function PlayersPage() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
                       <User className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-muted-foreground">No games played yet</p>
+                    <p className="text-sm text-muted-foreground">{t('players.noGamesYet')}</p>
                   </div>
                 )}
                 
                 <div className="mt-4 flex gap-2">
                   <Button variant="default" size="sm" asChild className="flex-1 shadow-glow-sm">
-                    <Link href={`/players/${player._id}`}>View Profile</Link>
+                    <Link href={`/players/${player._id}`}>{t('players.viewProfile')}</Link>
                   </Button>
                   {(user?.isAdmin || user?.id === player._id) && (
                     <Button variant="outline" size="sm" asChild className="flex-1 hover:border-accent/50">
-                      <Link href={`/players/${player._id}/edit`}>Edit</Link>
+                      <Link href={`/players/${player._id}/edit`}>{t('actions.edit')}</Link>
                     </Button>
                   )}
                 </div>
@@ -239,24 +241,24 @@ export default function PlayersPage() {
       ) : (
         <div className="text-center py-12">
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No players found</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('players.noPlayersFound')}</h3>
           <p className="text-muted-foreground mb-6">
             {searchTerm 
-              ? `No players match "${searchTerm}"`
-              : "No players have been registered yet."
+              ? `${t('players.noPlayersMatch')} "${searchTerm}"`
+              : t('players.noPlayersRegistered')
             }
           </p>
           {user && !searchTerm && (
             <div className="flex gap-2 justify-center">
               <Button onClick={handleShareInvite}>
                 <Share2 className="h-4 w-4 mr-2" />
-                {copied ? 'Copied!' : 'Invite Player'}
+                {copied ? t('players.copied') : t('players.invitePlayer')}
               </Button>
               {user.isAdmin && (
                 <Button variant="outline" asChild>
                   <Link href="/players/new">
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Create Player
+                    {t('players.createPlayer')}
                   </Link>
                 </Button>
               )}
@@ -271,7 +273,7 @@ export default function PlayersPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">{players.length}</CardTitle>
-              <CardDescription>Total Players</CardDescription>
+              <CardDescription>{t('players.totalPlayers')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
@@ -279,7 +281,7 @@ export default function PlayersPage() {
               <CardTitle className="text-2xl">
                 {players.filter(p => p.isAdmin).length}
               </CardTitle>
-              <CardDescription>Administrators</CardDescription>
+              <CardDescription>{t('players.administrators')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
@@ -287,7 +289,7 @@ export default function PlayersPage() {
               <CardTitle className="text-2xl">
                 {players.filter(p => p.stats && p.stats.gamesPlayed > 0).length}
               </CardTitle>
-              <CardDescription>Active Players</CardDescription>
+              <CardDescription>{t('players.activePlayers')}</CardDescription>
             </CardHeader>
           </Card>
         </div>

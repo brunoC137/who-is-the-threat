@@ -111,8 +111,8 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Welcome to Guerreiros do Segundo Lugar</h1>
-          <p className="text-muted-foreground mb-6">Please log in to access your dashboard</p>
+          <h1 className="text-2xl font-bold mb-4">{t('dashboard.welcomeToGuerreiros')}</h1>
+          <p className="text-muted-foreground mb-6">{t('dashboard.pleaseLoginDashboard')}</p>
           <Link href="/login">
             <Button>{t('auth.login')}</Button>
           </Link>
@@ -212,26 +212,26 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{userStats?.personalStats?.totalDecks || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Decks in your collection</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.decksInCollection')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-glow-sm hover:border-warning/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Your Games</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.yourGames')}</CardTitle>
             <div className="p-2 rounded-lg bg-warning/10">
               <Trophy className="h-5 w-5 text-warning" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{userStats?.personalStats?.totalGames || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Games you&apos;ve played</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamesYouPlayed')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-glow-sm hover:border-success/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Your Win Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.yourWinRate')}</CardTitle>
             <div className="p-2 rounded-lg bg-success/10">
               <TrendingUp className="h-5 w-5 text-success" />
             </div>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
             }`}>
               {userStats?.personalStats?.winRate || 0}%
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Your personal win rate</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.personalWinRate')}</p>
           </CardContent>
         </Card>
       </div>
@@ -256,9 +256,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-primary" />
-              Your Recent Games
+              {t('dashboard.yourRecentGames')}
             </CardTitle>
-            <CardDescription>Your latest Commander matches</CardDescription>
+            <CardDescription>{t('dashboard.latestMatches')}</CardDescription>
           </CardHeader>
           <CardContent>
             {userStats?.recentUserGames && userStats.recentUserGames.length > 0 ? (
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                           {new Date(game.date).toLocaleDateString()}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {game.players.length} players
+                          {game.players.length} {t('dashboard.players')}
                         </p>
                       </div>
                       <div className="text-right">
@@ -309,9 +309,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-accent" />
-              Your Top Performing Decks
+              {t('dashboard.yourTopDecks')}
             </CardTitle>
-            <CardDescription>Your most successful commanders</CardDescription>
+            <CardDescription>{t('dashboard.mostSuccessful')}</CardDescription>
           </CardHeader>
           <CardContent>
             {userStats?.topUserDecks && userStats.topUserDecks.length > 0 ? (
@@ -340,10 +340,10 @@ export default function DashboardPage() {
                           deck.winRate >= 30 ? 'text-warning' :
                           'text-muted-foreground'
                         }`}>
-                          {deck.winRate}% WR
+                          {deck.winRate}% {t('dashboard.wr')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {deck.gamesPlayed} games
+                          {deck.gamesPlayed} {t('dashboard.games')}
                         </p>
                       </div>
                     </div>
@@ -355,9 +355,9 @@ export default function DashboardPage() {
                 <div className="mx-auto w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground mb-4">No decks added yet</p>
+                <p className="text-muted-foreground mb-4">{t('dashboard.noDecksAdded')}</p>
                 <Link href="/decks/new">
-                  <Button size="sm" className="shadow-glow-sm">Add Your First Deck</Button>
+                  <Button size="sm" className="shadow-glow-sm">{t('dashboard.addFirstDeck')}</Button>
                 </Link>
               </div>
             )}
@@ -372,9 +372,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-success" />
-              Recent Games (All Players)
+              {t('dashboard.allRecentGames')}
             </CardTitle>
-            <CardDescription>Latest games from the entire playgroup</CardDescription>
+            <CardDescription>{t('dashboard.entirePlaygroup')}</CardDescription>
           </CardHeader>
           <CardContent>
             {globalStats?.recentActivity && globalStats.recentActivity.length > 0 ? (
@@ -399,9 +399,9 @@ export default function DashboardPage() {
                 <div className="mx-auto w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                   <Trophy className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground mb-4">No games recorded yet</p>
+                <p className="text-muted-foreground mb-4">{t('dashboard.noGamesRecorded')}</p>
                 <Link href="/games/new">
-                  <Button size="sm" className="shadow-glow-sm">Record Your First Game</Button>
+                  <Button size="sm" className="shadow-glow-sm">{t('dashboard.recordFirstGame')}</Button>
                 </Link>
               </div>
             )}
@@ -413,9 +413,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-warning" />
-              Top Performing Decks (All Players)
+              {t('dashboard.allTopDecks')}
             </CardTitle>
-            <CardDescription>Most successful commanders across all players</CardDescription>
+            <CardDescription>{t('dashboard.mostSuccessfulAll')}</CardDescription>
           </CardHeader>
           <CardContent>
             {globalStats?.topDecks && globalStats.topDecks.length > 0 ? (
@@ -445,10 +445,10 @@ export default function DashboardPage() {
                           deck.winRate >= 30 ? 'text-warning' :
                           'text-muted-foreground'
                         }`}>
-                          {deck.winRate}% WR
+                          {deck.winRate}% {t('dashboard.wr')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {deck.gamesPlayed} games
+                          {deck.gamesPlayed} {t('dashboard.games')}
                         </p>
                       </div>
                     </div>
@@ -460,9 +460,9 @@ export default function DashboardPage() {
                 <div className="mx-auto w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                   <Package className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground mb-4">No decks added yet</p>
+                <p className="text-muted-foreground mb-4">{t('dashboard.noDecksAdded')}</p>
                 <Link href="/decks/new">
-                  <Button size="sm" className="shadow-glow-sm">Add Your First Deck</Button>
+                  <Button size="sm" className="shadow-glow-sm">{t('dashboard.addFirstDeck')}</Button>
                 </Link>
               </div>
             )}
