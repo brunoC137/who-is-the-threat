@@ -334,7 +334,7 @@ export default function RegisterPage() {
               {/* Profile Image */}
               <div>
                 <label htmlFor="profileImage" className="text-sm font-medium text-gray-300">
-                  {t('players.profileImage')} ({t('form.optional')})
+                  {t('auth.profileImage')} ({t('form.optional')})
                 </label>
                 <Input
                   id="profileImage"
