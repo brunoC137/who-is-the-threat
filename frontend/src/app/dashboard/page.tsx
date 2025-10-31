@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ interface UserStats {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold mb-4">Welcome to Guerreiros do Segundo Lugar</h1>
           <p className="text-muted-foreground mb-6">Please log in to access your dashboard</p>
           <Link href="/login">
-            <Button>Login</Button>
+            <Button>{t('auth.login')}</Button>
           </Link>
         </div>
       </div>
@@ -133,10 +135,10 @@ export default function DashboardPage() {
       <div className="mb-8 relative overflow-hidden rounded-xl p-8 animated-gradient">
         <div className="relative z-10">
           <h1 className="text-4xl font-bold mb-2 text-white drop-shadow-lg">
-            Welcome back, {user.nickname || user.name}!
+            {t('dashboard.welcomeBack')}, {user.nickname || user.name}!
           </h1>
           <p className="text-white/90 text-lg">
-            Track your Commander games and see how you stack up against your friends.
+            {t('dashboard.trackCommander')}
           </p>
         </div>
       </div>
@@ -150,8 +152,8 @@ export default function DashboardPage() {
                 <Plus className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Record New Game</h3>
-                <p className="text-sm text-white/80">Track your latest match</p>
+                <h3 className="text-lg font-semibold text-white">{t('dashboard.recordNewGame')}</h3>
+                <p className="text-sm text-white/80">{t('dashboard.trackLatestMatch')}</p>
               </div>
             </div>
           </div>
@@ -164,8 +166,8 @@ export default function DashboardPage() {
                 <Package className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Add New Deck</h3>
-                <p className="text-sm text-white/80">Build your arsenal</p>
+                <h3 className="text-lg font-semibold text-white">{t('dashboard.addNewDeck')}</h3>
+                <p className="text-sm text-white/80">{t('dashboard.buildArsenal')}</p>
               </div>
             </div>
           </div>
@@ -178,8 +180,8 @@ export default function DashboardPage() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">View All Players</h3>
-                <p className="text-sm text-white/80">Check the leaderboard</p>
+                <h3 className="text-lg font-semibold text-white">{t('dashboard.viewAllPlayers')}</h3>
+                <p className="text-sm text-white/80">{t('dashboard.checkLeaderboard')}</p>
               </div>
             </div>
           </div>
@@ -190,20 +192,20 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-glow-sm hover:border-primary/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Players</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.totalPlayers')}</CardTitle>
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{globalStats?.totalPlayers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active players</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.activePlayers')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-glow-sm hover:border-accent/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Your Decks</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.yourDecks')}</CardTitle>
             <div className="p-2 rounded-lg bg-accent/10">
               <Package className="h-5 w-5 text-accent" />
             </div>
