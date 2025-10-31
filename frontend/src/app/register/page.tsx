@@ -45,35 +45,35 @@ export default function RegisterPage() {
 
     // Name validation
     if (!formData.name.trim()) {
-      newErrors.name = language === 'en' ? 'Name is required' : 'Nome é obrigatório';
+      newErrors.name = t('validation.nameRequired');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = language === 'en' ? 'Name must be at least 2 characters' : 'Nome deve ter pelo menos 2 caracteres';
+      newErrors.name = t('validation.nameMinLength');
     }
 
     // Email validation
     if (!formData.email.trim()) {
-      newErrors.email = language === 'en' ? 'Email is required' : 'Email é obrigatório';
+      newErrors.email = t('validation.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = language === 'en' ? 'Please enter a valid email address' : 'Por favor, digite um endereço de email válido';
+      newErrors.email = t('validation.emailInvalid');
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = language === 'en' ? 'Password is required' : 'Senha é obrigatória';
+      newErrors.password = t('validation.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = language === 'en' ? 'Password must be at least 6 characters' : 'Senha deve ter pelo menos 6 caracteres';
+      newErrors.password = t('validation.passwordMinLength');
     }
 
     // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = language === 'en' ? 'Please confirm your password' : 'Por favor, confirme sua senha';
+      newErrors.confirmPassword = t('validation.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = language === 'en' ? 'Passwords do not match' : 'As senhas não coincidem';
+      newErrors.confirmPassword = t('validation.passwordsDoNotMatch');
     }
 
     // Profile image validation (optional)
     if (formData.profileImage && !isValidUrl(formData.profileImage)) {
-      newErrors.profileImage = language === 'en' ? 'Please enter a valid image URL' : 'Por favor, digite uma URL de imagem válida';
+      newErrors.profileImage = t('validation.imageUrlInvalid');
     }
 
     setErrors(newErrors);
@@ -117,10 +117,10 @@ export default function RegisterPage() {
         login(data.user, data.token);
         router.push('/dashboard');
       } else {
-        setErrors({ submit: data.message || (language === 'en' ? 'Failed to create account' : 'Falha ao criar conta') });
+        setErrors({ submit: data.message || t('validation.accountCreationFailed') });
       }
     } catch (error) {
-      setErrors({ submit: language === 'en' ? 'An error occurred while creating your account' : 'Ocorreu um erro ao criar sua conta' });
+      setErrors({ submit: t('validation.accountCreationError') });
     } finally {
       setLoading(false);
     }

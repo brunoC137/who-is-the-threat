@@ -168,6 +168,20 @@ export const translations = {
       somethingWentWrong: 'Something went wrong',
       noDataAvailable: 'No data available',
     },
+    // Validation messages
+    validation: {
+      nameRequired: 'Name is required',
+      nameMinLength: 'Name must be at least 2 characters',
+      emailRequired: 'Email is required',
+      emailInvalid: 'Please enter a valid email address',
+      passwordRequired: 'Password is required',
+      passwordMinLength: 'Password must be at least 6 characters',
+      confirmPasswordRequired: 'Please confirm your password',
+      passwordsDoNotMatch: 'Passwords do not match',
+      imageUrlInvalid: 'Please enter a valid image URL',
+      accountCreationFailed: 'Failed to create account',
+      accountCreationError: 'An error occurred while creating your account',
+    },
   },
   'pt-BR': {
     // Navigation
@@ -337,6 +351,20 @@ export const translations = {
       updatedSuccessfully: 'Atualizado com sucesso',
       somethingWentWrong: 'Algo deu errado',
       noDataAvailable: 'Nenhum dado disponível',
+    },
+    // Validation messages
+    validation: {
+      nameRequired: 'Nome é obrigatório',
+      nameMinLength: 'Nome deve ter pelo menos 2 caracteres',
+      emailRequired: 'Email é obrigatório',
+      emailInvalid: 'Por favor, digite um endereço de email válido',
+      passwordRequired: 'Senha é obrigatória',
+      passwordMinLength: 'Senha deve ter pelo menos 6 caracteres',
+      confirmPasswordRequired: 'Por favor, confirme sua senha',
+      passwordsDoNotMatch: 'As senhas não coincidem',
+      imageUrlInvalid: 'Por favor, digite uma URL de imagem válida',
+      accountCreationFailed: 'Falha ao criar conta',
+      accountCreationError: 'Ocorreu um erro ao criar sua conta',
     },
   },
 };
