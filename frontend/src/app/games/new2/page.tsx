@@ -13,31 +13,14 @@ import {
   Save, 
   Loader2, 
   Plus, 
-  X,
   Trophy,
   Clock,
   Users,
-  GripVertical,
-  Trash2
+  Trash2,
+  Award,
+  Medal
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface Player {
   _id: string;
@@ -58,117 +41,13 @@ interface Deck {
 }
 
 interface GamePlayer {
-  id: string; // Unique ID for drag and drop
+  id: string;
   player: string;
   deck: string;
+  placement?: number;
 }
 
-function SortablePlayerCard({ 
-  gamePlayer, 
-  index, 
-  selectedPlayer, 
-  selectedDeck,
-  onRemove 
-}: { 
-  gamePlayer: GamePlayer;
-  index: number;
-  selectedPlayer?: Player;
-  selectedDeck?: Deck;
-  onRemove: () => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: gamePlayer.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const getPlacementBadge = (placement: number) => {
-    const badges = [
-      { text: '🥇 1st', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-      { text: '🥈 2nd', color: 'bg-gray-100 text-gray-800 border-gray-300' },
-      { text: '🥉 3rd', color: 'bg-orange-100 text-orange-800 border-orange-300' },
-      { text: '4th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-      { text: '5th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-      { text: '6th', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-    ];
-    return badges[placement - 1] || badges[3];
-  };
-
-  const placementBadge = getPlacementBadge(index + 1);
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="group relative bg-card border-2 border-border rounded-lg p-4 touch-none"
-    >
-      <div className="flex items-center gap-3">
-        {/* Drag Handle */}
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing touch-none p-2 hover:bg-muted rounded"
-        >
-          <GripVertical className="h-5 w-5 text-muted-foreground" />
-        </div>
-
-        {/* Placement Badge */}
-        <Badge 
-          variant="outline"
-          className={`px-3 py-1.5 font-bold text-sm border-2 min-w-[60px] text-center ${placementBadge.color}`}
-        >
-          {placementBadge.text}
-        </Badge>
-
-        {/* Player Info */}
-        {selectedPlayer && selectedDeck ? (
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Avatar className="w-10 h-10 ring-2 ring-border">
-              <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
-              <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-accent/20">
-                {selectedPlayer.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">
-                {selectedPlayer.nickname || selectedPlayer.name}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {selectedDeck.name} • {selectedDeck.commander}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 text-sm text-muted-foreground">
-            Incomplete selection
-          </div>
-        )}
-
-        {/* Remove Button */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onRemove}
-          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export default function NewGame2Page() {
+export default function NewGame3Page() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -187,17 +66,6 @@ export default function NewGame2Page() {
   const [selectedDeckId, setSelectedDeckId] = useState('');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -230,18 +98,6 @@ export default function NewGame2Page() {
     fetchData();
   }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      setGamePlayers((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
-
   const addPlayer = () => {
     if (!selectedPlayerId || !selectedDeckId) {
       setErrors({ selection: 'Please select both a player and a deck' });
@@ -264,6 +120,18 @@ export default function NewGame2Page() {
     setGamePlayers(gamePlayers.filter(p => p.id !== id));
   };
 
+  const setPlacement = (id: string, placement: number) => {
+    setGamePlayers(gamePlayers.map(p => 
+      p.id === id ? { ...p, placement } : p
+    ));
+  };
+
+  const clearPlacement = (id: string) => {
+    setGamePlayers(gamePlayers.map(p => 
+      p.id === id ? { ...p, placement: undefined } : p
+    ));
+  };
+
   const getPlayerById = (playerId: string) => {
     return players.find(p => p._id === playerId);
   };
@@ -276,11 +144,21 @@ export default function NewGame2Page() {
     return decks.filter(deck => deck.owner._id === playerId);
   };
 
+  const isPlacementTaken = (placement: number, currentId?: string) => {
+    return gamePlayers.some(p => p.placement === placement && p.id !== currentId);
+  };
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (gamePlayers.length < 2) {
       newErrors.players = 'At least 2 players are required';
+    }
+
+    // Check if there are any placements assigned
+    const assignedPlacements = gamePlayers.filter(p => p.placement !== undefined);
+    if (assignedPlacements.length > 0 && assignedPlacements.length !== gamePlayers.length) {
+      newErrors.placements = 'Either assign placements to all players or leave all unassigned';
     }
 
     if (formData.durationMinutes && (isNaN(Number(formData.durationMinutes)) || Number(formData.durationMinutes) <= 0)) {
@@ -304,11 +182,10 @@ export default function NewGame2Page() {
         return;
       }
 
-      // Map gamePlayers to API format with placement based on order
-      const playersData = gamePlayers.map((gp, index) => ({
+      const playersData = gamePlayers.map((gp) => ({
         player: gp.player,
         deck: gp.deck,
-        placement: index + 1, // Position in array determines placement
+        placement: gp.placement,
       }));
 
       const gameData = {
@@ -363,6 +240,22 @@ export default function NewGame2Page() {
   }
 
   const availableDecks = selectedPlayerId ? getPlayerDecks(selectedPlayerId) : [];
+  
+  // Calculate available placement slots
+  const maxPlacement = Math.min(gamePlayers.length, 6);
+  const placementOptions = Array.from({ length: maxPlacement }, (_, i) => i + 1);
+
+  const getPlacementBadgeStyle = (placement: number) => {
+    const styles = [
+      { bg: 'bg-yellow-100 hover:bg-yellow-200', text: 'text-yellow-800', border: 'border-yellow-300', icon: '🥇' },
+      { bg: 'bg-gray-100 hover:bg-gray-200', text: 'text-gray-800', border: 'border-gray-300', icon: '🥈' },
+      { bg: 'bg-orange-100 hover:bg-orange-200', text: 'text-orange-800', border: 'border-orange-300', icon: '🥉' },
+      { bg: 'bg-blue-100 hover:bg-blue-200', text: 'text-blue-800', border: 'border-blue-300', icon: '4️⃣' },
+      { bg: 'bg-blue-100 hover:bg-blue-200', text: 'text-blue-800', border: 'border-blue-300', icon: '5️⃣' },
+      { bg: 'bg-blue-100 hover:bg-blue-200', text: 'text-blue-800', border: 'border-blue-300', icon: '6️⃣' },
+    ];
+    return styles[placement - 1] || styles[3];
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -375,7 +268,7 @@ export default function NewGame2Page() {
         </Link>
         <div className="flex-1">
           <h1 className="text-3xl font-bold">Record New Game</h1>
-          <p className="text-muted-foreground">Version 2: Drag to reorder placement</p>
+          <p className="text-muted-foreground">Version 3: Quick tap placement</p>
         </div>
         <Link href="/games/new">
           <Button variant="outline" size="sm">Original</Button>
@@ -383,17 +276,17 @@ export default function NewGame2Page() {
       </div>
 
       {/* Info Banner */}
-      <Card className="mb-6 bg-blue-50 border-blue-200">
+      <Card className="mb-6 bg-purple-50 border-purple-200">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Users className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Award className="h-5 w-5 text-purple-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 mb-1">How it works</h3>
-              <ol className="text-sm text-blue-700 space-y-1">
-                <li>1. Add players and their decks using the form below</li>
-                <li>2. Drag players to reorder them by placement (top = winner)</li>
+              <h3 className="font-semibold text-purple-900 mb-1">How it works</h3>
+              <ol className="text-sm text-purple-700 space-y-1">
+                <li>1. Add all players and their decks</li>
+                <li>2. Tap placement badges to quickly assign positions</li>
                 <li>3. Add game details and submit!</li>
               </ol>
             </div>
@@ -420,7 +313,7 @@ export default function NewGame2Page() {
                   value={selectedPlayerId}
                   onChange={(e) => {
                     setSelectedPlayerId(e.target.value);
-                    setSelectedDeckId(''); // Reset deck when player changes
+                    setSelectedDeckId('');
                   }}
                   className="w-full p-2 border rounded-md"
                 >
@@ -468,42 +361,111 @@ export default function NewGame2Page() {
           </CardContent>
         </Card>
 
-        {/* Players List - Drag to Reorder */}
+        {/* Players List - Tap to Assign Placement */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5" />
-              Game Players (Drag to Reorder)
+              Game Players
             </CardTitle>
             <CardDescription>
               {gamePlayers.length > 0 
-                ? `${gamePlayers.length} player${gamePlayers.length !== 1 ? 's' : ''} • Top position = Winner`
+                ? `${gamePlayers.length} player${gamePlayers.length !== 1 ? 's' : ''} • Tap badges to assign placement`
                 : 'No players added yet'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {gamePlayers.length > 0 ? (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={gamePlayers.map(gp => gp.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {gamePlayers.map((gp, index) => (
-                    <SortablePlayerCard
-                      key={gp.id}
-                      gamePlayer={gp}
-                      index={index}
-                      selectedPlayer={getPlayerById(gp.player)}
-                      selectedDeck={getDeckById(gp.deck)}
-                      onRemove={() => removePlayer(gp.id)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+              gamePlayers.map((gp) => {
+                const selectedPlayer = getPlayerById(gp.player);
+                const selectedDeck = getDeckById(gp.deck);
+
+                return (
+                  <div
+                    key={gp.id}
+                    className="relative bg-card border-2 border-border rounded-lg p-4"
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* Player Info */}
+                      {selectedPlayer && selectedDeck ? (
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar className="w-10 h-10 ring-2 ring-border">
+                            <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
+                            <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-accent/20">
+                              {selectedPlayer.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm truncate">
+                              {selectedPlayer.nickname || selectedPlayer.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {selectedDeck.name} • {selectedDeck.commander}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 text-sm text-muted-foreground">
+                          Incomplete selection
+                        </div>
+                      )}
+
+                      {/* Remove Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePlayer(gp.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Placement Selection - Quick Tap Badges */}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                      <span className="text-xs font-medium text-muted-foreground self-center mr-2">
+                        Placement:
+                      </span>
+                      {placementOptions.map((placement) => {
+                        const isSelected = gp.placement === placement;
+                        const isTaken = !isSelected && isPlacementTaken(placement, gp.id);
+                        const style = getPlacementBadgeStyle(placement);
+                        
+                        return (
+                          <button
+                            key={placement}
+                            type="button"
+                            onClick={() => setPlacement(gp.id, placement)}
+                            disabled={isTaken}
+                            className={`
+                              px-3 py-1.5 rounded-md border-2 font-bold text-sm
+                              transition-all duration-200
+                              ${isSelected 
+                                ? `${style.bg} ${style.text} ${style.border} ring-2 ring-offset-1 ring-primary` 
+                                : isTaken
+                                  ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
+                                  : `${style.bg} ${style.text} ${style.border}`
+                              }
+                            `}
+                          >
+                            {style.icon} {placement === 1 ? '1st' : placement === 2 ? '2nd' : placement === 3 ? '3rd' : `${placement}th`}
+                          </button>
+                        );
+                      })}
+                      {gp.placement && (
+                        <button
+                          type="button"
+                          onClick={() => clearPlacement(gp.id)}
+                          className="px-3 py-1.5 rounded-md border-2 border-gray-300 bg-white text-gray-600 hover:bg-gray-50 font-medium text-xs"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -513,6 +475,9 @@ export default function NewGame2Page() {
 
             {errors.players && (
               <p className="text-sm text-red-500">{errors.players}</p>
+            )}
+            {errors.placements && (
+              <p className="text-sm text-red-500">{errors.placements}</p>
             )}
           </CardContent>
         </Card>
