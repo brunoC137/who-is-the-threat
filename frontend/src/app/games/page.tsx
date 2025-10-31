@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ interface Game {
 
 export default function GamesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -156,15 +158,15 @@ export default function GamesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Games</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('games.title')}</h1>
           <p className="text-muted-foreground">
-            History of all Commander games played
+            {t('games.historyOfAllCommander')}
           </p>
         </div>
         <Button asChild className="mt-4 sm:mt-0">
           <Link href="/games/new">
             <Plus className="h-4 w-4 mr-2" />
-            Record Game
+            {t('games.recordGame')}
           </Link>
         </Button>
       </div>
@@ -175,7 +177,7 @@ export default function GamesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search games..."
+            placeholder={t('games.searchGames')}
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -188,9 +190,9 @@ export default function GamesPage() {
           onChange={(e) => setSortBy(e.target.value as 'date' | 'players' | 'duration')}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
         >
-          <option value="date">Sort by Date</option>
-          <option value="players">Sort by Players</option>
-          <option value="duration">Sort by Duration</option>
+          <option value="date">{t('games.sortByDate')}</option>
+          <option value="players">{t('games.sortByPlayers')}</option>
+          <option value="duration">{t('games.sortByDuration')}</option>
         </select>
 
         {/* Filter */}
@@ -199,9 +201,9 @@ export default function GamesPage() {
           onChange={(e) => setFilterBy(e.target.value as 'all' | 'my-games' | 'my-wins')}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
         >
-          <option value="all">All Games</option>
-          <option value="my-games">My Games</option>
-          <option value="my-wins">My Wins</option>
+          <option value="all">{t('games.allGames')}</option>
+          <option value="my-games">{t('games.myGames')}</option>
+          <option value="my-wins">{t('games.myWins')}</option>
         </select>
       </div>
 
@@ -239,11 +241,11 @@ export default function GamesPage() {
                   </div>
                   <div className="flex gap-2 mt-4 sm:mt-0">
                     <Button variant="default" size="sm" asChild className="shadow-glow-sm">
-                      <Link href={`/games/${game._id}`}>View Details</Link>
+                      <Link href={`/games/${game._id}`}>{t('games.viewDetails')}</Link>
                     </Button>
                     {(user?.isAdmin || user?.id === game.createdBy._id) && (
                       <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
-                        <Link href={`/games/${game._id}/edit`}>Edit</Link>
+                        <Link href={`/games/${game._id}/edit`}>{t('actions.edit')}</Link>
                       </Button>
                     )}
                   </div>
@@ -301,7 +303,7 @@ export default function GamesPage() {
                         <StickyNote className="h-4 w-4 text-warning" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-semibold mb-2">Game Notes</div>
+                        <div className="text-sm font-semibold mb-2">{t('games.gameNotes')}</div>
                         <p className="text-sm text-muted-foreground leading-relaxed">{game.notes}</p>
                       </div>
                     </div>
@@ -311,7 +313,7 @@ export default function GamesPage() {
                 {/* Game Creator */}
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <p className="text-xs text-muted-foreground">
-                    Recorded by <span className="font-medium text-foreground">{game.createdBy.nickname || game.createdBy.name}</span> • {' '}
+                    {t('games.recordedBy')} <span className="font-medium text-foreground">{game.createdBy.nickname || game.createdBy.name}</span> • {' '}
                     {new Date(game.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -322,16 +324,16 @@ export default function GamesPage() {
       ) : (
         <div className="text-center py-12">
           <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No games found</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('games.noGames')}</h3>
           <p className="text-muted-foreground mb-6">
             {searchTerm || filterBy !== 'all'
-              ? "No games match your current filters"
-              : "No games have been recorded yet."
+              ? t('games.noGamesMatch')
+              : t('games.noGamesRecorded')
             }
           </p>
           {(!searchTerm && filterBy === 'all') && (
             <Button asChild>
-              <Link href="/games/new">Record Your First Game</Link>
+              <Link href="/games/new">{t('games.recordYourFirst')}</Link>
             </Button>
           )}
         </div>
@@ -343,7 +345,7 @@ export default function GamesPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">{games.length}</CardTitle>
-              <CardDescription>Total Games</CardDescription>
+              <CardDescription>{t('dashboard.totalGames')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
@@ -351,7 +353,7 @@ export default function GamesPage() {
               <CardTitle className="text-2xl">
                 {user ? games.filter(g => g.players.some(p => p.player._id === user.id)).length : 0}
               </CardTitle>
-              <CardDescription>Games You Played</CardDescription>
+              <CardDescription>{t('games.gamesYouPlayed')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
@@ -359,7 +361,7 @@ export default function GamesPage() {
               <CardTitle className="text-2xl">
                 {user ? games.filter(g => g.players.some(p => p.player._id === user.id && p.placement === 1)).length : 0}
               </CardTitle>
-              <CardDescription>Games You Won</CardDescription>
+              <CardDescription>{t('games.gamesYouWon')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
@@ -367,7 +369,7 @@ export default function GamesPage() {
               <CardTitle className="text-2xl">
                 {Math.round(games.reduce((acc, game) => acc + (game.durationMinutes || 0), 0) / games.length) || 0}m
               </CardTitle>
-              <CardDescription>Avg Game Length</CardDescription>
+              <CardDescription>{t('games.avgGameLength')}</CardDescription>
             </CardHeader>
           </Card>
         </div>

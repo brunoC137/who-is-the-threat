@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +59,7 @@ interface GlobalStats {
 
 export default function StatsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,9 +105,9 @@ export default function StatsPage() {
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-white">Statistics</h1>
+          <h1 className="text-4xl font-bold mb-2 text-white">{t('stats.title')}</h1>
           <p className="text-gray-400 text-lg">
-            Comprehensive analytics for your Commander playgroup
+            {t('stats.comprehensiveAnalytics')}
           </p>
         </div>
 
@@ -116,12 +118,12 @@ export default function StatsPage() {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
           <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Games</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">{t('stats.totalGames')}</CardTitle>
               <Trophy className="h-5 w-5 text-blue-400" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{stats?.totalGames || 0}</div>
-              <p className="text-xs text-gray-400">Commander matches played</p>
+              <p className="text-xs text-gray-400">{t('stats.commanderMatches')}</p>
             </CardContent>
           </Card>
         </div>
@@ -131,12 +133,12 @@ export default function StatsPage() {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
           <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Active Players</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">{t('stats.activePlayers')}</CardTitle>
               <Users className="h-5 w-5 text-green-400" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{stats?.totalPlayers || 0}</div>
-              <p className="text-xs text-gray-400">Registered players</p>
+              <p className="text-xs text-gray-400">{t('stats.registeredPlayers')}</p>
             </CardContent>
           </Card>
         </div>
@@ -146,12 +148,12 @@ export default function StatsPage() {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
           <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Decks</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">{t('stats.totalDecks')}</CardTitle>
               <Layers className="h-5 w-5 text-purple-400" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{stats?.totalDecks || 0}</div>
-              <p className="text-xs text-gray-400">Unique deck builds</p>
+              <p className="text-xs text-gray-400">{t('stats.uniqueBuilds')}</p>
             </CardContent>
           </Card>
         </div>
@@ -161,12 +163,12 @@ export default function StatsPage() {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
           <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Avg Game Length</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">{t('stats.avgGameLength')}</CardTitle>
               <BarChart3 className="h-5 w-5 text-yellow-400" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{stats?.averageGameLength || 0}m</div>
-              <p className="text-xs text-gray-400">Average duration</p>
+              <p className="text-xs text-gray-400">{t('stats.averageDuration')}</p>
             </CardContent>
           </Card>
         </div>
@@ -178,9 +180,9 @@ export default function StatsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Trophy className="h-5 w-5 text-yellow-400" />
-              Top Players
+              {t('stats.topPlayers')}
             </CardTitle>
-            <CardDescription className="text-gray-400">Highest win rates among active players</CardDescription>
+            <CardDescription className="text-gray-400">{t('stats.highestWinRates')}</CardDescription>
           </CardHeader>
           <CardContent>
             {stats?.topPlayers && stats.topPlayers.length > 0 ? (
@@ -207,14 +209,14 @@ export default function StatsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium text-white">{player.nickname || player.name || 'Unknown Player'}</p>
+                      <p className="font-medium text-white">{player.nickname || player.name || t('stats.unknownPlayer')}</p>
                       <p className="text-sm text-gray-400">
                         {player.wins} wins • {player.gamesPlayed} games
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-xl text-white">{Math.round(player.winRate)}%</p>
-                      <p className="text-xs text-gray-400">Win Rate</p>
+                      <p className="text-xs text-gray-400">{t('stats.winRate')}</p>
                     </div>
                   </div>
                 ))}
@@ -225,8 +227,8 @@ export default function StatsPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full opacity-20"></div>
                   <Users className="h-12 w-12 text-gray-500 mx-auto mt-4" />
                 </div>
-                <p className="text-gray-400 text-lg mb-2">No player stats available</p>
-                <p className="text-gray-500 text-sm">Start playing games to see leaderboards!</p>
+                <p className="text-gray-400 text-lg mb-2">{t('stats.noPlayerStats')}</p>
+                <p className="text-gray-500 text-sm">{t('stats.startPlayingGames')}</p>
               </div>
             )}
           </CardContent>
@@ -237,9 +239,9 @@ export default function StatsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Crown className="h-5 w-5 text-purple-400" />
-              Popular Commanders
+              {t('stats.popularCommanders')}
             </CardTitle>
-            <CardDescription className="text-gray-400">Most played commanders in the meta</CardDescription>
+            <CardDescription className="text-gray-400">{t('stats.mostPlayedMeta')}</CardDescription>
           </CardHeader>
           <CardContent>
             {stats?.mostPopularCommanders && stats.mostPopularCommanders.length > 0 ? (
@@ -253,13 +255,13 @@ export default function StatsPage() {
                       <div>
                         <p className="font-medium text-white">{commander.commander}</p>
                         <p className="text-sm text-gray-400">
-                          {commander.count} deck{commander.count !== 1 ? 's' : ''}
+                          {commander.count} {commander.count !== 1 ? t('stats.decks') : t('stats.deck')}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-white">{commander.winRate}%</p>
-                      <p className="text-xs text-gray-400">Win Rate</p>
+                      <p className="text-xs text-gray-400">{t('stats.winRate')}</p>
                     </div>
                   </div>
                 ))}
@@ -270,8 +272,8 @@ export default function StatsPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-20"></div>
                   <Crown className="h-12 w-12 text-gray-500 mx-auto mt-4" />
                 </div>
-                <p className="text-gray-400 text-lg mb-2">No commander data available</p>
-                <p className="text-gray-500 text-sm">Create decks to see popular commanders!</p>
+                <p className="text-gray-400 text-lg mb-2">{t('stats.noCommanderData')}</p>
+                <p className="text-gray-500 text-sm">{t('stats.createDecksToSee')}</p>
               </div>
             )}
           </CardContent>
@@ -283,9 +285,9 @@ export default function StatsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Target className="h-5 w-5 text-green-400" />
-            Top Performing Decks
+            {t('stats.topPerformingDecks')}
           </CardTitle>
-          <CardDescription className="text-gray-400">Highest win rate decks across all players</CardDescription>
+          <CardDescription className="text-gray-400">{t('stats.highestWinRateDecks')}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats?.topDecks && stats.topDecks.length > 0 ? (
@@ -359,7 +361,7 @@ export default function StatsPage() {
                         </p>
                         <div className="flex items-center justify-between pt-2">
                           <span className="text-xs text-gray-300 drop-shadow">
-                            by {deck.owner?.nickname || deck.owner?.name || 'Unknown'}
+                            by {deck.owner?.nickname || deck.owner?.name || t('stats.unknownPlayer')}
                           </span>
                           <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-full px-2 py-1">
                             <span className="text-xs font-medium text-white">
@@ -382,8 +384,8 @@ export default function StatsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full opacity-20"></div>
                 <Target className="h-12 w-12 text-gray-500 mx-auto mt-4" />
               </div>
-              <p className="text-gray-400 text-lg mb-2">No deck performance data available</p>
-              <p className="text-gray-500 text-sm">Start playing games to see deck statistics!</p>
+                <p className="text-gray-400 text-lg mb-2">{t('stats.noDeckPerformance')}</p>
+                <p className="text-gray-500 text-sm">{t('stats.startPlayingStats')}</p>
             </div>
           )}
         </CardContent>
@@ -394,9 +396,9 @@ export default function StatsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5 text-blue-400" />
-            Recent Activity
+            {t('stats.recentActivity')}
           </CardTitle>
-          <CardDescription className="text-gray-400">Latest updates in your playgroup</CardDescription>
+          <CardDescription className="text-gray-400">{t('stats.latestUpdates')}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats?.recentActivity && stats.recentActivity.length > 0 ? (
@@ -421,8 +423,8 @@ export default function StatsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full opacity-20"></div>
                 <Calendar className="h-12 w-12 text-gray-500 mx-auto mt-4" />
               </div>
-              <p className="text-gray-400 text-lg mb-2">No recent activity</p>
-              <p className="text-gray-500 text-sm">Activity will appear as you play games!</p>
+              <p className="text-gray-400 text-lg mb-2">{t('stats.noRecentActivity')}</p>
+              <p className="text-gray-500 text-sm">{t('stats.activityWillAppear')}</p>
             </div>
           )}
         </CardContent>

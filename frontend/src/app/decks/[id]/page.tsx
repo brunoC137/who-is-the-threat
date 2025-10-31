@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,8 +121,9 @@ interface DeckStats {
   }>;
 }
 
-export default function DeckDetailsPage() {
+export default function DeckPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const params = useParams();
   const deckId = params.id as string;
   

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,6 +67,7 @@ interface ProfileStats {
 
 export default function ProfilePage() {
   const { user, setUserData } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -170,7 +172,7 @@ export default function ProfilePage() {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="text-center">
-          <p className="text-muted-foreground">Please log in to view your profile.</p>
+          <p className="text-muted-foreground">{t('profile.pleaseLogIn')}</p>
         </div>
       </div>
     );
@@ -207,35 +209,35 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-300">Name</label>
+                      <label className="text-sm font-medium text-gray-300">{t('profile.name')}</label>
                       <Input
                         value={formData.name}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        placeholder="Enter your name"
+                        placeholder={t('profile.enterName')}
                         className="bg-slate-800 border-slate-600 text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-300">Nickname</label>
+                      <label className="text-sm font-medium text-gray-300">{t('profile.nickname')}</label>
                       <Input
                         value={formData.nickname}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                           setFormData({ ...formData, nickname: e.target.value })
                         }
-                        placeholder="Enter your nickname (optional)"
+                        placeholder={t('profile.enterNickname')}
                         className="bg-slate-800 border-slate-600 text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-300">Profile Image URL</label>
+                      <label className="text-sm font-medium text-gray-300">{t('profile.profileImageUrl')}</label>
                       <Input
                         value={formData.profileImage}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                           setFormData({ ...formData, profileImage: e.target.value })
                         }
-                        placeholder="Enter image URL (optional)"
+                        placeholder={t('profile.enterImageUrl')}
                         className="bg-slate-800 border-slate-600 text-white"
                       />
                     </div>
