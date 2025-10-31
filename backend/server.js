@@ -38,30 +38,53 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_RATE_LIMITING ==
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3001',
+  'http://localhost:3000',
+  'https://guerreiros-do-segundo-lugar.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+console.log('🌐 FRONTEND_URL environment variable:', process.env.FRONTEND_URL);
+
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('🌐 CORS request from origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or curl requests)  
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ CORS allowed: No origin (mobile/curl)');
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed origins list
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS allowed: Origin in allowed list');
+      return callback(null, true);
+    }
     
     // Allow all Vercel deployment URLs (including preview deployments)
     if (origin && (
       origin.includes('vercel.app') ||
       origin.includes('localhost') ||
-      allowedOrigins.includes(origin)
+      origin.includes('127.0.0.1')
     )) {
+      console.log('✅ CORS allowed: Vercel or localhost origin');
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
+
+// Handle preflight requests
+app.options('*', (req, res) => {
+  res.status(200).end();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -82,12 +105,25 @@ app.use('/api/decks', deckRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Guerreiros do Segundo Lugar API',
+    status: 'running',
+    version: '1.0.0'
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Guerreiros do Segundo Lugar API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    cors: {
+      allowedOrigins: allowedOrigins,
+      frontendUrl: process.env.FRONTEND_URL
+    }
   });
 });
 
