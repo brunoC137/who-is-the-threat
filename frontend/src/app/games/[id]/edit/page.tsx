@@ -44,6 +44,7 @@ interface GamePlayer {
   player: string;
   deck: string;
   placement?: number;
+  eliminatedBy?: string;
 }
 
 interface Game {
@@ -67,6 +68,11 @@ interface Game {
       commander: string;
     };
     placement?: number;
+    eliminatedBy?: {
+      _id: string;
+      name: string;
+      nickname?: string;
+    };
   }>;
   durationMinutes?: number;
   notes?: string;
@@ -118,7 +124,8 @@ export default function EditGamePage() {
           players: gameData.players.map((p: any) => ({
             player: p.player._id,
             deck: p.deck._id,
-            placement: p.placement
+            placement: p.placement,
+            eliminatedBy: p.eliminatedBy?._id || undefined
           })),
           durationMinutes: gameData.durationMinutes ? gameData.durationMinutes.toString() : '',
           notes: gameData.notes || '',
@@ -477,6 +484,31 @@ export default function EditGamePage() {
                       </select>
                     </div>
                   </div>
+
+                  {/* Eliminated By - Only show for non-winners */}
+                  {gamePlayer.placement && gamePlayer.placement > 1 && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Eliminated By</label>
+                      <select
+                        value={gamePlayer.eliminatedBy || ''}
+                        onChange={(e) => updatePlayer(index, 'eliminatedBy', e.target.value || undefined)}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="">Not specified</option>
+                        {formData.players
+                          .filter(p => p.player && p.player !== gamePlayer.player)
+                          .map((p, pIndex) => {
+                            const player = getPlayerById(p.player);
+                            return player ? (
+                              <option key={p.player} value={p.player}>
+                                {player.nickname || player.name}
+                              </option>
+                            ) : null;
+                          })
+                        }
+                      </select>
+                    </div>
+                  )}
 
                   {/* Player/Deck Preview */}
                   {selectedPlayer && selectedDeck && (

@@ -52,6 +52,16 @@ interface ProfileStats {
     winRate: string;
     headToHeadWins: number;
   }>;
+  eliminationStats?: {
+    playersEliminated: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      count: number;
+    }>;
+    eliminatedBy: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      count: number;
+    }>;
+  };
 }
 
 export default function ProfilePage() {
@@ -581,6 +591,81 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Elimination Statistics */}
+      {stats?.eliminationStats && (stats.eliminationStats.playersEliminated.length > 0 || stats.eliminationStats.eliminatedBy.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {/* Players Eliminated */}
+          {stats.eliminationStats.playersEliminated.length > 0 && (
+            <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Target className="h-5 w-5 text-red-400" />
+                  Most Eliminated
+                </CardTitle>
+                <CardDescription className="text-gray-400">Players you eliminate most often</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {stats.eliminationStats.playersEliminated.slice(0, 5).map((stat) => (
+                    <div key={stat.player._id} className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 ring-2 ring-slate-600">
+                          <AvatarImage src={stat.player.profileImage} alt={stat.player.name} />
+                          <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white">
+                            {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="font-medium text-sm text-white">
+                          {stat.player.nickname || stat.player.name}
+                        </p>
+                      </div>
+                      <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/50">
+                        {stat.count} {stat.count === 1 ? 'elimination' : 'eliminations'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Eliminated By */}
+          {stats.eliminationStats.eliminatedBy.length > 0 && (
+            <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-400" />
+                  Eliminated By
+                </CardTitle>
+                <CardDescription className="text-gray-400">Players who eliminate you most often</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {stats.eliminationStats.eliminatedBy.slice(0, 5).map((stat) => (
+                    <div key={stat.player._id} className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 ring-2 ring-slate-600">
+                          <AvatarImage src={stat.player.profileImage} alt={stat.player.name} />
+                          <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-amber-600 text-white">
+                            {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="font-medium text-sm text-white">
+                          {stat.player.nickname || stat.player.name}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50">
+                        {stat.count} {stat.count === 1 ? 'time' : 'times'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
       </div>
     </div>

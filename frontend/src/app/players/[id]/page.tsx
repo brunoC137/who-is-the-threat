@@ -81,6 +81,16 @@ interface PlayerStats {
     wins: number;
     winRate: number;
   }>;
+  eliminationStats?: {
+    playersEliminated: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      count: number;
+    }>;
+    eliminatedBy: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      count: number;
+    }>;
+  };
 }
 
 export default function PlayerDetailsPage() {
@@ -130,7 +140,8 @@ export default function PlayerDetailsPage() {
               totalPlayers: game.playerCount || 0,
               durationMinutes: game.durationMinutes
             })),
-            monthlyPerformance: []
+            monthlyPerformance: [],
+            eliminationStats: statsResponse_data.eliminationStats
           };
 
           // Extract favorite commanders from deckUsage
@@ -376,6 +387,81 @@ export default function PlayerDetailsPage() {
                   </Card>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Elimination Statistics */}
+          {stats.eliminationStats && (stats.eliminationStats.playersEliminated.length > 0 || stats.eliminationStats.eliminatedBy.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              {/* Players Eliminated */}
+              {stats.eliminationStats.playersEliminated.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-red-500" />
+                      Most Eliminated
+                    </CardTitle>
+                    <CardDescription>Players this player eliminates most often</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {stats.eliminationStats.playersEliminated.map((stat) => (
+                        <div key={stat.player._id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={stat.player.profileImage} />
+                              <AvatarFallback>
+                                {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <p className="font-medium text-sm">
+                              {stat.player.nickname || stat.player.name}
+                            </p>
+                          </div>
+                          <Badge variant="destructive">
+                            {stat.count} {stat.count === 1 ? 'elimination' : 'eliminations'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Eliminated By */}
+              {stats.eliminationStats.eliminatedBy.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-yellow-500" />
+                      Eliminated By
+                    </CardTitle>
+                    <CardDescription>Players who eliminate this player most often</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {stats.eliminationStats.eliminatedBy.map((stat) => (
+                        <div key={stat.player._id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={stat.player.profileImage} />
+                              <AvatarFallback>
+                                {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <p className="font-medium text-sm">
+                              {stat.player.nickname || stat.player.name}
+                            </p>
+                          </div>
+                          <Badge variant="secondary">
+                            {stat.count} {stat.count === 1 ? 'time' : 'times'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
