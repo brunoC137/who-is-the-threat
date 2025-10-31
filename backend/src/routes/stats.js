@@ -160,6 +160,68 @@ router.get('/player/:id', protect, async (req, res, next) => {
       return parseFloat(b.winRate) - parseFloat(a.winRate);
     });
 
+    // Calculate elimination statistics
+    const eliminationStats = {
+      playersEliminated: {}, // Players this player eliminated
+      eliminatedBy: {} // Players who eliminated this player
+    };
+
+    games.forEach(game => {
+      game.players.forEach(gamePlayer => {
+        if (gamePlayer.eliminatedBy) {
+          const eliminatedPlayerId = gamePlayer.player.toString();
+          const eliminatorId = gamePlayer.eliminatedBy.toString();
+
+          // This player eliminated someone
+          if (eliminatorId === playerId) {
+            if (!eliminationStats.playersEliminated[eliminatedPlayerId]) {
+              eliminationStats.playersEliminated[eliminatedPlayerId] = {
+                player: null,
+                count: 0
+              };
+            }
+            eliminationStats.playersEliminated[eliminatedPlayerId].count++;
+          }
+
+          // This player was eliminated by someone
+          if (eliminatedPlayerId === playerId) {
+            if (!eliminationStats.eliminatedBy[eliminatorId]) {
+              eliminationStats.eliminatedBy[eliminatorId] = {
+                player: null,
+                count: 0
+              };
+            }
+            eliminationStats.eliminatedBy[eliminatorId].count++;
+          }
+        }
+      });
+    });
+
+    // Populate player info for elimination stats
+    const playersEliminatedArray = [];
+    for (const [victimId, data] of Object.entries(eliminationStats.playersEliminated)) {
+      const victim = await Player.findById(victimId).select('name nickname profileImage');
+      if (victim) {
+        playersEliminatedArray.push({
+          player: victim,
+          count: data.count
+        });
+      }
+    }
+    playersEliminatedArray.sort((a, b) => b.count - a.count);
+
+    const eliminatedByArray = [];
+    for (const [eliminatorId, data] of Object.entries(eliminationStats.eliminatedBy)) {
+      const eliminator = await Player.findById(eliminatorId).select('name nickname profileImage');
+      if (eliminator) {
+        eliminatedByArray.push({
+          player: eliminator,
+          count: data.count
+        });
+      }
+    }
+    eliminatedByArray.sort((a, b) => b.count - a.count);
+
     res.status(200).json({
       success: true,
       data: {
@@ -178,7 +240,11 @@ router.get('/player/:id', protect, async (req, res, next) => {
         },
         matchups: playerMatchupsArray,
         deckUsage: sortedDeckUsage,
-        recentGames
+        recentGames,
+        eliminationStats: {
+          playersEliminated: playersEliminatedArray,
+          eliminatedBy: eliminatedByArray
+        }
       }
     });
   } catch (error) {

@@ -215,6 +215,10 @@ router.put('/:id', protect, [
     .optional()
     .isInt({ min: 1, max: 6 })
     .withMessage('Placement must be between 1 and 6'),
+  body('players.*.eliminatedBy')
+    .optional({ values: 'null' })
+    .isMongoId()
+    .withMessage('EliminatedBy must be a valid MongoDB ObjectId'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -284,6 +288,28 @@ router.put('/:id', protect, [
           success: false,
           message: 'Each player can only participate once in a game'
         });
+      }
+
+      // Validate eliminatedBy references
+      const winner = req.body.players.find(p => p.placement === 1);
+      if (winner && winner.eliminatedBy) {
+        return res.status(400).json({
+          success: false,
+          message: 'Winner (1st place) cannot have an eliminatedBy value'
+        });
+      }
+
+      // Validate that eliminatedBy references are players in the game
+      for (const player of req.body.players) {
+        if (player.eliminatedBy) {
+          const eliminatorExists = playerIds.some(id => id.toString() === player.eliminatedBy.toString());
+          if (!eliminatorExists) {
+            return res.status(400).json({
+              success: false,
+              message: 'EliminatedBy must reference a player in the game'
+            });
+          }
+        }
       }
     }
 
