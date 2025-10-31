@@ -592,7 +592,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"date\": \"2023-10-29T19:00:00.000Z\",\n  \"players\": [\n    {\n      \"player\": \"{{user_id}}\",\n      \"deck\": \"{{deck_id}}\",\n      \"placement\": 1\n    },\n    {\n      \"player\": \"player2_id_here\",\n      \"deck\": \"deck2_id_here\",\n      \"placement\": 2\n    },\n    {\n      \"player\": \"player3_id_here\",\n      \"deck\": \"deck3_id_here\",\n      \"placement\": 3\n    },\n    {\n      \"player\": \"player4_id_here\",\n      \"deck\": \"deck4_id_here\",\n      \"placement\": 4\n    }\n  ],\n  \"durationMinutes\": 120,\n  \"notes\": \"Great game! Very close finish.\"\n}"
+							"raw": "{\n  \"date\": \"2023-10-29T19:00:00.000Z\",\n  \"players\": [\n    {\n      \"player\": \"{{user_id}}\",\n      \"deck\": \"{{deck_id}}\",\n      \"placement\": 1\n    },\n    {\n      \"player\": \"player2_id_here\",\n      \"deck\": \"deck2_id_here\",\n      \"placement\": 2,\n      \"eliminatedBy\": \"{{user_id}}\"\n    },\n    {\n      \"player\": \"player3_id_here\",\n      \"deck\": \"deck3_id_here\",\n      \"placement\": 3,\n      \"eliminatedBy\": \"{{user_id}}\"\n    },\n    {\n      \"player\": \"player4_id_here\",\n      \"deck\": \"deck4_id_here\",\n      \"placement\": 4,\n      \"eliminatedBy\": \"player2_id_here\"\n    }\n  ],\n  \"durationMinutes\": 120,\n  \"notes\": \"Great game! Very close finish with multiple eliminations.\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/games",
@@ -622,7 +622,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"durationMinutes\": 150,\n  \"notes\": \"Great game! Very close finish. Updated notes.\"\n}"
+							"raw": "{\n  \"players\": [\n    {\n      \"player\": \"{{user_id}}\",\n      \"deck\": \"{{deck_id}}\",\n      \"placement\": 1\n    },\n    {\n      \"player\": \"player2_id_here\",\n      \"deck\": \"deck2_id_here\",\n      \"placement\": 2,\n      \"eliminatedBy\": \"{{user_id}}\"\n    },\n    {\n      \"player\": \"player3_id_here\",\n      \"deck\": \"deck3_id_here\",\n      \"placement\": 3,\n      \"eliminatedBy\": \"{{user_id}}\"\n    }\n  ],\n  \"durationMinutes\": 150,\n  \"notes\": \"Great game! Updated with elimination data.\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/games/{{game_id}}",
@@ -735,6 +735,52 @@
 							]
 						},
 						"description": "Get global statistics and leaderboards"
+					}
+				},
+				{
+					"name": "Get Elimination Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/stats/eliminations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"stats",
+								"eliminations"
+							]
+						},
+						"description": "Get elimination-focused statistics including most eliminations, most eliminated players, and elimination rivalries"
+					}
+				},
+				{
+					"name": "Get Dashboard Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/stats/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"stats",
+								"dashboard"
+							]
+						},
+						"description": "Get user-specific dashboard statistics"
 					}
 				}
 			],

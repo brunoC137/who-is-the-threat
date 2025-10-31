@@ -15,7 +15,8 @@ import {
   User, 
   LogOut,
   Plus,
-  X
+  X,
+  Target
 } from 'lucide-react';
 
 const navigationItems = [
@@ -38,6 +39,11 @@ const navigationItems = [
     name: 'Games',
     href: '/games',
     icon: Trophy,
+  },
+  {
+    name: 'Eliminations',
+    href: '/eliminations',
+    icon: Target,
   },
   {
     name: 'Statistics',

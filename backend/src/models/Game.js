@@ -27,6 +27,11 @@ const GameSchema = new mongoose.Schema({
       required: true,
       min: [1, 'Placement must be at least 1'],
       max: [6, 'Placement cannot be more than 6'] // Max 6 players per game
+    },
+    eliminatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Player',
+      required: false
     }
   }],
   durationMinutes: {
@@ -58,6 +63,12 @@ GameSchema.pre('save', function(next) {
     if (uniquePlacements[i] !== i + 1) {
       return next(new Error('Placements must be consecutive starting from 1'));
     }
+  }
+  
+  // Ensure 1st place player doesn't have an eliminatedBy value
+  const winner = this.players.find(p => p.placement === 1);
+  if (winner && winner.eliminatedBy) {
+    return next(new Error('Winner (1st place) cannot have an eliminatedBy value'));
   }
   
   next();

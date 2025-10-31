@@ -18,7 +18,8 @@ import {
   Layers,
   MessageSquare,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Target
 } from 'lucide-react';
 import Link from 'next/link';
 import { gamesAPI } from '@/lib/api';
@@ -48,6 +49,12 @@ interface Game {
       tags?: string[];
     };
     placement?: number;
+    eliminatedBy?: {
+      _id: string;
+      name: string;
+      nickname?: string;
+      profileImage?: string;
+    };
   }>;
   durationMinutes?: number;
   notes?: string;
@@ -236,6 +243,35 @@ export default function GameDetailsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Elimination Summary */}
+              {(() => {
+                const eliminations = game.players.filter(p => p.eliminatedBy);
+                if (eliminations.length > 0) {
+                  return (
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg mb-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Target className="h-5 w-5 text-red-600" />
+                        <p className="font-semibold text-red-800">Eliminations</p>
+                      </div>
+                      <div className="space-y-1">
+                        {eliminations.map((eliminated, index) => (
+                          <p key={index} className="text-sm text-red-700">
+                            <span className="font-medium">
+                              {eliminated.eliminatedBy?.nickname || eliminated.eliminatedBy?.name}
+                            </span>
+                            {' eliminated '}
+                            <span className="font-medium">
+                              {eliminated.player.nickname || eliminated.player.name}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
             
             {canEdit && (
@@ -311,6 +347,19 @@ export default function GameDetailsPage() {
                                 {color}
                               </Badge>
                             ))}
+                          </div>
+                        )}
+                        
+                        {/* Elimination Information */}
+                        {participant.eliminatedBy && participant.placement && participant.placement > 1 && (
+                          <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
+                            <span>💀 Eliminated by</span>
+                            <Link 
+                              href={`/players/${participant.eliminatedBy._id}`}
+                              className="font-medium hover:underline"
+                            >
+                              {participant.eliminatedBy.nickname || participant.eliminatedBy.name}
+                            </Link>
                           </div>
                         )}
                       </div>

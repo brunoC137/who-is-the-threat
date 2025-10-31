@@ -160,6 +160,79 @@ router.get('/player/:id', protect, async (req, res, next) => {
       return parseFloat(b.winRate) - parseFloat(a.winRate);
     });
 
+    // Calculate elimination statistics
+    const eliminationStats = {
+      playersEliminated: {}, // Players this player eliminated
+      eliminatedBy: {} // Players who eliminated this player
+    };
+
+    games.forEach(game => {
+      game.players.forEach(gamePlayer => {
+        if (gamePlayer.eliminatedBy) {
+          const eliminatedPlayerId = gamePlayer.player.toString();
+          const eliminatorId = gamePlayer.eliminatedBy.toString();
+
+          // This player eliminated someone
+          if (eliminatorId === playerId) {
+            if (!eliminationStats.playersEliminated[eliminatedPlayerId]) {
+              eliminationStats.playersEliminated[eliminatedPlayerId] = {
+                player: null,
+                count: 0
+              };
+            }
+            eliminationStats.playersEliminated[eliminatedPlayerId].count++;
+          }
+
+          // This player was eliminated by someone
+          if (eliminatedPlayerId === playerId) {
+            if (!eliminationStats.eliminatedBy[eliminatorId]) {
+              eliminationStats.eliminatedBy[eliminatorId] = {
+                player: null,
+                count: 0
+              };
+            }
+            eliminationStats.eliminatedBy[eliminatorId].count++;
+          }
+        }
+      });
+    });
+
+    // Populate player info for elimination stats
+    const allEliminationPlayerIds = [
+      ...Object.keys(eliminationStats.playersEliminated),
+      ...Object.keys(eliminationStats.eliminatedBy)
+    ];
+    
+    const eliminationPlayers = allEliminationPlayerIds.length > 0 
+      ? await Player.find({ _id: { $in: allEliminationPlayerIds } }).select('name nickname profileImage')
+      : [];
+    
+    const playerMap = new Map(eliminationPlayers.map(p => [p._id.toString(), p]));
+
+    const playersEliminatedArray = [];
+    for (const [victimId, data] of Object.entries(eliminationStats.playersEliminated)) {
+      const victim = playerMap.get(victimId);
+      if (victim) {
+        playersEliminatedArray.push({
+          player: victim,
+          count: data.count
+        });
+      }
+    }
+    playersEliminatedArray.sort((a, b) => b.count - a.count);
+
+    const eliminatedByArray = [];
+    for (const [eliminatorId, data] of Object.entries(eliminationStats.eliminatedBy)) {
+      const eliminator = playerMap.get(eliminatorId);
+      if (eliminator) {
+        eliminatedByArray.push({
+          player: eliminator,
+          count: data.count
+        });
+      }
+    }
+    eliminatedByArray.sort((a, b) => b.count - a.count);
+
     res.status(200).json({
       success: true,
       data: {
@@ -178,7 +251,11 @@ router.get('/player/:id', protect, async (req, res, next) => {
         },
         matchups: playerMatchupsArray,
         deckUsage: sortedDeckUsage,
-        recentGames
+        recentGames,
+        eliminationStats: {
+          playersEliminated: playersEliminatedArray,
+          eliminatedBy: eliminatedByArray
+        }
       }
     });
   } catch (error) {
@@ -430,6 +507,139 @@ router.get('/dashboard', protect, async (req, res, next) => {
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
+    next(error);
+  }
+});
+
+// @desc    Get elimination statistics
+// @route   GET /stats/eliminations
+// @access  Private
+router.get('/eliminations', protect, async (req, res, next) => {
+  try {
+    // Get all games first, then filter and populate carefully
+    const allGames = await Game.find({})
+      .populate('players.player', 'name nickname profileImage');
+
+    const games = [];
+    
+    for (const game of allGames) {
+      // Check if this game has any eliminations
+      const hasEliminations = game.players.some(p => p.eliminatedBy && p.eliminatedBy.toString() !== '');
+      
+      if (hasEliminations) {
+        // Populate eliminatedBy for this game
+        await game.populate('players.eliminatedBy', 'name nickname profileImage');
+        games.push(game);
+      }
+    }
+
+    // Track elimination statistics
+    const eliminationStats = {
+      playerEliminations: {}, // player -> how many they eliminated
+      playerEliminated: {}, // player -> how many times they were eliminated
+      eliminationMatchups: {} // player vs player elimination counts
+    };
+
+    // Process all games to collect elimination data
+    games.forEach(game => {
+      game.players.forEach(gamePlayer => {
+        if (gamePlayer.eliminatedBy) {
+          const eliminatedPlayerId = gamePlayer.player._id.toString();
+          const eliminatorId = gamePlayer.eliminatedBy._id.toString();
+
+          // Track eliminations by player
+          if (!eliminationStats.playerEliminations[eliminatorId]) {
+            eliminationStats.playerEliminations[eliminatorId] = {
+              player: gamePlayer.eliminatedBy,
+              count: 0
+            };
+          }
+          eliminationStats.playerEliminations[eliminatorId].count++;
+
+          // Track times eliminated by player
+          if (!eliminationStats.playerEliminated[eliminatedPlayerId]) {
+            eliminationStats.playerEliminated[eliminatedPlayerId] = {
+              player: gamePlayer.player,
+              count: 0
+            };
+          }
+          eliminationStats.playerEliminated[eliminatedPlayerId].count++;
+
+          // Track matchup data (who eliminates who)
+          if (!eliminationStats.eliminationMatchups[eliminatorId]) {
+            eliminationStats.eliminationMatchups[eliminatorId] = {};
+          }
+          if (!eliminationStats.eliminationMatchups[eliminatorId][eliminatedPlayerId]) {
+            eliminationStats.eliminationMatchups[eliminatorId][eliminatedPlayerId] = {
+              eliminator: gamePlayer.eliminatedBy,
+              victim: gamePlayer.player,
+              count: 0
+            };
+          }
+          eliminationStats.eliminationMatchups[eliminatorId][eliminatedPlayerId].count++;
+        }
+      });
+    });
+
+    // Convert to arrays and sort
+    const mostEliminations = Object.values(eliminationStats.playerEliminations)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const mostEliminated = Object.values(eliminationStats.playerEliminated)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Get top elimination matchups (who eliminates who most often)
+    const topMatchups = [];
+    Object.values(eliminationStats.eliminationMatchups).forEach(eliminatorMatchups => {
+      Object.values(eliminatorMatchups).forEach(matchup => {
+        if (matchup.count >= 1) { // Show all elimination matchups
+          topMatchups.push(matchup);
+        }
+      });
+    });
+    topMatchups.sort((a, b) => b.count - a.count);
+    const limitedTopMatchups = topMatchups.slice(0, 15);
+
+    // Calculate some overall stats
+    const totalEliminations = Object.values(eliminationStats.playerEliminations)
+      .reduce((sum, player) => sum + player.count, 0);
+
+    const averageEliminationsPerGame = games.length > 0 ? 
+      (totalEliminations / games.length).toFixed(2) : 0;
+
+    // Get elimination trends (recent vs all time)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentGames = games.filter(game => new Date(game.date) >= thirtyDaysAgo);
+    const recentEliminations = recentGames.reduce((count, game) => {
+      return count + game.players.filter(p => p.eliminatedBy).length;
+    }, 0);
+
+    // Set cache headers to prevent 304 responses
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        overview: {
+          totalEliminations,
+          gamesWithEliminations: games.length,
+          averageEliminationsPerGame: parseFloat(averageEliminationsPerGame),
+          recentEliminations: recentEliminations
+        },
+        mostEliminations,
+        mostEliminated,
+        topMatchups: limitedTopMatchups
+      }
+    });
+  } catch (error) {
     next(error);
   }
 });

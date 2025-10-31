@@ -97,13 +97,26 @@ Include the JWT token in the Authorization header: `Bearer <token>`
     {
       "player": "playerId2",
       "deck": "deckId2",
-      "placement": 2
+      "placement": 2,
+      "eliminatedBy": "playerId1"
+    },
+    {
+      "player": "playerId3",
+      "deck": "deckId3",
+      "placement": 3,
+      "eliminatedBy": "playerId1"
     }
   ],
   "durationMinutes": 90,
   "notes": "Great game with lots of interaction"
 }
 ```
+
+**Player Fields:**
+- `player` (required): Player ID
+- `deck` (required): Deck ID used by the player
+- `placement` (required): Final placement (1 = winner, 2 = second, etc.)
+- `eliminatedBy` (optional): Player ID who eliminated this player (only for non-winners)
 
 ### Update Game
 **PUT** `/games/:id`
@@ -131,6 +144,7 @@ Returns:
 - Deck usage statistics
 - Recent games
 - Player vs player matchups
+- Elimination statistics (players eliminated by this player, players who eliminated this player)
 
 ### Deck Statistics
 **GET** `/stats/deck/:id`
@@ -153,6 +167,65 @@ Returns:
 - Popular commanders with win rates
 - Recent activity feed
 - Average game length
+
+### Elimination Statistics
+**GET** `/stats/eliminations`
+
+Returns elimination-focused statistics:
+- Overview statistics (total eliminations, games with eliminations, averages)
+- Most eliminations (top players who eliminate others)
+- Most eliminated (players who get eliminated most often)
+- Top elimination matchups (player vs player elimination rivalries)
+
+```json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalEliminations": 15,
+      "gamesWithEliminations": 8,
+      "averageEliminationsPerGame": 1.87,
+      "recentEliminations": 5
+    },
+    "mostEliminations": [
+      {
+        "player": {
+          "_id": "playerId1",
+          "name": "John Doe",
+          "nickname": "JohnnyMTG",
+          "profileImage": "https://example.com/avatar.jpg"
+        },
+        "count": 7
+      }
+    ],
+    "mostEliminated": [
+      {
+        "player": {
+          "_id": "playerId2",
+          "name": "Jane Smith",
+          "nickname": "JaneEDH"
+        },
+        "count": 4
+      }
+    ],
+    "topMatchups": [
+      {
+        "eliminator": {
+          "_id": "playerId1",
+          "name": "John Doe",
+          "nickname": "JohnnyMTG"
+        },
+        "victim": {
+          "_id": "playerId2",
+          "name": "Jane Smith",
+          "nickname": "JaneEDH"
+        },
+        "count": 3
+      }
+    ]
+  }
+}
+```
 
 ## Error Responses
 
