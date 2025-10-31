@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -16,41 +17,9 @@ import {
   LogOut,
   Plus,
   X,
-  Target
+  Target,
+  Languages
 } from 'lucide-react';
-
-const navigationItems = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: Home,
-  },
-  {
-    name: 'Players',
-    href: '/players',
-    icon: Users,
-  },
-  {
-    name: 'Decks',
-    href: '/decks',
-    icon: Layers,
-  },
-  {
-    name: 'Games',
-    href: '/games',
-    icon: Trophy,
-  },
-  {
-    name: 'Eliminations',
-    href: '/eliminations',
-    icon: Target,
-  },
-  {
-    name: 'Statistics',
-    href: '/stats',
-    icon: BarChart3,
-  },
-];
 
 interface NavigationProps {
   children: React.ReactNode;
@@ -58,6 +27,7 @@ interface NavigationProps {
 
 export function Navigation({ children }: NavigationProps) {
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -70,6 +40,43 @@ export function Navigation({ children }: NavigationProps) {
     logout();
     setIsOpen(false);
   };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'pt-BR' : 'en');
+  };
+
+  const navigationItems = [
+    {
+      name: t('nav.dashboard'),
+      href: '/dashboard',
+      icon: Home,
+    },
+    {
+      name: t('nav.players'),
+      href: '/players',
+      icon: Users,
+    },
+    {
+      name: t('nav.decks'),
+      href: '/decks',
+      icon: Layers,
+    },
+    {
+      name: t('nav.games'),
+      href: '/games',
+      icon: Trophy,
+    },
+    {
+      name: t('nav.eliminations'),
+      href: '/eliminations',
+      icon: Target,
+    },
+    {
+      name: t('nav.statistics'),
+      href: '/stats',
+      icon: BarChart3,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,19 +127,27 @@ export function Navigation({ children }: NavigationProps) {
                     <span className="truncate">{user?.nickname || user?.name}</span>
                   </div>
                   <div className="mt-2 space-y-1">
+                    <button
+                      onClick={toggleLanguage}
+                      className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                      title={language === 'en' ? 'Switch to Portuguese' : 'Mudar para Inglês'}
+                    >
+                      <Languages className="h-6 w-6 shrink-0" />
+                      <span>{language === 'en' ? 'EN' : 'PT'}</span>
+                    </button>
                     <Link
                       href="/profile"
                       className="group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                     >
                       <User className="h-6 w-6 shrink-0" />
-                      Profile
+                      {t('nav.profile')}
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                     >
                       <LogOut className="h-6 w-6 shrink-0" />
-                      Sign out
+                      {t('nav.signOut')}
                     </button>
                   </div>
                 </div>
@@ -165,12 +180,23 @@ export function Navigation({ children }: NavigationProps) {
                   Guerreiros
                 </span>
               </Link>
-              <Link href="/games/new">
-                <Button size="sm" className="shadow-glow-sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Game
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={toggleLanguage}
+                  className="h-9 w-9"
+                  title={language === 'en' ? 'Switch to Portuguese' : 'Mudar para Inglês'}
+                >
+                  <Languages className="h-5 w-5" />
                 </Button>
-              </Link>
+                <Link href="/games/new">
+                  <Button size="sm" className="shadow-glow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('nav.newGame')}
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -231,20 +257,30 @@ export function Navigation({ children }: NavigationProps) {
                         <span className="truncate">{user?.nickname || user?.name}</span>
                       </div>
                       <div className="mt-2 space-y-1">
+                        <button
+                          onClick={() => {
+                            toggleLanguage();
+                            setIsOpen(false);
+                          }}
+                          className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                        >
+                          <Languages className="h-6 w-6 shrink-0" />
+                          <span>{language === 'en' ? 'English' : 'Português'}</span>
+                        </button>
                         <Link
                           href="/profile"
                           onClick={() => setIsOpen(false)}
                           className="group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                         >
                           <User className="h-6 w-6 shrink-0" />
-                          Profile
+                          {t('nav.profile')}
                         </Link>
                         <button
                           onClick={handleLogout}
                           className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                         >
                           <LogOut className="h-6 w-6 shrink-0" />
-                          Sign out
+                          {t('nav.signOut')}
                         </button>
                       </div>
                     </div>
