@@ -190,10 +190,10 @@ export default function RegisterPage() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            {language === 'en' ? 'Join the Playgroup' : 'Junte-se ao Grupo'}
+            {t('auth.joinPlaygroup')}
           </h1>
           <p className="text-gray-400">
-            {language === 'en' ? 'Create your account to start tracking Commander games' : 'Crie sua conta para começar a rastrear partidas de Commander'}
+            {t('auth.createAccountToTrack')}
           </p>
         </div>
 
@@ -204,7 +204,7 @@ export default function RegisterPage() {
               {t('auth.createAccount')}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              {language === 'en' ? 'Fill in your details to join Guerreiros do Segundo Lugar' : 'Preencha seus dados para entrar em Guerreiros do Segundo Lugar'}
+              {t('auth.fillDetails')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -220,7 +220,7 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.name}
                   onChange={handleInputChange('name')}
-                  placeholder={language === 'en' ? 'Enter your full name' : 'Digite seu nome completo'}
+                  placeholder={t('auth.enterFullName')}
                   className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.name ? 'border-red-500' : ''}`}
                 />
                 {errors.name && (
@@ -238,11 +238,11 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.nickname}
                   onChange={handleInputChange('nickname')}
-                  placeholder={language === 'en' ? 'Display name for games' : 'Nome de exibição para partidas'}
+                  placeholder={t('auth.displayNameForGames')}
                   className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {language === 'en' ? 'This will be shown during games if provided' : 'Será mostrado durante as partidas se fornecido'}
+                  {t('auth.shownDuringGames')}
                 </p>
               </div>
 
@@ -257,7 +257,7 @@ export default function RegisterPage() {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange('email')}
-                  placeholder={language === 'en' ? 'Enter your email' : 'Digite seu email'}
+                  placeholder={t('auth.enterEmail')}
                   className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.email ? 'border-red-500' : ''}`}
                 />
                 {errors.email && (
@@ -276,7 +276,7 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={handleInputChange('password')}
-                    placeholder={language === 'en' ? 'Create a secure password' : 'Crie uma senha segura'}
+                    placeholder={t('auth.createSecurePassword')}
                     className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <Button
@@ -309,7 +309,7 @@ export default function RegisterPage() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleInputChange('confirmPassword')}
-                    placeholder={language === 'en' ? 'Confirm your password' : 'Confirme sua senha'}
+                    placeholder={t('auth.confirmYourPassword')}
                     className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <Button
@@ -348,7 +348,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-red-400 mt-1">{errors.profileImage}</p>
                 )}
                 <p className="text-xs text-gray-500 mt-1">
-                  {language === 'en' ? 'Link to your profile picture (Gravatar, social media, etc.)' : 'Link para sua foto de perfil (Gravatar, redes sociais, etc.)'}
+                  {t('auth.profileImageUrl')}
                 </p>
               </div>
 
@@ -361,7 +361,7 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {language === 'en' ? 'Creating Account...' : 'Criando Conta...'}
+                    {t('auth.creatingAccount')}
                   </>
                 ) : (
                   <>
@@ -382,7 +382,7 @@ export default function RegisterPage() {
                 <p className="text-gray-400 text-sm">
                   {t('auth.alreadyHaveAccount')}{' '}
                   <Link href="/login" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
-                    {language === 'en' ? 'Sign in here' : 'Entre aqui'}
+                    {t('auth.signInHere')}
                   </Link>
                 </p>
               </div>

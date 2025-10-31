@@ -124,7 +124,7 @@ export default function LoginPage() {
             do Segundo Lugar
           </p>
           <p className="mt-2 text-gray-400 text-sm">
-            {language === 'en' ? 'Enter the battlefield, planeswalker' : 'Entre no campo de batalha, planeswalker'}
+            {t('auth.enterBattlefield')}
           </p>
         </div>
 
@@ -133,7 +133,7 @@ export default function LoginPage() {
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl font-bold text-white">{t('auth.welcomeBack')}</CardTitle>
             <CardDescription className="text-gray-400">
-              {language === 'en' ? 'Sign in to continue your Commander journey' : 'Faça login para continuar sua jornada Commander'}
+              {t('auth.signInToContinue')}
             </CardDescription>
           </CardHeader>
           
@@ -152,7 +152,7 @@ export default function LoginPage() {
                     type="email"
                     autoComplete="email"
                     required
-                    placeholder={language === 'en' ? 'Enter your email' : 'Digite seu email'}
+                    placeholder={t('auth.enterEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
@@ -173,7 +173,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
-                    placeholder={language === 'en' ? 'Enter your password' : 'Digite sua senha'}
+                    placeholder={t('auth.enterPassword')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
@@ -208,7 +208,7 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {language === 'en' ? 'Signing in...' : 'Entrando...'}
+                    {t('auth.signingIn')}
                   </>
                 ) : (
                   t('auth.signIn')
@@ -219,12 +219,12 @@ export default function LoginPage() {
             {/* Register Link */}
             <div className="text-center pt-4 border-t border-slate-700/50">
               <p className="text-gray-400 text-sm">
-                {language === 'en' ? 'New to the battlefield?' : 'Novo no campo de batalha?'}{' '}
+                {t('auth.newToBattlefield')}{' '}
                 <Link 
                   href="/register" 
                   className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                 >
-                  {language === 'en' ? 'Create your account' : 'Crie sua conta'}
+                  {t('auth.createAccount')}
                 </Link>
               </p>
             </div>
@@ -233,7 +233,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-500">
-          {language === 'en' ? 'May your topdecks be legendary ⚡' : 'Que seus topdecks sejam lendários ⚡'}
+          {t('auth.topdecksLegendary')}
         </p>
       </div>
     </div>
