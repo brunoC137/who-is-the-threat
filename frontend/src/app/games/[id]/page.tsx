@@ -89,7 +89,7 @@ export default function GameDetailsPage() {
         setGame(gameData);
       } catch (error: any) {
         console.error('Error fetching game:', error);
-        setError('Failed to load game information');
+        setError(t('games.failedToLoadGame'));
       } finally {
         setLoading(false);
       }
@@ -98,7 +98,7 @@ export default function GameDetailsPage() {
     if (gameId) {
       fetchGame();
     }
-  }, [gameId]);
+  }, [gameId, t]);
 
   // Check permissions
   const canEdit = user && game && (user.isAdmin || user.id === game.createdBy._id);
@@ -118,10 +118,10 @@ export default function GameDetailsPage() {
       <div className="container mx-auto px-4 py-6">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">
-            {error || 'Game not found'}
+            {error || t('games.gameNotFound')}
           </p>
           <Link href="/games">
-            <Button>Back to Games</Button>
+            <Button>{t('games.backToGames')}</Button>
           </Link>
         </div>
       </div>
@@ -166,7 +166,7 @@ export default function GameDetailsPage() {
     
     return (
       <Badge className={colors[placement as keyof typeof colors] || 'bg-slate-400 text-white'}>
-        {placement === 1 ? '🥇 Winner' : placement === 2 ? '🥈 2nd' : placement === 3 ? '🥉 3rd' : `${placement}th`}
+        {placement === 1 ? '🥇 ' + t('games.winnerLabel') : placement === 2 ? '🥈 2nd' : placement === 3 ? '🥉 3rd' : `${placement}th`}
       </Badge>
     );
   };
@@ -199,7 +199,7 @@ export default function GameDetailsPage() {
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">
-                {completedGame ? 'Completed Game' : 'Game Session'}
+                {completedGame ? t('games.completedGame') : t('games.gameSession')}
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
                 <span className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function GameDetailsPage() {
                 </span>
                 <span className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  {totalPlayers} players
+                  {totalPlayers} {t('games.playersCount')}
                 </span>
                 {game.durationMinutes && (
                   <span className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function GameDetailsPage() {
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-muted-foreground">
-                  Recorded by <strong>{game.createdBy.nickname || game.createdBy.name}</strong>
+                  {t('games.recordedByUser')} <strong>{game.createdBy.nickname || game.createdBy.name}</strong>
                 </span>
               </div>
 
@@ -237,7 +237,7 @@ export default function GameDetailsPage() {
                   <div className="flex items-center gap-3">
                     <Trophy className="h-6 w-6 text-yellow-600" />
                     <div>
-                      <p className="font-semibold text-yellow-800">Game Winner</p>
+                      <p className="font-semibold text-yellow-800">{t('games.gameWinner')}</p>
                       <p className="text-yellow-700">
                         {winner.player.nickname || winner.player.name} with {winner.deck.name}
                       </p>
@@ -254,7 +254,7 @@ export default function GameDetailsPage() {
                     <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg mb-4">
                       <div className="flex items-center gap-3 mb-2">
                         <Target className="h-5 w-5 text-red-600" />
-                        <p className="font-semibold text-red-800">Eliminations</p>
+                        <p className="font-semibold text-red-800">{t('games.eliminationsTitle')}</p>
                       </div>
                       <div className="space-y-1">
                         {eliminations.map((eliminated, index) => (
@@ -262,7 +262,7 @@ export default function GameDetailsPage() {
                             <span className="font-medium">
                               {eliminated.eliminatedBy?.nickname || eliminated.eliminatedBy?.name}
                             </span>
-                            {' eliminated '}
+                            {' ' + t('games.eliminatedText') + ' '}
                             <span className="font-medium">
                               {eliminated.player.nickname || eliminated.player.name}
                             </span>
@@ -280,7 +280,7 @@ export default function GameDetailsPage() {
               <Button asChild>
                 <Link href={`/games/${game._id}/edit`}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Game
+                  {t('games.editGameButton')}
                 </Link>
               </Button>
             )}
@@ -296,10 +296,10 @@ export default function GameDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5" />
-                Players & Results
+                {t('games.playersAndResults')}
               </CardTitle>
               <CardDescription>
-                {completedGame ? 'Final standings' : 'Game participants'}
+                {completedGame ? t('games.finalStandings') : t('games.gameParticipants')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -355,7 +355,7 @@ export default function GameDetailsPage() {
                         {/* Elimination Information */}
                         {participant.eliminatedBy && participant.placement && participant.placement > 1 && (
                           <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
-                            <span>💀 Eliminated by</span>
+                            <span>💀 {t('games.eliminatedByText')}</span>
                             <Link 
                               href={`/players/${participant.eliminatedBy._id}`}
                               className="font-medium hover:underline"
@@ -371,13 +371,13 @@ export default function GameDetailsPage() {
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/players/${participant.player._id}`}>
                           <User className="h-3 w-3 mr-1" />
-                          Player
+                          {t('games.playerButton')}
                         </Link>
                       </Button>
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/decks/${participant.deck._id}`}>
                           <Layers className="h-3 w-3 mr-1" />
-                          Deck
+                          {t('games.deckButton')}
                         </Link>
                       </Button>
                     </div>
@@ -393,7 +393,7 @@ export default function GameDetailsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Game Notes
+                  {t('games.gameNotesTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -410,37 +410,37 @@ export default function GameDetailsPage() {
           {/* Quick Stats */}
           <Card>
             <CardHeader>
-              <CardTitle>Game Summary</CardTitle>
+              <CardTitle>{t('games.gameSummary')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Date</span>
+                <span className="text-sm text-muted-foreground">{t('games.dateLabel')}</span>
                 <span className="text-sm font-medium">{formatDate(game.date)}</span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Players</span>
+                <span className="text-sm text-muted-foreground">{t('games.playersAndResults')}</span>
                 <span className="text-sm font-medium">{totalPlayers}</span>
               </div>
               
               {game.durationMinutes && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Duration</span>
+                  <span className="text-sm text-muted-foreground">{t('games.durationLabel')}</span>
                   <span className="text-sm font-medium">{formatDuration(game.durationMinutes)}</span>
                 </div>
               )}
               
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
+                <span className="text-sm text-muted-foreground">{t('games.statusLabel')}</span>
                 <Badge variant={completedGame ? "default" : "secondary"}>
-                  {completedGame ? "Completed" : "In Progress"}
+                  {completedGame ? t('games.completedStatus') : t('games.inProgressStatus')}
                 </Badge>
               </div>
 
               {winner && (
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Winner</span>
+                    <span className="text-sm text-muted-foreground">{t('games.winnerLabel')}</span>
                     <div className="text-right">
                       <p className="text-sm font-medium">
                         {winner.player.nickname || winner.player.name}
@@ -458,8 +458,8 @@ export default function GameDetailsPage() {
           {/* Commanders Used */}
           <Card>
             <CardHeader>
-              <CardTitle>Commanders</CardTitle>
-              <CardDescription>Commanders used in this game</CardDescription>
+              <CardTitle>{t('games.commandersTitle')}</CardTitle>
+              <CardDescription>{t('games.commandersUsed')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -495,23 +495,23 @@ export default function GameDetailsPage() {
           {/* Meta Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Details</CardTitle>
+              <CardTitle>{t('games.detailsTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Recorded:</span>
+                <span className="text-muted-foreground">{t('games.recordedLabel')}:</span>
                 <p className="font-medium">{formatDateTime(game.createdAt)}</p>
               </div>
               
               {game.updatedAt !== game.createdAt && (
                 <div>
-                  <span className="text-muted-foreground">Last updated:</span>
+                  <span className="text-muted-foreground">{t('games.lastUpdatedLabel')}:</span>
                   <p className="font-medium">{formatDateTime(game.updatedAt)}</p>
                 </div>
               )}
               
               <div>
-                <span className="text-muted-foreground">Game ID:</span>
+                <span className="text-muted-foreground">{t('games.gameIdLabel')}:</span>
                 <p className="font-mono text-xs break-all">{game._id}</p>
               </div>
             </CardContent>
