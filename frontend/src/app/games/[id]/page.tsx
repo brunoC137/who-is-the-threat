@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,6 +73,7 @@ const colorMap: { [key: string]: { name: string; color: string } } = {
 
 export default function GameDetailsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const params = useParams();
   const gameId = params.id as string;
   

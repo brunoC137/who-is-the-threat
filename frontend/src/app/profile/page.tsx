@@ -270,7 +270,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        <span>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</span>
+                        <span>{t('profile.joined')} {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : t('profile.unknown')}</span>
                       </div>
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export default function ProfilePage() {
                       className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      {loading ? 'Saving...' : 'Save'}
+                      {loading ? t('profile.saving') : t('profile.save')}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -624,7 +624,7 @@ export default function ProfilePage() {
                         </p>
                       </div>
                       <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/50">
-                        {stat.count} {stat.count === 1 ? 'elimination' : 'eliminations'}
+                        {stat.count} {stat.count === 1 ? t('profile.elimination') : t('profile.eliminations')}
                       </Badge>
                     </div>
                   ))}
@@ -659,7 +659,7 @@ export default function ProfilePage() {
                         </p>
                       </div>
                       <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50">
-                        {stat.count} {stat.count === 1 ? 'time' : 'times'}
+                        {stat.count} {stat.count === 1 ? t('profile.time') : t('profile.times')}
                       </Badge>
                     </div>
                   ))}

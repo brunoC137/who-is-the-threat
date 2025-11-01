@@ -174,11 +174,11 @@ export default function DecksPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Decks</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('decks.title')}</h1>
           <p className="text-muted-foreground">
             {showAllDecks 
-              ? "All Commander decks in your playgroup" 
-              : "Your Commander decks"
+              ? t('decks.allCommander')
+              : t('decks.yourCommander')
             }
           </p>
         </div>
@@ -214,7 +214,7 @@ export default function DecksPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search decks by name, commander, or owner..."
+            placeholder={t('decks.searchDecks')}
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="pl-10"

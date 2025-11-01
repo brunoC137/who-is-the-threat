@@ -162,7 +162,7 @@ export default function PlayersPage() {
                   {player.nickname || player.name}
                   {player.isAdmin && (
                     <Badge variant="secondary" className="ml-2 text-xs bg-gradient-to-r from-warning to-warning/80 text-white border-0">
-                      Admin
+                      {t('players.isAdmin')}
                     </Badge>
                   )}
                 </CardTitle>

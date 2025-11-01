@@ -229,7 +229,7 @@ export default function GamesPage() {
                     <CardDescription className="flex items-center gap-4 mt-3 ml-11">
                       <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
                         <Users className="h-4 w-4 text-accent" />
-                        <span className="font-medium">{game.players.length} players</span>
+                        <span className="font-medium">{game.players.length} {game.players.length === 1 ? t('games.player') : t('dashboard.players')}</span>
                       </span>
                       {game.durationMinutes && (
                         <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
