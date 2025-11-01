@@ -5,10 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Mail, Lock, Sparkles, Crown } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Sparkles, Crown, Languages } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   
   const { login } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,10 +32,14 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Login failed');
+      setError(error.response?.data?.message || t('messages.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'pt-BR' : 'en');
   };
 
   return (
@@ -41,6 +47,17 @@ export default function LoginPage() {
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-900/50 to-slate-950" />
+      
+      {/* Language Toggle Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleLanguage}
+        className="fixed top-4 left-4 z-50 bg-slate-900/90 backdrop-blur-sm border border-slate-700/50 hover:bg-slate-800/90"
+        title={language === 'en' ? 'Switch to Portuguese' : 'Mudar para Inglês'}
+      >
+        <Languages className="h-5 w-5 text-gray-300" />
+      </Button>
       
       {/* Floating Particles Effect */}
       <div className="absolute inset-0 overflow-hidden">
@@ -107,16 +124,16 @@ export default function LoginPage() {
             do Segundo Lugar
           </p>
           <p className="mt-2 text-gray-400 text-sm">
-            Enter the battlefield, planeswalker
+            {t('auth.enterBattlefield')}
           </p>
         </div>
 
         {/* Login Card */}
         <Card className="bg-slate-900/90 backdrop-blur-sm border-slate-700/50 shadow-2xl">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">{t('auth.welcomeBack')}</CardTitle>
             <CardDescription className="text-gray-400">
-              Sign in to continue your Commander journey
+              {t('auth.signInToContinue')}
             </CardDescription>
           </CardHeader>
           
@@ -125,7 +142,7 @@ export default function LoginPage() {
               {/* Email Field */}
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-gray-300">
-                  Email Address
+                  {t('auth.email')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -135,7 +152,7 @@ export default function LoginPage() {
                     type="email"
                     autoComplete="email"
                     required
-                    placeholder="Enter your email"
+                    placeholder={t('auth.enterEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
@@ -146,7 +163,7 @@ export default function LoginPage() {
               {/* Password Field */}
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium text-gray-300">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -156,7 +173,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
-                    placeholder="Enter your password"
+                    placeholder={t('auth.enterPassword')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
@@ -191,10 +208,10 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Signing in...
+                    {t('auth.signingIn')}
                   </>
                 ) : (
-                  'Sign In'
+                  t('auth.signIn')
                 )}
               </Button>
             </form>
@@ -202,12 +219,12 @@ export default function LoginPage() {
             {/* Register Link */}
             <div className="text-center pt-4 border-t border-slate-700/50">
               <p className="text-gray-400 text-sm">
-                New to the battlefield?{' '}
+                {t('auth.newToBattlefield')}{' '}
                 <Link 
                   href="/register" 
                   className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
                 >
-                  Create your account
+                  {t('auth.createAccount')}
                 </Link>
               </p>
             </div>
@@ -216,7 +233,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-500">
-          May your topdecks be legendary ⚡
+          {t('auth.topdecksLegendary')}
         </p>
       </div>
     </div>

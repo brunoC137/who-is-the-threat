@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +60,7 @@ interface PlayerEliminationStats {
 
 export default function EliminationsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [stats, setStats] = useState<EliminationStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,10 +152,10 @@ export default function EliminationsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 text-white flex items-center gap-3">
             <Target className="h-10 w-10 text-red-400" />
-            Eliminations
+            {t('eliminations.title')}
           </h1>
           <p className="text-gray-400 text-lg">
-            Track who&apos;s bringing the heat to the battlefield
+            {t('eliminations.trackWhosBringing')}
           </p>
         </div>
 
@@ -164,12 +166,12 @@ export default function EliminationsPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-orange-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
             <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Total Eliminations</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-300">{t('eliminations.totalEliminations')}</CardTitle>
                 <Crosshair className="h-5 w-5 text-red-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white">{stats?.overview?.totalEliminations || 0}</div>
-                <p className="text-xs text-gray-400">Players eliminated</p>
+                <p className="text-xs text-gray-400">{t('eliminations.playersEliminated')}</p>
               </CardContent>
             </Card>
           </div>
@@ -179,12 +181,12 @@ export default function EliminationsPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
             <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Active Games</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-300">{t('eliminations.activeGames')}</CardTitle>
                 <Activity className="h-5 w-5 text-purple-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white">{stats?.overview?.gamesWithEliminations || 0}</div>
-                <p className="text-xs text-gray-400">Games with eliminations</p>
+                <p className="text-xs text-gray-400">{t('eliminations.gamesWithEliminations')}</p>
               </CardContent>
             </Card>
           </div>
@@ -194,12 +196,12 @@ export default function EliminationsPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
             <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Average per Game</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-300">{t('eliminations.averagePerGame')}</CardTitle>
                 <TrendingUp className="h-5 w-5 text-blue-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white">{stats?.overview?.averageEliminationsPerGame || 0}</div>
-                <p className="text-xs text-gray-400">Eliminations per game</p>
+                <p className="text-xs text-gray-400">{t('eliminations.eliminationsPerGame')}</p>
               </CardContent>
             </Card>
           </div>
@@ -209,12 +211,12 @@ export default function EliminationsPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
             <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-300">Last 30 Days</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-300">{t('eliminations.last30Days')}</CardTitle>
                 <Target className="h-5 w-5 text-green-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-white">{stats?.overview?.recentEliminations || 0}</div>
-                <p className="text-xs text-gray-400">Recent eliminations</p>
+                <p className="text-xs text-gray-400">{t('eliminations.recentEliminations')}</p>
               </CardContent>
             </Card>
           </div>
@@ -226,10 +228,10 @@ export default function EliminationsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Users className="h-5 w-5 text-purple-400" />
-                Player Elimination Details
+                {t('eliminations.playerEliminationDetails')}
               </CardTitle>
               <CardDescription className="text-gray-400">
-                Select a player to see their detailed elimination statistics
+                {t('eliminations.selectPlayerDetailed')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -242,7 +244,7 @@ export default function EliminationsPage() {
                   }}
                   className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
                 >
-                  <option value="">Select a player to view detailed stats...</option>
+                  <option value="">{t('eliminations.selectPlayerToView')}</option>
                   {players.map(player => (
                     <option key={player._id} value={player._id}>
                       {player.nickname || player.name}
@@ -257,7 +259,7 @@ export default function EliminationsPage() {
                   <div className="bg-slate-800/50 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                       <Sword className="h-5 w-5 text-red-400" />
-                      Players Eliminated by {selectedPlayer.nickname || selectedPlayer.name}
+                      {t('eliminations.playersEliminatedBy')} {selectedPlayer.nickname || selectedPlayer.name}
                     </h4>
                     {playerStats.playersEliminated.length > 0 ? (
                       <div className="space-y-3">
@@ -275,13 +277,13 @@ export default function EliminationsPage() {
                               </span>
                             </div>
                             <Badge className="bg-red-600/80 text-white border-0">
-                              {victim.count} elimination{victim.count !== 1 ? 's' : ''}
+                              {victim.count} {victim.count !== 1 ? t('eliminations.eliminations') : t('eliminations.elimination')}
                             </Badge>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-400 text-sm">No eliminations recorded</p>
+                      <p className="text-gray-400 text-sm">{t('eliminations.noEliminationsRecorded')}</p>
                     )}
                   </div>
 
@@ -289,7 +291,7 @@ export default function EliminationsPage() {
                   <div className="bg-slate-800/50 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                       <Skull className="h-5 w-5 text-blue-400" />
-                      Players Who Eliminated {selectedPlayer.nickname || selectedPlayer.name}
+                      {t('eliminations.playersWhoEliminated')} {selectedPlayer.nickname || selectedPlayer.name}
                     </h4>
                     {playerStats.eliminatedBy.length > 0 ? (
                       <div className="space-y-3">
@@ -307,13 +309,13 @@ export default function EliminationsPage() {
                               </span>
                             </div>
                             <Badge className="bg-blue-600/80 text-white border-0">
-                              {eliminator.count} time{eliminator.count !== 1 ? 's' : ''}
+                              {eliminator.count} {eliminator.count !== 1 ? t('eliminations.times') : t('eliminations.time')}
                             </Badge>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-400 text-sm">Never been eliminated</p>
+                      <p className="text-gray-400 text-sm">{t('eliminations.neverBeenEliminated')}</p>
                     )}
                   </div>
                 </div>
@@ -328,9 +330,9 @@ export default function EliminationsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Sword className="h-5 w-5 text-red-400" />
-                The Hunters
+                {t('eliminations.theHunters')}
               </CardTitle>
-              <CardDescription className="text-gray-400">Players with the most eliminations</CardDescription>
+              <CardDescription className="text-gray-400">{t('eliminations.mostEliminations')}</CardDescription>
             </CardHeader>
             <CardContent>
               {stats?.mostEliminations && stats.mostEliminations.length > 0 ? (
@@ -360,12 +362,12 @@ export default function EliminationsPage() {
                       <div className="flex-1">
                         <p className="font-medium text-white">{player.player.nickname || player.player.name || 'Unknown Player'}</p>
                         <p className="text-sm text-gray-400">
-                          {player.count} elimination{player.count !== 1 ? 's' : ''}
+                          {player.count} {player.count !== 1 ? t('eliminations.eliminations') : t('eliminations.elimination')}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-xl text-red-400">{player.count}</p>
-                        <p className="text-xs text-gray-400">Eliminations</p>
+                        <p className="text-xs text-gray-400">{t('eliminations.totalEliminations')}</p>
                       </div>
                     </div>
                   ))}
@@ -378,8 +380,8 @@ export default function EliminationsPage() {
                       <Sword className="h-12 w-12 text-gray-500" />
                     </div>
                   </div>
-                  <p className="text-gray-400 text-lg mb-2">No elimination data available</p>
-                  <p className="text-gray-500 text-sm">Start playing games to track eliminations!</p>
+                  <p className="text-gray-400 text-lg mb-2">{t('eliminations.noEliminationData')}</p>
+                  <p className="text-gray-500 text-sm">{t('eliminations.startPlayingEliminations')}</p>
                 </div>
               )}
             </CardContent>
@@ -390,9 +392,9 @@ export default function EliminationsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Shield className="h-5 w-5 text-blue-400" />
-                The Hunted
+                {t('eliminations.theHunted')}
               </CardTitle>
-              <CardDescription className="text-gray-400">Players who get eliminated most often</CardDescription>
+              <CardDescription className="text-gray-400">{t('eliminations.eliminatedMostOften')}</CardDescription>
             </CardHeader>
             <CardContent>
               {stats?.mostEliminated && stats.mostEliminated.length > 0 ? (
@@ -422,12 +424,12 @@ export default function EliminationsPage() {
                       <div className="flex-1">
                         <p className="font-medium text-white">{player.player.nickname || player.player.name || 'Unknown Player'}</p>
                         <p className="text-sm text-gray-400">
-                          Eliminated {player.count} time{player.count !== 1 ? 's' : ''}
+                          {t('eliminations.eliminated')} {player.count} {player.count !== 1 ? t('eliminations.times') : t('eliminations.time')}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-xl text-blue-400">{player.count}</p>
-                        <p className="text-xs text-gray-400">Times Eliminated</p>
+                        <p className="text-xs text-gray-400">{t('eliminations.timesEliminated')}</p>
                       </div>
                     </div>
                   ))}
@@ -440,8 +442,8 @@ export default function EliminationsPage() {
                       <Shield className="h-12 w-12 text-gray-500" />
                     </div>
                   </div>
-                  <p className="text-gray-400 text-lg mb-2">No elimination data available</p>
-                  <p className="text-gray-500 text-sm">Start playing games to track eliminations!</p>
+                  <p className="text-gray-400 text-lg mb-2">{t('eliminations.noEliminationData')}</p>
+                  <p className="text-gray-500 text-sm">{t('eliminations.startPlayingEliminations')}</p>
                 </div>
               )}
             </CardContent>
@@ -453,9 +455,9 @@ export default function EliminationsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Crosshair className="h-5 w-5 text-yellow-400" />
-              Elimination Rivalries
+              {t('eliminations.eliminationRivalries')}
             </CardTitle>
-            <CardDescription className="text-gray-400">Most frequent elimination matchups between players</CardDescription>
+            <CardDescription className="text-gray-400">{t('eliminations.frequentMatchups')}</CardDescription>
           </CardHeader>
           <CardContent>
             {stats?.topMatchups && stats.topMatchups.length > 0 ? (
@@ -487,7 +489,7 @@ export default function EliminationsPage() {
                             <p className="font-medium text-white text-sm">
                               {matchup.eliminator.nickname || matchup.eliminator.name || 'Unknown'}
                             </p>
-                            <p className="text-xs text-red-400">Eliminator</p>
+                            <p className="text-xs text-red-400">{t('eliminations.eliminator')}</p>
                           </div>
                           <Sword className="h-4 w-4 text-red-400" />
                         </div>
@@ -506,7 +508,7 @@ export default function EliminationsPage() {
                             <p className="font-medium text-white text-sm">
                               {matchup.victim.nickname || matchup.victim.name || 'Unknown'}
                             </p>
-                            <p className="text-xs text-blue-400">Victim</p>
+                            <p className="text-xs text-blue-400">{t('eliminations.victim')}</p>
                           </div>
                           <Avatar className="w-10 h-10 ring-2 ring-blue-500/50">
                             <AvatarImage src={matchup.victim.profileImage} alt={matchup.victim.name || 'Player'} />
@@ -528,8 +530,8 @@ export default function EliminationsPage() {
                     <Crosshair className="h-12 w-12 text-gray-500" />
                   </div>
                 </div>
-                <p className="text-gray-400 text-lg mb-2">No elimination matchups available</p>
-                <p className="text-gray-500 text-sm">Rivalries will appear as you play more games!</p>
+                <p className="text-gray-400 text-lg mb-2">{t('eliminations.noEliminationMatchups')}</p>
+                <p className="text-gray-500 text-sm">{t('eliminations.rivalriesWillAppear')}</p>
               </div>
             )}
           </CardContent>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,8 +121,9 @@ interface DeckStats {
   }>;
 }
 
-export default function DeckDetailsPage() {
+export default function DeckPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const params = useParams();
   const deckId = params.id as string;
   
@@ -193,10 +195,10 @@ export default function DeckDetailsPage() {
       <div className="container mx-auto px-4 py-6">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">
-            {error || 'Deck not found'}
+            {error || t('decks.deckNotFound')}
           </p>
           <Link href="/decks">
-            <Button>Back to Decks</Button>
+            <Button>{t('decks.backToDecks')}</Button>
           </Link>
         </div>
       </div>
@@ -259,7 +261,7 @@ export default function DeckDetailsPage() {
                 </AvatarFallback>
               </Avatar>
               <span className="text-muted-foreground">
-                Owned by <strong>{deck.owner.nickname || deck.owner.name}</strong>
+                {t('decks.ownedBy')} <strong>{deck.owner.nickname || deck.owner.name}</strong>
               </span>
             </div>
 
@@ -295,7 +297,7 @@ export default function DeckDetailsPage() {
                 <Button variant="outline" asChild>
                   <a href={deck.decklistLink} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    View Decklist
+                    {t('decks.viewDecklist')}
                   </a>
                 </Button>
               )}
@@ -303,14 +305,14 @@ export default function DeckDetailsPage() {
                 <Button asChild>
                   <Link href={`/decks/${deck._id}/edit`}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Deck
+                    {t('decks.editDeck')}
                   </Link>
                 </Button>
               )}
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Created on {formatDate(deck.createdAt)}
+              {t('decks.createdOn')} {formatDate(deck.createdAt)}
             </p>
           </div>
         </div>
@@ -323,7 +325,7 @@ export default function DeckDetailsPage() {
           <div>
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
               <Trophy className="h-6 w-6" />
-              Performance Overview
+              {t('decks.performanceOverview')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
@@ -331,7 +333,7 @@ export default function DeckDetailsPage() {
                   <CardTitle className="text-3xl">{stats?.gamesPlayed || 0}</CardTitle>
                   <CardDescription className="flex items-center justify-center gap-1">
                     <Users className="h-4 w-4" />
-                    Games Played
+                    {t('decks.gamesPlayedStat')}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -341,7 +343,7 @@ export default function DeckDetailsPage() {
                   <CardTitle className="text-3xl">{stats?.wins || 0}</CardTitle>
                   <CardDescription className="flex items-center justify-center gap-1">
                     <Trophy className="h-4 w-4" />
-                    Total Wins
+                    {t('decks.totalWins')}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -351,7 +353,7 @@ export default function DeckDetailsPage() {
                   <CardTitle className="text-3xl text-green-600">{stats?.winRate || 0}%</CardTitle>
                   <CardDescription className="flex items-center justify-center gap-1">
                     <Target className="h-4 w-4" />
-                    Win Rate
+                    {t('decks.winRateStat')}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -361,7 +363,7 @@ export default function DeckDetailsPage() {
                   <CardTitle className="text-3xl">{stats?.averagePlacement?.toFixed(1) || 'N/A'}</CardTitle>
                   <CardDescription className="flex items-center justify-center gap-1">
                     <TrendingUp className="h-4 w-4" />
-                    Avg. Placement
+                    {t('decks.avgPlacement')}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -373,7 +375,7 @@ export default function DeckDetailsPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Swords className="h-6 w-6" />
-                Deck Matchups
+                {t('decks.deckMatchups')}
               </h2>
               <div className="grid grid-cols-1 gap-4">
                 {stats.matchups.map((matchup) => (
@@ -430,7 +432,7 @@ export default function DeckDetailsPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Clock className="h-6 w-6" />
-                Recent Games
+                {t('decks.recentGames')}
               </h2>
               <div className="space-y-4">
                 {stats.recentGames.slice(0, 5).map((game) => (
@@ -444,7 +446,7 @@ export default function DeckDetailsPage() {
                           </span>
                           {game.durationMinutes && (
                             <span className="text-sm text-muted-foreground">
-                              • {game.durationMinutes} minutes
+                              • {game.durationMinutes} {t('decks.minutes')}
                             </span>
                           )}
                         </div>
@@ -453,22 +455,22 @@ export default function DeckDetailsPage() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/games/${game._id}`}>
                               <Eye className="h-3 w-3 mr-1" />
-                              View
+                              {t('decks.view')}
                             </Link>
                           </Button>
                         </div>
                       </div>
                       
                       <div className="text-sm">
-                        <p className="font-medium mb-2">Game Details:</p>
+                        <p className="font-medium mb-2">{t('decks.gameDetails')}</p>
                         <div className="grid grid-cols-1 gap-2">
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                             <div>
                               <span className="font-medium">
-                                {(game as any).player?.nickname || (game as any).player?.name || 'Unknown Player'}
+                                {(game as any).player?.nickname || (game as any).player?.name || t('decks.unknownPlayer')}
                               </span>
                               <p className="text-xs text-muted-foreground">
-                                {(game as any).playerCount ? `${(game as any).playerCount} players total` : 'Game details'}
+                                {(game as any).playerCount ? `${(game as any).playerCount} ${t('decks.playersTotal')}` : t('decks.gameDetails')}
                               </p>
                             </div>
                             {getPlacementBadge(game.placement)}
@@ -487,7 +489,7 @@ export default function DeckDetailsPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Swords className="h-6 w-6" />
-                Matchups vs Other Decks
+                {t('decks.matchupsVsOtherDecks')}
               </h2>
               <div className="space-y-3">
                 {stats?.winRateVsDecks
@@ -507,11 +509,11 @@ export default function DeckDetailsPage() {
                           <div className="flex items-center gap-4">
                             <div className="text-center">
                               <p className="text-sm font-medium">{matchup.gamesPlayed}</p>
-                              <p className="text-xs text-muted-foreground">Games</p>
+                              <p className="text-xs text-muted-foreground">{t('decks.gamesColumn')}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-sm font-medium">{matchup.wins}</p>
-                              <p className="text-xs text-muted-foreground">Wins</p>
+                              <p className="text-xs text-muted-foreground">{t('decks.winsColumn')}</p>
                             </div>
                             <div className="text-center">
                               <Badge 
@@ -537,7 +539,7 @@ export default function DeckDetailsPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <TrendingUp className="h-6 w-6" />
-                Monthly Performance
+                {t('decks.monthlyPerformance')}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stats?.monthlyPerformance
@@ -554,15 +556,15 @@ export default function DeckDetailsPage() {
                       </CardTitle>
                       <CardDescription className="space-y-1">
                         <div className="flex justify-between">
-                          <span>Games:</span>
+                          <span>{t('decks.gamesColumn')}:</span>
                           <span>{month.gamesPlayed}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Wins:</span>
+                          <span>{t('decks.winsColumn')}:</span>
                           <span>{month.wins}</span>
                         </div>
                         <div className="flex justify-between font-medium">
-                          <span>Win Rate:</span>
+                          <span>{t('decks.winRateStat')}:</span>
                           <span className={month.winRate >= 50 ? "text-green-600" : "text-red-600"}>
                             {month.winRate}%
                           </span>
@@ -580,12 +582,12 @@ export default function DeckDetailsPage() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Games Recorded</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('decks.noGamesRecorded')}</h3>
                 <p className="text-muted-foreground mb-4">
-                  This deck hasn&apos;t been used in any games yet. Play some games to see statistics!
+                  {t('decks.noGamesYet')}
                 </p>
                 <Button asChild>
-                  <Link href="/games/new">Record a Game</Link>
+                  <Link href="/games/new">{t('decks.recordAGame')}</Link>
                 </Button>
               </CardContent>
             </Card>

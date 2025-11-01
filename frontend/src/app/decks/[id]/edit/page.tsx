@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +53,7 @@ interface Deck {
 
 export default function EditDeckPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const deckId = params.id as string;
@@ -111,14 +113,12 @@ export default function EditDeckPage() {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Deck name is required';
+      newErrors.name = t('decks.deckNameRequired');
     }
-
+    
     if (!formData.commander.trim()) {
-      newErrors.commander = 'Commander is required';
-    }
-
-    if (formData.decklistLink && !isValidUrl(formData.decklistLink)) {
+      newErrors.commander = t('decks.commanderRequired');
+    }    if (formData.decklistLink && !isValidUrl(formData.decklistLink)) {
       newErrors.decklistLink = 'Please enter a valid URL';
     }
 
@@ -258,8 +258,8 @@ export default function EditDeckPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">Edit Deck</h1>
-          <p className="text-muted-foreground">Update your deck information</p>
+          <h1 className="text-3xl font-bold">{t('decks.editDeck')}</h1>
+          <p className="text-muted-foreground">{t('decks.editYourDeck')}</p>
         </div>
         {canDelete && (
           <Button 
@@ -271,10 +271,10 @@ export default function EditDeckPage() {
               loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
+                  {t('actions.delete')}...
                 </>
               ) : (
-                'Confirm Delete'
+                t('actions.confirm')
               )
             ) : (
               <>
@@ -501,19 +501,19 @@ export default function EditDeckPage() {
         <div className="flex gap-4">
           <Link href={`/decks/${deckId}`} className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {t('actions.cancel')}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                {t('decks.updating')}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {t('actions.save')}
               </>
             )}
           </Button>

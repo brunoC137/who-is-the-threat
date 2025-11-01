@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ const commonTags = [
 
 export default function NewDeckPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [newTag, setNewTag] = useState('');
@@ -53,14 +55,12 @@ export default function NewDeckPage() {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Deck name is required';
+      newErrors.name = t('decks.deckNameRequired');
     }
-
+    
     if (!formData.commander.trim()) {
-      newErrors.commander = 'Commander is required';
-    }
-
-    if (formData.decklistLink && !isValidUrl(formData.decklistLink)) {
+      newErrors.commander = t('decks.commanderRequired');
+    }    if (formData.decklistLink && !isValidUrl(formData.decklistLink)) {
       newErrors.decklistLink = 'Please enter a valid URL';
     }
 
@@ -171,27 +171,27 @@ export default function NewDeckPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Create New Deck</h1>
-          <p className="text-muted-foreground">Add a new Commander deck to your collection</p>
+          <h1 className="text-3xl font-bold">{t('decks.createNewDeck')}</h1>
+          <p className="text-muted-foreground">{t('decks.buildYourDeck')}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Essential details about your deck</CardDescription>
+            <CardTitle>{t('profile.personalInfo')}</CardTitle>
+            <CardDescription>{t('decks.deckDetails')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Deck Name */}
             <div>
-              <label className="text-sm font-medium">Deck Name *</label>
+              <label className="text-sm font-medium">{t('decks.deckName')} *</label>
               <Input
                 value={formData.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="Enter your deck name"
+                placeholder={t('decks.enterDeckName')}
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && (
@@ -201,13 +201,13 @@ export default function NewDeckPage() {
 
             {/* Commander */}
             <div>
-              <label className="text-sm font-medium">Commander *</label>
+              <label className="text-sm font-medium">{t('decks.commander')} *</label>
               <Input
                 value={formData.commander}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                   setFormData({ ...formData, commander: e.target.value })
                 }
-                placeholder="Enter your commander&apos;s name"
+                placeholder={t('decks.enterCommander')}
                 className={errors.commander ? 'border-red-500' : ''}
               />
               {errors.commander && (
@@ -219,21 +219,21 @@ export default function NewDeckPage() {
             <div>
               <label className="text-sm font-medium flex items-center gap-2">
                 <LinkIcon className="h-4 w-4" />
-                Decklist Link
+                {t('decks.decklistLinkOptional')}
               </label>
               <Input
                 value={formData.decklistLink}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                   setFormData({ ...formData, decklistLink: e.target.value })
                 }
-                placeholder="https://moxfield.com/decks/..."
+                placeholder={t('decks.enterDecklistLink')}
                 className={errors.decklistLink ? 'border-red-500' : ''}
               />
               {errors.decklistLink && (
                 <p className="text-sm text-red-500 mt-1">{errors.decklistLink}</p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Link to your decklist on Moxfield, Archidekt, or similar
+                {t('decks.enterDecklistLink')}
               </p>
             </div>
 
@@ -241,21 +241,21 @@ export default function NewDeckPage() {
             <div>
               <label className="text-sm font-medium flex items-center gap-2">
                 <ImageIcon className="h-4 w-4" />
-                Deck Image URL
+                {t('decks.deckImageOptional')}
               </label>
               <Input
                 value={formData.deckImage}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
                   setFormData({ ...formData, deckImage: e.target.value })
                 }
-                placeholder="https://example.com/image.jpg"
+                placeholder={t('decks.enterImageUrl')}
                 className={errors.deckImage ? 'border-red-500' : ''}
               />
               {errors.deckImage && (
                 <p className="text-sm text-red-500 mt-1">{errors.deckImage}</p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                URL to an image representing your deck
+                {t('decks.enterImageUrl')}
               </p>
             </div>
           </CardContent>
@@ -264,8 +264,8 @@ export default function NewDeckPage() {
         {/* Color Identity */}
         <Card>
           <CardHeader>
-            <CardTitle>Color Identity</CardTitle>
-            <CardDescription>Select the colors in your commander&apos;s identity</CardDescription>
+            <CardTitle>{t('decks.colorIdentity')}</CardTitle>
+            <CardDescription>{t('decks.selectColors')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -290,8 +290,8 @@ export default function NewDeckPage() {
         {/* Tags/Archetypes */}
         <Card>
           <CardHeader>
-            <CardTitle>Tags & Archetypes</CardTitle>
-            <CardDescription>Categorize your deck strategy and style</CardDescription>
+            <CardTitle>{t('decks.tagsOptional')}</CardTitle>
+            <CardDescription>{t('decks.selectTags')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Selected Tags */}
@@ -337,15 +337,25 @@ export default function NewDeckPage() {
 
             {/* Custom Tag Input */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Add Custom Tag</label>
+                            <label className="text-sm font-medium mb-2 block">{t('decks.addCustomTag')}</label>
               <div className="flex gap-2">
                 <Input
                   value={newTag}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTag(e.target.value)}
-                  placeholder="Enter custom tag"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTag())}
+                  placeholder={t('decks.customTag')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomTag();
+                    }
+                  }}
                 />
-                <Button type="button" onClick={addCustomTag} size="icon" variant="outline">
+                <Button
+                  type="button"
+                  onClick={addCustomTag}
+                  disabled={!newTag.trim()}
+                  variant="outline"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -357,19 +367,19 @@ export default function NewDeckPage() {
         <div className="flex gap-4">
           <Link href="/decks" className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {t('actions.cancel')}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
+                {t('decks.creating')}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Create Deck
+                {t('decks.createDeck')}
               </>
             )}
           </Button>

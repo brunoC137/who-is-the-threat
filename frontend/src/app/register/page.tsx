@@ -1,16 +1,18 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, User, Mail, Loader2, UserPlus, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Loader2, UserPlus, Sparkles, Languages } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RegisterPage() {
   const { user, login } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,40 +36,44 @@ export default function RegisterPage() {
     }
   }, [user, router]);
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'pt-BR' : 'en');
+  };
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
     // Name validation
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t('validation.nameRequired');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = t('validation.nameMinLength');
     }
 
     // Email validation
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('validation.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('validation.emailInvalid');
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('validation.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('validation.passwordMinLength');
     }
 
     // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = t('validation.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('validation.passwordsDoNotMatch');
     }
 
     // Profile image validation (optional)
     if (formData.profileImage && !isValidUrl(formData.profileImage)) {
-      newErrors.profileImage = 'Please enter a valid image URL';
+      newErrors.profileImage = t('validation.imageUrlInvalid');
     }
 
     setErrors(newErrors);
@@ -111,10 +117,10 @@ export default function RegisterPage() {
         login(data.user, data.token);
         router.push('/dashboard');
       } else {
-        setErrors({ submit: data.message || 'Failed to create account' });
+        setErrors({ submit: data.message || t('validation.accountCreationFailed') });
       }
     } catch (error) {
-      setErrors({ submit: 'An error occurred while creating your account' });
+      setErrors({ submit: t('validation.accountCreationError') });
     } finally {
       setLoading(false);
     }
@@ -145,6 +151,17 @@ export default function RegisterPage() {
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-900/50 to-slate-950" />
       
+      {/* Language Toggle Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleLanguage}
+        className="fixed top-4 left-4 z-50 bg-slate-900/90 backdrop-blur-sm border border-slate-700/50 hover:bg-slate-800/90"
+        title={language === 'en' ? 'Switch to Portuguese' : 'Mudar para Inglês'}
+      >
+        <Languages className="h-5 w-5 text-gray-300" />
+      </Button>
+      
       {/* Floating Particles Effect */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(15)].map((_, i) => (
@@ -173,10 +190,10 @@ export default function RegisterPage() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Join the Playgroup
+            {t('auth.joinPlaygroup')}
           </h1>
           <p className="text-gray-400">
-            Create your account to start tracking Commander games
+            {t('auth.createAccountToTrack')}
           </p>
         </div>
 
@@ -184,10 +201,10 @@ export default function RegisterPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white text-xl">
               <UserPlus className="h-5 w-5 text-purple-400" />
-              Create Account
+              {t('auth.createAccount')}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Fill in your details to join Guerreiros do Segundo Lugar
+              {t('auth.fillDetails')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -196,14 +213,14 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Full Name *
+                  {t('auth.name')} *
                 </label>
                 <Input
                   id="name"
                   type="text"
                   value={formData.name}
                   onChange={handleInputChange('name')}
-                  placeholder="Enter your full name"
+                  placeholder={t('auth.enterFullName')}
                   className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.name ? 'border-red-500' : ''}`}
                 />
                 {errors.name && (
@@ -214,18 +231,18 @@ export default function RegisterPage() {
               {/* Nickname */}
               <div>
                 <label htmlFor="nickname" className="text-sm font-medium text-gray-300">
-                  Nickname (Optional)
+                  {t('auth.nickname')} ({t('form.optional')})
                 </label>
                 <Input
                   id="nickname"
                   type="text"
                   value={formData.nickname}
                   onChange={handleInputChange('nickname')}
-                  placeholder="Display name for games"
+                  placeholder={t('auth.displayNameForGames')}
                   className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  This will be shown during games if provided
+                  {t('auth.shownDuringGames')}
                 </p>
               </div>
 
@@ -233,14 +250,14 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Email Address *
+                  {t('auth.email')} *
                 </label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange('email')}
-                  placeholder="Enter your email"
+                  placeholder={t('auth.enterEmail')}
                   className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.email ? 'border-red-500' : ''}`}
                 />
                 {errors.email && (
@@ -251,7 +268,7 @@ export default function RegisterPage() {
               {/* Password */}
               <div>
                 <label htmlFor="password" className="text-sm font-medium text-gray-300">
-                  Password *
+                  {t('auth.password')} *
                 </label>
                 <div className="relative">
                   <Input
@@ -259,7 +276,7 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={handleInputChange('password')}
-                    placeholder="Create a secure password"
+                    placeholder={t('auth.createSecurePassword')}
                     className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <Button
@@ -284,7 +301,7 @@ export default function RegisterPage() {
               {/* Confirm Password */}
               <div>
                 <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-300">
-                  Confirm Password *
+                  {t('auth.confirmPassword')} *
                 </label>
                 <div className="relative">
                   <Input
@@ -292,7 +309,7 @@ export default function RegisterPage() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleInputChange('confirmPassword')}
-                    placeholder="Confirm your password"
+                    placeholder={t('auth.confirmYourPassword')}
                     className={`bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <Button
@@ -317,7 +334,7 @@ export default function RegisterPage() {
               {/* Profile Image */}
               <div>
                 <label htmlFor="profileImage" className="text-sm font-medium text-gray-300">
-                  Profile Image URL (Optional)
+                  {t('auth.profileImage')} ({t('form.optional')})
                 </label>
                 <Input
                   id="profileImage"
@@ -331,7 +348,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-red-400 mt-1">{errors.profileImage}</p>
                 )}
                 <p className="text-xs text-gray-500 mt-1">
-                  Link to your profile picture (Gravatar, social media, etc.)
+                  {t('auth.profileImageUrl')}
                 </p>
               </div>
 
@@ -344,12 +361,12 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Account...
+                    {t('auth.creatingAccount')}
                   </>
                 ) : (
                   <>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Create Account
+                    {t('auth.createAccount')}
                   </>
                 )}
               </Button>
@@ -363,9 +380,9 @@ export default function RegisterPage() {
               {/* Login Link */}
               <div className="text-center pt-4 border-t border-slate-700/50">
                 <p className="text-gray-400 text-sm">
-                  Already have an account?{' '}
+                  {t('auth.alreadyHaveAccount')}{' '}
                   <Link href="/login" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
-                    Sign in here
+                    {t('auth.signInHere')}
                   </Link>
                 </p>
               </div>
