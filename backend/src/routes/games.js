@@ -44,6 +44,7 @@ router.get('/', protect, async (req, res, next) => {
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage')
       .populate('players.eliminatedBy', 'name nickname profileImage')
+      .populate('players.borrowedFrom', 'name nickname profileImage')
       .skip(startIndex)
       .limit(limit)
       .sort({ date: -1 });
@@ -83,7 +84,8 @@ router.get('/:id', protect, async (req, res, next) => {
       .populate('createdBy', 'name nickname profileImage')
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage colorIdentity')
-      .populate('players.eliminatedBy', 'name nickname profileImage');
+      .populate('players.eliminatedBy', 'name nickname profileImage')
+      .populate('players.borrowedFrom', 'name nickname profileImage');
 
     if (!game) {
       return res.status(404).json({
@@ -121,6 +123,16 @@ router.post('/', protect, [
   body('players.*.placement')
     .isInt({ min: 1, max: 6 })
     .withMessage('Placement must be between 1 and 6'),
+  body('players.*.borrowedFrom')
+    .optional()
+    .custom(value => {
+      // Allow undefined, null, empty string, or valid ObjectId
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
+      return /^[0-9a-fA-F]{24}$/.test(value);
+    })
+    .withMessage('BorrowedFrom must be a valid MongoDB ObjectId or empty'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -183,7 +195,8 @@ router.post('/', protect, [
       .populate('createdBy', 'name nickname')
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage')
-      .populate('players.eliminatedBy', 'name nickname profileImage');
+      .populate('players.eliminatedBy', 'name nickname profileImage')
+      .populate('players.borrowedFrom', 'name nickname profileImage');
 
     res.status(201).json({
       success: true,
@@ -228,6 +241,16 @@ router.put('/:id', protect, [
       return /^[0-9a-fA-F]{24}$/.test(value);
     })
     .withMessage('EliminatedBy must be a valid MongoDB ObjectId or empty'),
+  body('players.*.borrowedFrom')
+    .optional()
+    .custom(value => {
+      // Allow undefined, null, empty string, or valid ObjectId
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
+      return /^[0-9a-fA-F]{24}$/.test(value);
+    })
+    .withMessage('BorrowedFrom must be a valid MongoDB ObjectId or empty'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -345,7 +368,8 @@ router.put('/:id', protect, [
     .populate('createdBy', 'name nickname')
     .populate('players.player', 'name nickname profileImage')
     .populate('players.deck', 'name commander deckImage')
-    .populate('players.eliminatedBy', 'name nickname profileImage');
+    .populate('players.eliminatedBy', 'name nickname profileImage')
+    .populate('players.borrowedFrom', 'name nickname profileImage');
 
     res.status(200).json({
       success: true,

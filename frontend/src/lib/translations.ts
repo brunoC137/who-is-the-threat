@@ -446,6 +446,11 @@ export const translations = {
       time: 'time',
       times: 'times',
       pleaseLogIn: 'Please log in to view your profile.',
+      borrowedDeckStatistics: 'Borrowed Deck Statistics',
+      winRateWithBorrowedDecks: 'Your Win Rate with Borrowed Decks',
+      winRateWhenDecksBorrowed: 'Win Rate of Your Decks When Borrowed',
+      cantLoseIfOwnAllDecks: "You can't lose if you own all the decks being played 😎",
+      noOneBorrowedYourDecks: 'No one has borrowed your decks yet 🤷',
     },
     // Form labels
     form: {
@@ -931,6 +936,11 @@ export const translations = {
       eliminations: 'eliminações',
       time: 'vez',
       times: 'vezes',
+      borrowedDeckStatistics: 'Estatísticas de Decks Emprestados',
+      winRateWithBorrowedDecks: 'Sua Taxa de Vitória com Decks Emprestados',
+      winRateWhenDecksBorrowed: 'Taxa de Vitória dos Seus Decks Quando Emprestados',
+      cantLoseIfOwnAllDecks: 'Tu não perde se todos os decks são seus 😎',
+      noOneBorrowedYourDecks: 'Ninguém pegou seus decks emprestados ainda 🤷',
     },
     // Form labels
     form: {
