@@ -61,6 +61,7 @@ interface GamePlayer {
   id: string; // Unique ID for drag and drop
   player: string;
   deck: string;
+  borrowedFrom?: string; // Player ID who owns the deck
 }
 
 function SortablePlayerCard({ 
@@ -68,12 +69,14 @@ function SortablePlayerCard({
   index, 
   selectedPlayer, 
   selectedDeck,
+  borrowedFromPlayer,
   onRemove 
 }: { 
   gamePlayer: GamePlayer;
   index: number;
   selectedPlayer?: Player;
   selectedDeck?: Deck;
+  borrowedFromPlayer?: Player;
   onRemove: () => void;
 }) {
   const {
@@ -145,6 +148,11 @@ function SortablePlayerCard({
               <p className="text-xs text-muted-foreground truncate">
                 {selectedDeck.name} • {selectedDeck.commander}
               </p>
+              {borrowedFromPlayer && (
+                <p className="text-xs text-purple-600 italic truncate">
+                  📚 Borrowed from {borrowedFromPlayer.nickname || borrowedFromPlayer.name}
+                </p>
+              )}
             </div>
           </div>
         ) : (
@@ -185,6 +193,8 @@ export default function NewGame2Page() {
   // Selection state for adding new players
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [selectedDeckId, setSelectedDeckId] = useState('');
+  const [allowBorrowedDeck, setAllowBorrowedDeck] = useState(false);
+  const [selectedDeckOwnerId, setSelectedDeckOwnerId] = useState('');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -248,15 +258,23 @@ export default function NewGame2Page() {
       return;
     }
 
+    if (allowBorrowedDeck && !selectedDeckOwnerId) {
+      setErrors({ selection: 'Please select the deck owner' });
+      return;
+    }
+
     const newGamePlayer: GamePlayer = {
       id: `${selectedPlayerId}-${selectedDeckId}-${Date.now()}`,
       player: selectedPlayerId,
       deck: selectedDeckId,
+      borrowedFrom: allowBorrowedDeck ? selectedDeckOwnerId : undefined,
     };
 
     setGamePlayers([...gamePlayers, newGamePlayer]);
     setSelectedPlayerId('');
     setSelectedDeckId('');
+    setAllowBorrowedDeck(false);
+    setSelectedDeckOwnerId('');
     setErrors({});
   };
 
@@ -274,6 +292,10 @@ export default function NewGame2Page() {
 
   const getPlayerDecks = (playerId: string) => {
     return decks.filter(deck => deck.owner._id === playerId);
+  };
+
+  const getDecksForBorrowing = (ownerId: string) => {
+    return decks.filter(deck => deck.owner._id === ownerId);
   };
 
   const validateForm = () => {
@@ -309,6 +331,7 @@ export default function NewGame2Page() {
         player: gp.player,
         deck: gp.deck,
         placement: index + 1, // Position in array determines placement
+        borrowedFrom: gp.borrowedFrom || undefined,
       }));
 
       const gameData = {
@@ -362,7 +385,9 @@ export default function NewGame2Page() {
     );
   }
 
-  const availableDecks = selectedPlayerId ? getPlayerDecks(selectedPlayerId) : [];
+  const availableDecks = allowBorrowedDeck 
+    ? (selectedDeckOwnerId ? getDecksForBorrowing(selectedDeckOwnerId) : [])
+    : (selectedPlayerId ? getPlayerDecks(selectedPlayerId) : []);
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -412,29 +437,89 @@ export default function NewGame2Page() {
             <CardDescription>Select a player and their deck</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Player Selection */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Player</label>
-                <select
-                  value={selectedPlayerId}
-                  onChange={(e) => {
-                    setSelectedPlayerId(e.target.value);
-                    setSelectedDeckId(''); // Reset deck when player changes
-                  }}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">Select Player</option>
-                  {players.map(player => (
-                    <option key={player._id} value={player._id}>
-                      {player.nickname || player.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Player Selection */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Player</label>
+              <select
+                value={selectedPlayerId}
+                onChange={(e) => {
+                  setSelectedPlayerId(e.target.value);
+                  setSelectedDeckId(''); // Reset deck when player changes
+                  setSelectedDeckOwnerId(''); // Reset deck owner
+                }}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Select Player</option>
+                {players.map(player => (
+                  <option key={player._id} value={player._id}>
+                    {player.nickname || player.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Deck Selection */}
+            {/* Borrowed Deck Toggle */}
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <input
+                type="checkbox"
+                id="allowBorrowedDeck"
+                checked={allowBorrowedDeck}
+                onChange={(e) => {
+                  setAllowBorrowedDeck(e.target.checked);
+                  setSelectedDeckId('');
+                  setSelectedDeckOwnerId('');
+                }}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="allowBorrowedDeck" className="text-sm font-medium text-blue-900 cursor-pointer">
+                Allow Borrowed Deck
+              </label>
+            </div>
+
+            {/* Conditional rendering based on borrowed deck toggle */}
+            {allowBorrowedDeck ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Deck Owner Selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Deck Owner</label>
+                  <select
+                    value={selectedDeckOwnerId}
+                    onChange={(e) => {
+                      setSelectedDeckOwnerId(e.target.value);
+                      setSelectedDeckId(''); // Reset deck when owner changes
+                    }}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Select Deck Owner</option>
+                    {players.map(player => (
+                      <option key={player._id} value={player._id}>
+                        {player.nickname || player.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Deck Selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Deck</label>
+                  <select
+                    value={selectedDeckId}
+                    onChange={(e) => setSelectedDeckId(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    disabled={!selectedDeckOwnerId}
+                  >
+                    <option value="">Select Deck</option>
+                    {availableDecks.map(deck => (
+                      <option key={deck._id} value={deck._id}>
+                        {deck.name} ({deck.commander})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
               <div>
+                {/* Deck Selection */}
                 <label className="text-sm font-medium mb-2 block">Deck</label>
                 <select
                   value={selectedDeckId}
@@ -450,7 +535,7 @@ export default function NewGame2Page() {
                   ))}
                 </select>
               </div>
-            </div>
+            )}
 
             <Button 
               type="button" 
@@ -499,6 +584,7 @@ export default function NewGame2Page() {
                       index={index}
                       selectedPlayer={getPlayerById(gp.player)}
                       selectedDeck={getDeckById(gp.deck)}
+                      borrowedFromPlayer={gp.borrowedFrom ? getPlayerById(gp.borrowedFrom) : undefined}
                       onRemove={() => removePlayer(gp.id)}
                     />
                   ))}

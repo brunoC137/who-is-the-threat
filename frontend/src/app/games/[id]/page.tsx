@@ -56,6 +56,12 @@ interface Game {
       nickname?: string;
       profileImage?: string;
     };
+    borrowedFrom?: {
+      _id: string;
+      name: string;
+      nickname?: string;
+      profileImage?: string;
+    };
   }>;
   durationMinutes?: number;
   notes?: string;
@@ -361,6 +367,19 @@ export default function GameDetailsPage() {
                               className="font-medium hover:underline"
                             >
                               {participant.eliminatedBy.nickname || participant.eliminatedBy.name}
+                            </Link>
+                          </div>
+                        )}
+
+                        {/* Borrowed Deck Information */}
+                        {participant.borrowedFrom && (
+                          <div className="flex items-center gap-2 mt-2 text-sm text-purple-600">
+                            <span>📚 Borrowed from</span>
+                            <Link 
+                              href={`/players/${participant.borrowedFrom._id}`}
+                              className="font-medium hover:underline"
+                            >
+                              {participant.borrowedFrom.nickname || participant.borrowedFrom.name}
                             </Link>
                           </div>
                         )}

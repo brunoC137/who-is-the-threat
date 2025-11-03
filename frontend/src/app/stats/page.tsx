@@ -63,6 +63,21 @@ export default function StatsPage() {
   const router = useRouter();
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [borrowedDeckStats, setBorrowedDeckStats] = useState<{
+    bestBorrowers: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      gamesPlayed: number;
+      wins: number;
+      winRate: number;
+    }>;
+    worstBorrowers: Array<{
+      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      gamesPlayed: number;
+      wins: number;
+      winRate: number;
+    }>;
+    totalPlayersWithBorrowedDecks: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchGlobalStats = async () => {
@@ -70,18 +85,26 @@ export default function StatsPage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/global`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const [globalResponse, borrowedResponse] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/global`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/borrowed-decks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
 
-        if (response.ok) {
-          const result = await response.json();
+        if (globalResponse.ok) {
+          const result = await globalResponse.json();
           setStats(result.data || result);
         }
+
+        if (borrowedResponse.ok) {
+          const result = await borrowedResponse.json();
+          setBorrowedDeckStats(result.data || result);
+        }
       } catch (error) {
-        console.error('Error fetching global stats:', error);
+        console.error('Error fetching stats:', error);
       } finally {
         setLoading(false);
       }
@@ -430,6 +453,129 @@ export default function StatsPage() {
         </CardContent>
       </Card>
       </div>
+
+      {/* Borrowed Deck Rankings */}
+      {borrowedDeckStats && borrowedDeckStats.totalPlayersWithBorrowedDecks > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <Layers className="h-6 w-6 text-purple-400" />
+            Borrowed Deck Rankings
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Best Players with Borrowed Decks */}
+            <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-green-400" />
+                  Best Players Borrowing Decks
+                </CardTitle>
+                <CardDescription className="text-gray-400">Top performers with borrowed decks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {borrowedDeckStats.bestBorrowers && borrowedDeckStats.bestBorrowers.length > 0 ? (
+                  <div className="space-y-4">
+                    {borrowedDeckStats.bestBorrowers.map((borrower, index) => (
+                      <div 
+                        key={borrower.player._id} 
+                        className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-green-500/50 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/players/${borrower.player._id}`)}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <Avatar className="w-12 h-12 ring-2 ring-green-500/30">
+                            <AvatarImage src={borrower.player.profileImage} alt={borrower.player.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+                              {borrower.player.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-semibold text-white">
+                              {borrower.player.nickname || borrower.player.name}
+                            </p>
+                            <p className="text-sm text-gray-400">
+                              {borrower.wins} wins in {borrower.gamesPlayed} games
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-green-400">
+                              {borrower.winRate}%
+                            </div>
+                            <div className="text-xs text-gray-400">win rate</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-400 italic">
+                      No data available yet 🤷
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Worst Players with Borrowed Decks */}
+            <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Target className="h-5 w-5 text-red-400" />
+                  Players Who Need Their Own Decks
+                </CardTitle>
+                <CardDescription className="text-gray-400">Maybe stick to your own decks? 😅</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {borrowedDeckStats.worstBorrowers && borrowedDeckStats.worstBorrowers.length > 0 ? (
+                  <div className="space-y-4">
+                    {borrowedDeckStats.worstBorrowers.map((borrower, index) => (
+                      <div 
+                        key={borrower.player._id} 
+                        className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-red-500/50 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/players/${borrower.player._id}`)}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <Avatar className="w-12 h-12 ring-2 ring-red-500/30">
+                            <AvatarImage src={borrower.player.profileImage} alt={borrower.player.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white">
+                              {borrower.player.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-semibold text-white">
+                              {borrower.player.nickname || borrower.player.name}
+                            </p>
+                            <p className="text-sm text-gray-400">
+                              {borrower.wins} wins in {borrower.gamesPlayed} games
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-red-400">
+                              {borrower.winRate}%
+                            </div>
+                            <div className="text-xs text-gray-400">win rate</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-400 italic">
+                      No data available yet 🤷
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

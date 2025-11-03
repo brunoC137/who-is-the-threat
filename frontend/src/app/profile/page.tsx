@@ -31,6 +31,16 @@ interface ProfileStats {
     averagePlacement: number;
     placementDistribution: Record<string, number>;
   };
+  borrowedDeckStats?: {
+    gamesWithBorrowedDecks: number;
+    winsWithBorrowedDecks: number;
+    winRateWithBorrowedDecks: number;
+  };
+  ownedDecksBorrowedStats?: {
+    gamesWhenDecksBorrowed: number;
+    winsWhenDecksBorrowed: number;
+    winRateWhenDecksBorrowed: number;
+  };
   deckUsage: Array<{
     deck: { _id: string; name: string; commander: string };
     gamesPlayed: number;
@@ -424,6 +434,87 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Borrowed Deck Statistics */}
+      {stats && (stats.borrowedDeckStats || stats.ownedDecksBorrowedStats) && (
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <Layers className="h-6 w-6 text-purple-400" />
+            Borrowed Deck Statistics
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Win Rate with Borrowed Decks */}
+            {stats.borrowedDeckStats && stats.borrowedDeckStats.gamesWithBorrowedDecks > 0 ? (
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
+                <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-gray-300">Your Win Rate with Borrowed Decks</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-white mb-2">{stats.borrowedDeckStats.winRateWithBorrowedDecks}%</div>
+                    <p className="text-sm text-gray-400">
+                      {stats.borrowedDeckStats.winsWithBorrowedDecks} wins in {stats.borrowedDeckStats.gamesWithBorrowedDecks} games
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
+                <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-gray-300">Your Win Rate with Borrowed Decks</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-400 italic">
+                      You can&apos;t lose if you own all the decks being played 😎
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Tu não perde se todos os decks são seus
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Win Rate of Your Decks When Borrowed */}
+            {stats.ownedDecksBorrowedStats && stats.ownedDecksBorrowedStats.gamesWhenDecksBorrowed > 0 ? (
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
+                <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-gray-300">Win Rate of Your Decks When Borrowed</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-white mb-2">{stats.ownedDecksBorrowedStats.winRateWhenDecksBorrowed}%</div>
+                    <p className="text-sm text-gray-400">
+                      {stats.ownedDecksBorrowedStats.winsWhenDecksBorrowed} wins in {stats.ownedDecksBorrowedStats.gamesWhenDecksBorrowed} games
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
+                <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-gray-300">Win Rate of Your Decks When Borrowed</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-400 italic">
+                      No one has borrowed your decks yet 🤷
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Ninguém pegou seus decks emprestados ainda
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Games */}
