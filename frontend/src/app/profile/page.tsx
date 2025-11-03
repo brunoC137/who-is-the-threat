@@ -437,10 +437,10 @@ export default function ProfilePage() {
 
       {/* Borrowed Deck Statistics */}
       {stats && (stats.borrowedDeckStats || stats.ownedDecksBorrowedStats) && (
-        <div className="mt-6">
+        <div className="mt-12">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <Layers className="h-6 w-6 text-purple-400" />
-            Borrowed Deck Statistics
+            {t('profile.borrowedDeckStatistics')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Win Rate with Borrowed Decks */}
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
                 <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium text-gray-300">Your Win Rate with Borrowed Decks</CardTitle>
+                    <CardTitle className="text-lg font-medium text-gray-300">{t('profile.winRateWithBorrowedDecks')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-white mb-2">{stats.borrowedDeckStats.winRateWithBorrowedDecks}%</div>
@@ -464,14 +464,11 @@ export default function ProfilePage() {
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
                 <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium text-gray-300">Your Win Rate with Borrowed Decks</CardTitle>
+                    <CardTitle className="text-lg font-medium text-gray-300">{t('profile.winRateWithBorrowedDecks')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-gray-400 italic">
-                      You can&apos;t lose if you own all the decks being played 😎
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Tu não perde se todos os decks são seus
+                      {t('profile.cantLoseIfOwnAllDecks')}
                     </p>
                   </CardContent>
                 </Card>
@@ -484,7 +481,7 @@ export default function ProfilePage() {
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
                 <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium text-gray-300">Win Rate of Your Decks When Borrowed</CardTitle>
+                    <CardTitle className="text-lg font-medium text-gray-300">{t('profile.winRateWhenDecksBorrowed')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-white mb-2">{stats.ownedDecksBorrowedStats.winRateWhenDecksBorrowed}%</div>
@@ -499,14 +496,11 @@ export default function ProfilePage() {
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300"></div>
                 <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium text-gray-300">Win Rate of Your Decks When Borrowed</CardTitle>
+                    <CardTitle className="text-lg font-medium text-gray-300">{t('profile.winRateWhenDecksBorrowed')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-gray-400 italic">
-                      No one has borrowed your decks yet 🤷
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Ninguém pegou seus decks emprestados ainda
+                      {t('profile.noOneBorrowedYourDecks')}
                     </p>
                   </CardContent>
                 </Card>

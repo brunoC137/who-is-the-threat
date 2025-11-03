@@ -460,16 +460,48 @@ export default function EditGamePage() {
                       <label className="text-sm font-medium mb-2 block">Deck</label>
                       <select
                         value={gamePlayer.deck}
-                        onChange={(e) => updatePlayer(index, 'deck', e.target.value)}
+                        onChange={(e) => {
+                          const selectedDeck = getDeckById(e.target.value);
+                          updatePlayer(index, 'deck', e.target.value);
+                          // Auto-set borrowedFrom if the deck owner is different from the player
+                          if (selectedDeck && gamePlayer.player && selectedDeck.owner._id !== gamePlayer.player) {
+                            updatePlayer(index, 'borrowedFrom', selectedDeck.owner._id);
+                          } else {
+                            updatePlayer(index, 'borrowedFrom', undefined);
+                          }
+                        }}
                         className="w-full p-2 border rounded-md"
                         disabled={!gamePlayer.player}
                       >
                         <option value="">Select Deck</option>
-                        {playerDecks.map(deck => (
-                          <option key={deck._id} value={deck._id}>
-                            {deck.name} ({deck.commander})
-                          </option>
-                        ))}
+                        
+                        {/* Player's own decks */}
+                        {gamePlayer.player && playerDecks.length > 0 && (
+                          <>
+                            <optgroup label="Your Decks">
+                              {playerDecks.map(deck => (
+                                <option key={deck._id} value={deck._id}>
+                                  {deck.name} ({deck.commander})
+                                </option>
+                              ))}
+                            </optgroup>
+                          </>
+                        )}
+                        
+                        {/* All other decks */}
+                        {gamePlayer.player && decks.filter(deck => deck.owner._id !== gamePlayer.player).length > 0 && (
+                          <>
+                            <optgroup label="Borrow from Others">
+                              {decks
+                                .filter(deck => deck.owner._id !== gamePlayer.player)
+                                .map(deck => (
+                                  <option key={deck._id} value={deck._id}>
+                                    {deck.name} ({deck.commander}) - {deck.owner.nickname || deck.owner.name}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -532,6 +564,11 @@ export default function EditGamePage() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {selectedDeck.name} • {selectedDeck.commander}
+                          {gamePlayer.borrowedFrom && (
+                            <span className="text-orange-600 ml-1">
+                              (borrowed from {selectedDeck.owner.nickname || selectedDeck.owner.name})
+                            </span>
+                          )}
                         </p>
                       </div>
                       {gamePlayer.placement && (
