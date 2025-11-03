@@ -45,6 +45,7 @@ interface GamePlayer {
   deck: string;
   placement?: number;
   eliminatedBy?: string;
+  borrowedFrom?: string;
 }
 
 interface Game {
@@ -69,6 +70,11 @@ interface Game {
     };
     placement?: number;
     eliminatedBy?: {
+      _id: string;
+      name: string;
+      nickname?: string;
+    };
+    borrowedFrom?: {
       _id: string;
       name: string;
       nickname?: string;
@@ -125,7 +131,8 @@ export default function EditGamePage() {
             player: p.player._id,
             deck: p.deck._id,
             placement: p.placement,
-            eliminatedBy: p.eliminatedBy?._id || undefined
+            eliminatedBy: p.eliminatedBy?._id || undefined,
+            borrowedFrom: p.borrowedFrom?._id || undefined
           })),
           durationMinutes: gameData.durationMinutes ? gameData.durationMinutes.toString() : '',
           notes: gameData.notes || '',
