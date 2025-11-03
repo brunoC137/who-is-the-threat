@@ -32,6 +32,11 @@ const GameSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Player',
       required: false
+    },
+    borrowedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Player',
+      required: false
     }
   }],
   durationMinutes: {

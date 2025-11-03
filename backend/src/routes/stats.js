@@ -233,6 +233,62 @@ router.get('/player/:id', protect, async (req, res, next) => {
     }
     eliminatedByArray.sort((a, b) => b.count - a.count);
 
+    // Calculate borrowed deck statistics
+    const borrowedDeckStats = {
+      gamesWithBorrowedDecks: 0,
+      winsWithBorrowedDecks: 0,
+      winRateWithBorrowedDecks: 0
+    };
+
+    const ownedDecksBorrowedStats = {
+      gamesWhenDecksBorrowed: 0,
+      winsWhenDecksBorrowed: 0,
+      winRateWhenDecksBorrowed: 0
+    };
+
+    // Get all games where this player used a borrowed deck
+    games.forEach(game => {
+      const playerData = game.players.find(p => p.player.toString() === playerId);
+      if (playerData && playerData.borrowedFrom) {
+        borrowedDeckStats.gamesWithBorrowedDecks++;
+        if (playerData.placement === 1) {
+          borrowedDeckStats.winsWithBorrowedDecks++;
+        }
+      }
+    });
+
+    // Calculate win rate with borrowed decks
+    if (borrowedDeckStats.gamesWithBorrowedDecks > 0) {
+      borrowedDeckStats.winRateWithBorrowedDecks = 
+        parseFloat(((borrowedDeckStats.winsWithBorrowedDecks / borrowedDeckStats.gamesWithBorrowedDecks) * 100).toFixed(2));
+    }
+
+    // Get player's decks
+    const playerDecks = await Deck.find({ owner: playerId }).select('_id');
+    const playerDeckIds = playerDecks.map(d => d._id.toString());
+
+    // Get all games where someone borrowed this player's decks
+    const allGames = await Game.find({ 
+      'players.borrowedFrom': playerId 
+    });
+
+    allGames.forEach(game => {
+      game.players.forEach(gamePlayer => {
+        if (gamePlayer.borrowedFrom && gamePlayer.borrowedFrom.toString() === playerId) {
+          ownedDecksBorrowedStats.gamesWhenDecksBorrowed++;
+          if (gamePlayer.placement === 1) {
+            ownedDecksBorrowedStats.winsWhenDecksBorrowed++;
+          }
+        }
+      });
+    });
+
+    // Calculate win rate when decks are borrowed
+    if (ownedDecksBorrowedStats.gamesWhenDecksBorrowed > 0) {
+      ownedDecksBorrowedStats.winRateWhenDecksBorrowed = 
+        parseFloat(((ownedDecksBorrowedStats.winsWhenDecksBorrowed / ownedDecksBorrowedStats.gamesWhenDecksBorrowed) * 100).toFixed(2));
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -249,6 +305,8 @@ router.get('/player/:id', protect, async (req, res, next) => {
           averagePlacement: parseFloat(averagePlacement),
           placementDistribution
         },
+        borrowedDeckStats,
+        ownedDecksBorrowedStats,
         matchups: playerMatchupsArray,
         deckUsage: sortedDeckUsage,
         recentGames,
@@ -843,6 +901,68 @@ router.get('/global', protect, async (req, res, next) => {
           winRate: Math.round(stat.winRate * 100) / 100
         })),
         recentActivity
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get borrowed deck rankings
+// @route   GET /stats/borrowed-decks
+// @access  Private
+router.get('/borrowed-decks', protect, async (req, res, next) => {
+  try {
+    // Get all games with borrowed decks
+    const gamesWithBorrowedDecks = await Game.find({
+      'players.borrowedFrom': { $exists: true, $ne: null }
+    }).populate('players.player', 'name nickname profileImage');
+
+    // Calculate stats for players using borrowed decks
+    const playerBorrowedStats = {};
+
+    gamesWithBorrowedDecks.forEach(game => {
+      game.players.forEach(playerEntry => {
+        if (playerEntry.borrowedFrom) {
+          const playerId = playerEntry.player._id.toString();
+          
+          if (!playerBorrowedStats[playerId]) {
+            playerBorrowedStats[playerId] = {
+              player: playerEntry.player,
+              gamesPlayed: 0,
+              wins: 0,
+              winRate: 0
+            };
+          }
+          
+          playerBorrowedStats[playerId].gamesPlayed++;
+          if (playerEntry.placement === 1) {
+            playerBorrowedStats[playerId].wins++;
+          }
+        }
+      });
+    });
+
+    // Calculate win rates and convert to array
+    const borrowedDeckRankings = Object.values(playerBorrowedStats)
+      .map(stat => ({
+        ...stat,
+        winRate: stat.gamesPlayed > 0 
+          ? parseFloat(((stat.wins / stat.gamesPlayed) * 100).toFixed(2))
+          : 0
+      }))
+      .filter(stat => stat.gamesPlayed >= 2) // Only include players with at least 2 games
+      .sort((a, b) => b.winRate - a.winRate);
+
+    const bestBorrowers = borrowedDeckRankings.slice(0, 10);
+    const worstBorrowers = borrowedDeckRankings.slice(-10).reverse();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        bestBorrowers,
+        worstBorrowers,
+        totalPlayersWithBorrowedDecks: borrowedDeckRankings.length
       }
     });
   } catch (error) {
