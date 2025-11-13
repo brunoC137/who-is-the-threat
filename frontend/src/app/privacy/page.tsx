@@ -155,7 +155,7 @@ export default function PrivacyPage() {
             <p className="text-muted-foreground leading-relaxed">
               Podemos atualizar esta política de privacidade periodicamente. Notificaremos você 
               sobre mudanças significativas publicando a nova política nesta página e atualizando 
-              a data de "Última atualização" no topo.
+              a data de &quot;Última atualização&quot; no topo.
             </p>
           </section>
 
