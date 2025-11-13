@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   
-  // Disable x-powered-by header
-  poweredByHeader: false,
-
   // Security headers
   async headers() {
     return [
@@ -45,16 +41,14 @@ const nextConfig = {
     ]
   },
 
+  // Image optimization
   images: {
-    domains: ['localhost', 'via.placeholder.com', 'i.imgur.com', 'moxfield.com'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    domains: ['localhost'],
     formats: ['image/avif', 'image/webp'],
   },
-};
 
-module.exports = nextConfig;
+  // Disable x-powered-by header
+  poweredByHeader: false,
+}
+
+module.exports = nextConfig

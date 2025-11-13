@@ -150,6 +150,20 @@ export function Navigation({ children }: NavigationProps) {
                       {t('nav.signOut')}
                     </button>
                   </div>
+                  <div className="mt-4 pt-4 border-t border-border/50 space-y-1 text-xs">
+                    <Link
+                      href="/privacy"
+                      className="block p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
+                    >
+                      Privacy Policy
+                    </Link>
+                    <Link
+                      href="/contact"
+                      className="block p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
+                    >
+                      Contact
+                    </Link>
+                  </div>
                 </div>
               </li>
             </ul>
@@ -282,6 +296,22 @@ export function Navigation({ children }: NavigationProps) {
                           <LogOut className="h-6 w-6 shrink-0" />
                           {t('nav.signOut')}
                         </button>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border/50 space-y-1 text-xs">
+                        <Link
+                          href="/privacy"
+                          onClick={() => setIsOpen(false)}
+                          className="block p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
+                        >
+                          Privacy Policy
+                        </Link>
+                        <Link
+                          href="/contact"
+                          onClick={() => setIsOpen(false)}
+                          className="block p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
+                        >
+                          Contact
+                        </Link>
                       </div>
                     </div>
                   </li>

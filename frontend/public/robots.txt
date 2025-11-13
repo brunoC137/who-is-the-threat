@@ -1,0 +1,14 @@
+# *
+User-agent: *
+Allow: /
+
+# Disallow certain paths
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /profile/
+
+# Host
+Host: https://guerreiros-do-segundo-lugar.vercel.app
+
+# Sitemap
+Sitemap: https://guerreiros-do-segundo-lugar.vercel.app/sitemap.xml

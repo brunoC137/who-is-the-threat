@@ -17,8 +17,42 @@ const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware - Enhanced helmet configuration
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  noSniff: true,
+  xssFilter: true,
+  hidePoweredBy: true,
+  frameguard: { action: 'deny' }
+}));
+
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
 
 // Rate limiting (more lenient in development)
 const limiter = rateLimit({
