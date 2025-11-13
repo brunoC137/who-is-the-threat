@@ -385,6 +385,7 @@ export default function DeckPage() {
                         <div className="flex items-center gap-4">
                           <div className="flex-shrink-0">
                             {matchup.opponentDeck.deckImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img 
                                 src={matchup.opponentDeck.deckImage}
                                 alt={matchup.opponentDeck.commander}
