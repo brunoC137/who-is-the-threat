@@ -105,32 +105,49 @@ export default function LoginPage() {
         <div className="pointer-events-none fixed inset-0 z-40 opacity-30 bg-red-800 mix-blend-overlay animate-[glitch_2.5s_infinite]"></div>
       )}
 
-      {/* Communist Quotes */}
+      {/* USSR QUOTES */}
+        {/* MOBILE QUOTE */}
         {ussrMode && (
           <div
             className="
-              fixed z-50 
-              left-1/2 -translate-x-1/2
+              fixed z-50
+              right-4 top-[72px]
               px-4 py-2 
-              bg-red-900/80 backdrop-blur-xl
+              bg-red-900/90 backdrop-blur-xl
               border border-red-300/40 
-              rounded-xl text-center shadow-xl
+              rounded-xl shadow-2xl text-center
               animate-[quoteFade_5s_infinite]
-
-              /* MOBILE — fixed at the TOP like a notification/chatbot */
-              top-4
-
-              /* DESKTOP — stays at the bottom */
-              md:top-auto md:bottom-20
-
-              max-w-[90%]
+              max-w-[75%]
+              md:hidden
             "
           >
-            <p className="text-red-100 text-base md:text-lg font-bold tracking-wide drop-shadow-md leading-snug">
+            <p className="text-red-100 text-sm font-bold tracking-wide drop-shadow-md leading-snug">
               {communistQuotes[quoteIndex]}
             </p>
           </div>
         )}
+        {/* DESKTOP QUOTE */}
+        {ussrMode && (
+          <div
+            className="
+              fixed z-50
+              left-1/2 -translate-x-1/2 
+              bottom-20
+              px-6 py-3 
+              bg-red-900/90 backdrop-blur-xl
+              border border-red-300/40 
+              rounded-xl shadow-2xl text-center
+              animate-[quoteFade_5s_infinite]
+              max-w-[50%]
+              hidden md:block
+            "
+          >
+            <p className="text-red-100 text-lg font-bold tracking-wide drop-shadow-md leading-snug">
+              {communistQuotes[quoteIndex]}
+            </p>
+          </div>
+        )}
+
 
       {/* Background Effects (disabled in USSR mode) */}
       {!ussrMode && (
@@ -156,7 +173,7 @@ export default function LoginPage() {
         variant="ghost"
         size="icon"
         onClick={toggleUSSR}
-        className={`fixed top-4 right-4 z-50 border border-red-600/50 backdrop-blur-sm transition-all
+        className={`fixed top-4 left-4 z-50 border border-red-600/50 backdrop-blur-sm transition-all
           ${ussrMode ? 'bg-red-700 hover:bg-red-800' : 'bg-slate-900/90 hover:bg-slate-800/90'}`}
         title="Glory to the Soviet Union"
       >
