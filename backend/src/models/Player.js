@@ -19,10 +19,11 @@ const PlayerSchema = new mongoose.Schema({
       return !this.isGuest;
     },
     unique: true,
-    sparse: true, // Allows multiple null values for guest players
+    sparse: true, // Allows multiple docs without email; guests get synthetic email
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    // Allow plus addressing and longer TLDs (e.g., .local) up to 15 chars
+    match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,15}$/, 'Please enter a valid email']
   },
   password: {
     type: String,

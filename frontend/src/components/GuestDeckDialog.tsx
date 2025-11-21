@@ -117,7 +117,16 @@ export function GuestDeckDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent
+        className="
+          p-4 sm:p-6
+          w-[calc(100%-32px)]
+          max-w-sm
+          mx-auto
+          rounded-2xl
+          sm:rounded-lg
+        "
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5" />

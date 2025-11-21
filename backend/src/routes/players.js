@@ -45,11 +45,20 @@ router.post('/guest', protect, [
       });
     }
 
-    // Create guest player
+    // Generate synthetic unique email for guest to avoid null unique conflicts
+    const slug = nickname
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'guest';
+    const syntheticEmail = `${slug}+guest@guest.local`;
+
+    // Create guest player with synthetic email (password omitted)
     const guestPlayer = await Player.create({
       name: nickname,
       nickname: nickname,
-      isGuest: true
+      isGuest: true,
+      email: syntheticEmail
     });
 
     res.status(201).json({
