@@ -95,7 +95,7 @@ export function GuestPlayerDialog({ onGuestPlayerCreated }: GuestPlayerDialogPro
             Add Guest Player
           </DialogTitle>
           <DialogDescription>
-            Create a guest player for someone who hasn't registered yet. They can claim their games later by registering with the same nickname.
+            Create a guest player for someone who hasn&apos;t registered yet. They can claim their games later by registering with the same nickname.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
