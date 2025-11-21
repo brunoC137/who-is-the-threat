@@ -106,14 +106,31 @@ export default function LoginPage() {
       )}
 
       {/* Communist Quotes */}
-      {ussrMode && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-red-900/70 
-                        border border-red-300/40 rounded-xl text-center animate-[quoteFade_5s_infinite] shadow-xl">
-          <p className="text-red-100 text-lg font-bold tracking-wide drop-shadow-md">
-            {communistQuotes[quoteIndex]}
-          </p>
-        </div>
-      )}
+        {ussrMode && (
+          <div
+            className="
+              fixed z-50 
+              left-1/2 -translate-x-1/2
+              px-4 py-2 
+              bg-red-900/80 backdrop-blur-xl
+              border border-red-300/40 
+              rounded-xl text-center shadow-xl
+              animate-[quoteFade_5s_infinite]
+
+              /* MOBILE — fixed at the TOP like a notification/chatbot */
+              top-4
+
+              /* DESKTOP — stays at the bottom */
+              md:top-auto md:bottom-20
+
+              max-w-[90%]
+            "
+          >
+            <p className="text-red-100 text-base md:text-lg font-bold tracking-wide drop-shadow-md leading-snug">
+              {communistQuotes[quoteIndex]}
+            </p>
+          </div>
+        )}
 
       {/* Background Effects (disabled in USSR mode) */}
       {!ussrMode && (

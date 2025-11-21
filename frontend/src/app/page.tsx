@@ -86,22 +86,21 @@ export default function HomePage() {
         {ussrMode && (
           <div
             className="
-              fixed 
-              left-1/2 -translate-x-1/2 z-50
+              fixed z-50 
+              left-1/2 -translate-x-1/2
               px-4 py-2 
-              bg-red-900/80 
-              backdrop-blur-md
+              bg-red-900/80 backdrop-blur-xl
               border border-red-300/40 
-              rounded-xl text-center 
-              shadow-xl
+              rounded-xl text-center shadow-xl
               animate-[quoteFade_5s_infinite]
 
-              /* RESPONSIVE POSITIONING */
-              top-20 md:top-auto 
-              md:bottom-20
+              /* MOBILE — fixed at the TOP like a notification/chatbot */
+              top-4
 
-              /* WIDTH CONTROL */
-              max-w-[90%] 
+              /* DESKTOP — stays at the bottom */
+              md:top-auto md:bottom-20
+
+              max-w-[90%]
             "
           >
             <p className="text-red-100 text-base md:text-lg font-bold tracking-wide drop-shadow-md leading-snug">
@@ -109,6 +108,7 @@ export default function HomePage() {
             </p>
           </div>
         )}
+
 
         {/* USSR ANTHEM */}
         <audio ref={audioRef} src="/sounds/ussr.mp3"></audio>
