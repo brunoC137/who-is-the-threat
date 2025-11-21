@@ -138,7 +138,7 @@ function SortablePlayerCard({
             <Avatar className="w-10 h-10 ring-2 ring-border">
               <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
               <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-accent/20">
-                {selectedPlayer.name.charAt(0).toUpperCase()}
+                {selectedPlayer.name?.charAt(0)?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">

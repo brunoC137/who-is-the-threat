@@ -238,7 +238,7 @@ export default function PlayerDetailsPage() {
             <Avatar className="w-32 h-32 mx-auto md:mx-0">
               <AvatarImage src={player.profileImage} alt={player.name} />
               <AvatarFallback className="text-4xl">
-                {player.name.charAt(0).toUpperCase()}
+                {player.name?.charAt(0)?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             
@@ -355,7 +355,7 @@ export default function PlayerDetailsPage() {
                           <Avatar className="h-12 w-12">
                             <AvatarImage src={matchup.opponent.profileImage} />
                             <AvatarFallback>
-                              {(matchup.opponent.nickname || matchup.opponent.name).charAt(0).toUpperCase()}
+                              {(matchup.opponent.nickname || matchup.opponent.name)?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -411,7 +411,7 @@ export default function PlayerDetailsPage() {
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={stat.player.profileImage} />
                               <AvatarFallback>
-                                {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                                {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <p className="font-medium text-sm">
@@ -446,7 +446,7 @@ export default function PlayerDetailsPage() {
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={stat.player.profileImage} />
                               <AvatarFallback>
-                                {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                                {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <p className="font-medium text-sm">

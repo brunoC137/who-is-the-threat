@@ -257,7 +257,7 @@ export default function DeckPage() {
               <Avatar className="w-8 h-8">
                 <AvatarImage src={deck.owner.profileImage} alt={deck.owner.name} />
                 <AvatarFallback>
-                  {deck.owner.name.charAt(0).toUpperCase()}
+                  {deck.owner.name?.charAt(0)?.toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-muted-foreground">

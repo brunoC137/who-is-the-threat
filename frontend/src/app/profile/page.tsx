@@ -152,7 +152,18 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        const result = await response.json();
+        // Extract the player data from the response and transform _id to id
+        const updatedPlayer = result.data || result;
+        const updatedUser = {
+          id: updatedPlayer._id || updatedPlayer.id,
+          name: updatedPlayer.name,
+          nickname: updatedPlayer.nickname,
+          email: updatedPlayer.email,
+          profileImage: updatedPlayer.profileImage,
+          isAdmin: updatedPlayer.isAdmin,
+          createdAt: updatedPlayer.createdAt
+        };
         // Update the auth context with new user data
         setUserData(updatedUser);
         setIsEditing(false);
@@ -207,7 +218,7 @@ export default function ProfilePage() {
                       alt={user.name}
                     />
                     <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user.name?.charAt(0)?.toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
                   {user.isAdmin && (
@@ -660,7 +671,7 @@ export default function ProfilePage() {
                       <Avatar className="w-12 h-12 ring-2 ring-slate-600">
                         <AvatarImage src={matchup.opponent.profileImage} alt={matchup.opponent.name} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                          {(matchup.opponent.nickname || matchup.opponent.name).charAt(0).toUpperCase()}
+                          {(matchup.opponent.nickname || matchup.opponent.name)?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -710,7 +721,7 @@ export default function ProfilePage() {
                           <Avatar className="w-10 h-10 ring-2 ring-slate-600">
                             <AvatarImage src={stat.player.profileImage} alt={stat.player.name} />
                             <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white">
-                              {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                              {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <p className="font-medium text-sm text-white">
@@ -745,7 +756,7 @@ export default function ProfilePage() {
                           <Avatar className="w-10 h-10 ring-2 ring-slate-600">
                             <AvatarImage src={stat.player.profileImage} alt={stat.player.name} />
                             <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-amber-600 text-white">
-                              {(stat.player.nickname || stat.player.name).charAt(0).toUpperCase()}
+                              {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <p className="font-medium text-sm text-white">

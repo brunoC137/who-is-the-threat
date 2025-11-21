@@ -229,7 +229,7 @@ export default function GameDetailsPage() {
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={game.createdBy.profileImage} alt={game.createdBy.name} />
                   <AvatarFallback>
-                    {game.createdBy.name.charAt(0).toUpperCase()}
+                    {game.createdBy.name?.charAt(0)?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-muted-foreground">
@@ -320,7 +320,7 @@ export default function GameDetailsPage() {
                           alt={participant.player.name} 
                         />
                         <AvatarFallback>
-                          {participant.player.name.charAt(0).toUpperCase()}
+                          {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       
@@ -491,7 +491,7 @@ export default function GameDetailsPage() {
                         alt={participant.player.name} 
                       />
                       <AvatarFallback className="text-xs">
-                        {participant.player.name.charAt(0).toUpperCase()}
+                        {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

@@ -155,7 +155,7 @@ export default function PlayersPage() {
                 <Avatar className="w-24 h-24 mx-auto mb-4 ring-4 ring-border/50 group-hover:ring-primary/50 transition-all">
                   <AvatarImage src={player.profileImage} alt={player.name} />
                   <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-accent/20">
-                    {player.name.charAt(0).toUpperCase()}
+                    {player.name?.charAt(0)?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <CardTitle className="text-lg font-bold">
