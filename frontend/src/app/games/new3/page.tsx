@@ -346,7 +346,7 @@ export default function NewGamePage() {
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
                         <AvatarFallback className="text-xs">
-                          {selectedPlayer.name.charAt(0).toUpperCase()}
+                          {selectedPlayer.name?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">

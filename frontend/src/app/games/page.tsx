@@ -278,7 +278,7 @@ export default function GamesPage() {
                                 alt={participant.player.name} 
                               />
                               <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
-                                {participant.player.name.charAt(0).toUpperCase()}
+                                {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="font-semibold text-sm truncate">
