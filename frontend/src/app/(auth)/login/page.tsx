@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -19,9 +19,49 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  // USSR easter egg state
+  // ========== USSR MODE ==========
   const [ussrMode, setUssrMode] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const communistQuotes = [
+    "Workers of the world, unite!",
+    "Glory to the Motherland.",
+    "The revolution knows no borders.",
+    "Peace, land, and bread!",
+    "Comrade, our login is secure.",
+    "Long live the Red Banner!",
+    "Unity is strength.",
+    "Our commander deck!",
+    "The proletariat will triumph!"
+  ];
+
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    if (!ussrMode) return;
+
+    const interval = setInterval(() => {
+      setQuoteIndex(Math.floor(Math.random() * communistQuotes.length));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [ussrMode]);
+
+  const toggleUSSR = () => {
+    if (!audioRef.current) return;
+
+    if (!ussrMode) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    } else {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    setUssrMode(!ussrMode);
+  };
+
+  // =================================
 
   const { login } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -46,31 +86,36 @@ export default function LoginPage() {
     setLanguage(language === 'en' ? 'pt-BR' : 'en');
   };
 
-  // USSR toggle handler
-  const toggleUSSR = () => {
-    if (!audioRef.current) return;
-
-    if (!ussrMode) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
-    } else {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-
-    setUssrMode(!ussrMode);
-  };
-
   return (
     <div
       className={`min-h-screen relative flex items-center justify-center overflow-hidden transition-all duration-700
         ${ussrMode
-          ? 'bg-red-900'
+          ? 'bg-red-900 animate-[ussr-shake_0.45s_infinite]'
           : 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950'
         }`}
     >
 
-      {/* Background Effects */}
+      {/* USSR Red Vignette */}
+      {ussrMode && (
+        <div className="pointer-events-none fixed inset-0 z-40 animate-[redVignette_6s_infinite]"></div>
+      )}
+
+      {/* Glitch Overlay */}
+      {ussrMode && (
+        <div className="pointer-events-none fixed inset-0 z-40 opacity-30 bg-red-800 mix-blend-overlay animate-[glitch_2.5s_infinite]"></div>
+      )}
+
+      {/* Communist Quotes */}
+      {ussrMode && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-red-900/70 
+                        border border-red-300/40 rounded-xl text-center animate-[quoteFade_5s_infinite] shadow-xl">
+          <p className="text-red-100 text-lg font-bold tracking-wide drop-shadow-md">
+            {communistQuotes[quoteIndex]}
+          </p>
+        </div>
+      )}
+
+      {/* Background Effects (disabled in USSR mode) */}
       {!ussrMode && (
         <>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
@@ -288,6 +333,7 @@ export default function LoginPage() {
           {t('auth.topdecksLegendary')}
         </p>
       </div>
+
     </div>
   );
 }
