@@ -22,8 +22,8 @@ const PlayerSchema = new mongoose.Schema({
     sparse: true, // Allows multiple docs without email; guests get synthetic email
     lowercase: true,
     trim: true,
-    // Allow plus addressing and longer TLDs (e.g., .local) up to 15 chars
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    // Allow plus addressing and longer TLDs (e.g., .local, .info, .museum) up to 15 chars
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,15})+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
