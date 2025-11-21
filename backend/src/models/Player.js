@@ -23,7 +23,7 @@ const PlayerSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
     // Allow plus addressing and longer TLDs (e.g., .local) up to 15 chars
-    match: [/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,15}$/, 'Please enter a valid email']
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
