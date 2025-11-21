@@ -8,17 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  ArrowLeft, 
-  Save, 
-  Loader2, 
-  Plus, 
-  X,
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Plus,
   Trophy,
   Clock,
   Users,
   GripVertical,
-  Trash2
+  Trash2,
+  User as UserIcon,
+  Layers,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -38,12 +39,29 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { GuestPlayerDialog } from '@/components/GuestPlayerDialog';
+import { GuestDeckDialog } from '@/components/GuestDeckDialog';
+
+/**
+ * NOTE – to fully fix the modal overflow on mobile, make sure that
+ * inside your <GuestPlayerDialog /> (and GuestDeckDialog) you wrap
+ * the DialogContent like this:
+ *
+ * <DialogContent className="p-0">
+ *   <div className="w-full max-w-sm sm:max-w-md mx-auto p-4">
+ *     {...modal inner content...}
+ *   </div>
+ * </DialogContent>
+ *
+ * This ensures the dialog never overflows horizontally on small screens.
+ */
 
 interface Player {
   _id: string;
   name: string;
   nickname?: string;
   profileImage?: string;
+  isGuest?: boolean;
 }
 
 interface Deck {
@@ -55,6 +73,7 @@ interface Deck {
     name: string;
     nickname?: string;
   };
+  isGuestDeck?: boolean;
 }
 
 interface GamePlayer {
@@ -64,14 +83,14 @@ interface GamePlayer {
   borrowedFrom?: string; // Player ID who owns the deck
 }
 
-function SortablePlayerCard({ 
-  gamePlayer, 
-  index, 
-  selectedPlayer, 
+function SortablePlayerCard({
+  gamePlayer,
+  index,
+  selectedPlayer,
   selectedDeck,
   borrowedFromPlayer,
-  onRemove 
-}: { 
+  onRemove,
+}: {
   gamePlayer: GamePlayer;
   index: number;
   selectedPlayer?: Player;
@@ -79,14 +98,9 @@ function SortablePlayerCard({
   borrowedFromPlayer?: Player;
   onRemove: () => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: gamePlayer.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: gamePlayer.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -114,63 +128,94 @@ function SortablePlayerCard({
       style={style}
       className="group relative bg-card border-2 border-border rounded-lg p-4 touch-none"
     >
-      <div className="flex items-center gap-3">
-        {/* Drag Handle */}
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing touch-none p-2 hover:bg-muted rounded"
-        >
-          <GripVertical className="h-5 w-5 text-muted-foreground" />
-        </div>
+      {/* On mobile we stack vertically, on larger screens we go horizontal */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* Left side: drag handle + placement badge */}
+        <div className="flex items-center gap-3">
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none p-2 hover:bg-muted rounded"
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </div>
 
-        {/* Placement Badge */}
-        <Badge 
-          variant="outline"
-          className={`px-3 py-1.5 font-bold text-sm border-2 min-w-[60px] text-center ${placementBadge.color}`}
-        >
-          {placementBadge.text}
-        </Badge>
+          {/* Placement Badge */}
+          <Badge
+            variant="outline"
+            className={`px-3 py-1.5 font-bold text-sm border-2 min-w-[64px] text-center ${placementBadge.color}`}
+          >
+            {placementBadge.text}
+          </Badge>
+        </div>
 
         {/* Player Info */}
         {selectedPlayer && selectedDeck ? (
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Avatar className="w-10 h-10 ring-2 ring-border">
+          <div className="flex flex-1 items-start gap-3 min-w-0">
+            <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-border">
               <AvatarImage src={selectedPlayer.profileImage} alt={selectedPlayer.name} />
               <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-accent/20">
                 {selectedPlayer.name?.charAt(0)?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
+
+            <div className="flex-1 min-w-0 space-y-0.5">
               <p className="font-semibold text-sm truncate">
                 {selectedPlayer.nickname || selectedPlayer.name}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {selectedDeck.name} • {selectedDeck.commander}
               </p>
+
+              {/* Guest badges – refactored for better wrapping on mobile */}
+              {(selectedPlayer.isGuest || selectedDeck.isGuestDeck) && (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {selectedPlayer.isGuest && (
+                    <span
+                      title="Guest Player"
+                      className="inline-flex items-center gap-1 rounded-full border border-yellow-300 bg-yellow-50 px-2 py-0.5 text-[10px] sm:text-xs font-medium text-yellow-800 leading-none"
+                    >
+                      <UserIcon className="h-3 w-3" />
+                      <span className="hidden sm:inline">Guest Player</span>
+                    </span>
+                  )}
+
+                  {selectedDeck.isGuestDeck && (
+                    <span
+                      title="Guest Deck"
+                      className="inline-flex items-center gap-1 rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-[10px] sm:text-xs font-medium text-purple-800 leading-none"
+                    >
+                      <Layers className="h-3 w-3" />
+                      <span className="hidden sm:inline">Guest Deck</span>
+                    </span>
+                  )}
+                </div>
+              )}
+
               {borrowedFromPlayer && (
-                <p className="text-xs text-purple-600 italic truncate">
+                <p className="mt-1 text-xs text-purple-600 italic break-words">
                   📚 Borrowed from {borrowedFromPlayer.nickname || borrowedFromPlayer.name}
                 </p>
               )}
             </div>
           </div>
         ) : (
-          <div className="flex-1 text-sm text-muted-foreground">
-            Incomplete selection
-          </div>
+          <div className="flex-1 text-sm text-muted-foreground">Incomplete selection</div>
         )}
 
         {/* Remove Button */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onRemove}
-          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="self-end sm:self-auto">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -206,7 +251,7 @@ export default function NewGame2Page() {
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   useEffect(() => {
@@ -217,11 +262,11 @@ export default function NewGame2Page() {
 
         const [playersResponse, decksResponse] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/decks`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         if (playersResponse.ok && decksResponse.ok) {
@@ -270,7 +315,7 @@ export default function NewGame2Page() {
       borrowedFrom: allowBorrowedDeck ? selectedDeckOwnerId : undefined,
     };
 
-    setGamePlayers([...gamePlayers, newGamePlayer]);
+    setGamePlayers((prev) => [...prev, newGamePlayer]);
     setSelectedPlayerId('');
     setSelectedDeckId('');
     setAllowBorrowedDeck(false);
@@ -278,25 +323,36 @@ export default function NewGame2Page() {
     setErrors({});
   };
 
+  const handleGuestPlayerCreated = (guestPlayer: Player) => {
+    setPlayers((prev) => {
+      const exists = prev.some((p) => p._id === guestPlayer._id);
+      return exists ? prev : [...prev, guestPlayer];
+    });
+    setSelectedPlayerId(guestPlayer._id);
+    setSelectedDeckId('');
+  };
+
+  const handleGuestDeckCreated = (guestDeck: Deck) => {
+    setDecks((prev) => {
+      const exists = prev.some((d) => d._id === guestDeck._id);
+      return exists ? prev : [...prev, guestDeck];
+    });
+    setSelectedDeckId(guestDeck._id);
+  };
+
   const removePlayer = (id: string) => {
-    setGamePlayers(gamePlayers.filter(p => p.id !== id));
+    setGamePlayers((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const getPlayerById = (playerId: string) => {
-    return players.find(p => p._id === playerId);
-  };
+  const getPlayerById = (playerId: string) => players.find((p) => p._id === playerId);
 
-  const getDeckById = (deckId: string) => {
-    return decks.find(d => d._id === deckId);
-  };
+  const getDeckById = (deckId: string) => decks.find((d) => d._id === deckId);
 
-  const getPlayerDecks = (playerId: string) => {
-    return decks.filter(deck => deck.owner._id === playerId);
-  };
+  const getPlayerDecks = (playerId: string) =>
+    decks.filter((deck) => deck.owner._id === playerId);
 
-  const getDecksForBorrowing = (ownerId: string) => {
-    return decks.filter(deck => deck.owner._id === ownerId);
-  };
+  const getDecksForBorrowing = (ownerId: string) =>
+    decks.filter((deck) => deck.owner._id === ownerId);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -305,7 +361,10 @@ export default function NewGame2Page() {
       newErrors.players = 'At least 2 players are required';
     }
 
-    if (formData.durationMinutes && (isNaN(Number(formData.durationMinutes)) || Number(formData.durationMinutes) <= 0)) {
+    if (
+      formData.durationMinutes &&
+      (isNaN(Number(formData.durationMinutes)) || Number(formData.durationMinutes) <= 0)
+    ) {
       newErrors.durationMinutes = 'Duration must be a positive number';
     }
 
@@ -315,9 +374,9 @@ export default function NewGame2Page() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -336,7 +395,9 @@ export default function NewGame2Page() {
 
       const gameData = {
         players: playersData,
-        durationMinutes: formData.durationMinutes ? Number(formData.durationMinutes) : undefined,
+        durationMinutes: formData.durationMinutes
+          ? Number(formData.durationMinutes)
+          : undefined,
         notes: formData.notes || undefined,
       };
 
@@ -344,9 +405,9 @@ export default function NewGame2Page() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(gameData)
+        body: JSON.stringify(gameData),
       });
 
       if (response.ok) {
@@ -355,7 +416,7 @@ export default function NewGame2Page() {
         const errorData = await response.json();
         setErrors({ submit: errorData.message || 'Failed to create game' });
       }
-    } catch (error) {
+    } catch {
       setErrors({ submit: 'An error occurred while creating the game' });
     } finally {
       setLoading(false);
@@ -379,44 +440,52 @@ export default function NewGame2Page() {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-center min-h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       </div>
     );
   }
 
-  const availableDecks = allowBorrowedDeck 
-    ? (selectedDeckOwnerId ? getDecksForBorrowing(selectedDeckOwnerId) : [])
-    : (selectedPlayerId ? getPlayerDecks(selectedPlayerId) : []);
+  const availableDecks = allowBorrowedDeck
+    ? selectedDeckOwnerId
+      ? getDecksForBorrowing(selectedDeckOwnerId)
+      : []
+    : selectedPlayerId
+      ? getPlayerDecks(selectedPlayerId)
+      : [];
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto max-w-4xl px-4 py-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="mb-8 flex items-center gap-4">
         <Link href="/games">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">Record New Game</h1>
-          <p className="text-muted-foreground">Version 2: Drag to reorder placement</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Record New Game</h1>
+          <p className="text-sm text-muted-foreground">
+            Version 2: Drag to reorder placement
+          </p>
         </div>
         <Link href="/games/new">
-          <Button variant="outline" size="sm">Original</Button>
+          <Button variant="outline" size="sm">
+            Original
+          </Button>
         </Link>
       </div>
 
       {/* Info Banner */}
-      <Card className="mb-6 bg-blue-50 border-blue-200">
+      <Card className="mb-6 border-blue-200 bg-blue-50">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="rounded-lg bg-blue-100 p-2">
               <Users className="h-5 w-5 text-blue-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 mb-1">How it works</h3>
-              <ol className="text-sm text-blue-700 space-y-1">
+              <h3 className="mb-1 font-semibold text-blue-900">How it works</h3>
+              <ol className="space-y-1 text-sm text-blue-700">
                 <li>1. Add players and their decks using the form below</li>
                 <li>2. Drag players to reorder them by placement (top = winner)</li>
                 <li>3. Add game details and submit!</li>
@@ -437,9 +506,14 @@ export default function NewGame2Page() {
             <CardDescription>Select a player and their deck</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Actions: Add guest player */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <GuestPlayerDialog onGuestPlayerCreated={handleGuestPlayerCreated} />
+            </div>
+
             {/* Player Selection */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Player</label>
+              <label className="mb-2 block text-sm font-medium">Player</label>
               <select
                 value={selectedPlayerId}
                 onChange={(e) => {
@@ -447,19 +521,39 @@ export default function NewGame2Page() {
                   setSelectedDeckId(''); // Reset deck when player changes
                   setSelectedDeckOwnerId(''); // Reset deck owner
                 }}
-                className="w-full p-2 border rounded-md"
+                className="w-full rounded-md border p-2"
               >
                 <option value="">Select Player</option>
-                {players.map(player => (
+                {players.map((player) => (
                   <option key={player._id} value={player._id}>
                     {player.nickname || player.name}
+                    {player.isGuest ? ' (Guest)' : ''}
                   </option>
                 ))}
               </select>
+
+              {/* If selected player is guest and has no decks, suggest creating a guest deck */}
+              {(() => {
+                const sp = selectedPlayerId ? getPlayerById(selectedPlayerId) : undefined;
+                const hasNoDecks =
+                  selectedPlayerId && !allowBorrowedDeck && availableDecks.length === 0;
+                if (sp && sp.isGuest && hasNoDecks) {
+                  return (
+                    <div className="mt-2">
+                      <GuestDeckDialog
+                        guestPlayerId={sp._id}
+                        guestPlayerName={sp.nickname || sp.name}
+                        onGuestDeckCreated={handleGuestDeckCreated}
+                      />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Borrowed Deck Toggle */}
-            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-3">
               <input
                 type="checkbox"
                 id="allowBorrowedDeck"
@@ -469,29 +563,32 @@ export default function NewGame2Page() {
                   setSelectedDeckId('');
                   setSelectedDeckOwnerId('');
                 }}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <label htmlFor="allowBorrowedDeck" className="text-sm font-medium text-blue-900 cursor-pointer">
+              <label
+                htmlFor="allowBorrowedDeck"
+                className="cursor-pointer text-sm font-medium text-blue-900"
+              >
                 Allow Borrowed Deck
               </label>
             </div>
 
             {/* Conditional rendering based on borrowed deck toggle */}
             {allowBorrowedDeck ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {/* Deck Owner Selection */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Deck Owner</label>
+                  <label className="mb-2 block text-sm font-medium">Deck Owner</label>
                   <select
                     value={selectedDeckOwnerId}
                     onChange={(e) => {
                       setSelectedDeckOwnerId(e.target.value);
                       setSelectedDeckId(''); // Reset deck when owner changes
                     }}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full rounded-md border p-2"
                   >
                     <option value="">Select Deck Owner</option>
-                    {players.map(player => (
+                    {players.map((player) => (
                       <option key={player._id} value={player._id}>
                         {player.nickname || player.name}
                       </option>
@@ -501,17 +598,18 @@ export default function NewGame2Page() {
 
                 {/* Deck Selection */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Deck</label>
+                  <label className="mb-2 block text-sm font-medium">Deck</label>
                   <select
                     value={selectedDeckId}
                     onChange={(e) => setSelectedDeckId(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full rounded-md border p-2"
                     disabled={!selectedDeckOwnerId}
                   >
                     <option value="">Select Deck</option>
-                    {availableDecks.map(deck => (
+                    {availableDecks.map((deck) => (
                       <option key={deck._id} value={deck._id}>
                         {deck.name} ({deck.commander})
+                        {deck.isGuestDeck ? ' • Guest Deck' : ''}
                       </option>
                     ))}
                   </select>
@@ -520,30 +618,31 @@ export default function NewGame2Page() {
             ) : (
               <div>
                 {/* Deck Selection */}
-                <label className="text-sm font-medium mb-2 block">Deck</label>
+                <label className="mb-2 block text-sm font-medium">Deck</label>
                 <select
                   value={selectedDeckId}
                   onChange={(e) => setSelectedDeckId(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full rounded-md border p-2"
                   disabled={!selectedPlayerId}
                 >
                   <option value="">Select Deck</option>
-                  {availableDecks.map(deck => (
+                  {availableDecks.map((deck) => (
                     <option key={deck._id} value={deck._id}>
                       {deck.name} ({deck.commander})
+                      {deck.isGuestDeck ? ' • Guest Deck' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             )}
 
-            <Button 
-              type="button" 
-              onClick={addPlayer} 
+            <Button
+              type="button"
+              onClick={addPlayer}
               className="w-full"
               disabled={!selectedPlayerId || !selectedDeckId}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add to Game
             </Button>
 
@@ -561,8 +660,10 @@ export default function NewGame2Page() {
               Game Players (Drag to Reorder)
             </CardTitle>
             <CardDescription>
-              {gamePlayers.length > 0 
-                ? `${gamePlayers.length} player${gamePlayers.length !== 1 ? 's' : ''} • Top position = Winner`
+              {gamePlayers.length > 0
+                ? `${gamePlayers.length} player${
+                    gamePlayers.length !== 1 ? 's' : ''
+                  } • Top position = Winner`
                 : 'No players added yet'}
             </CardDescription>
           </CardHeader>
@@ -574,7 +675,7 @@ export default function NewGame2Page() {
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={gamePlayers.map(gp => gp.id)}
+                  items={gamePlayers.map((gp) => gp.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   {gamePlayers.map((gp, index) => (
@@ -584,15 +685,17 @@ export default function NewGame2Page() {
                       index={index}
                       selectedPlayer={getPlayerById(gp.player)}
                       selectedDeck={getDeckById(gp.deck)}
-                      borrowedFromPlayer={gp.borrowedFrom ? getPlayerById(gp.borrowedFrom) : undefined}
+                      borrowedFromPlayer={
+                        gp.borrowedFrom ? getPlayerById(gp.borrowedFrom) : undefined
+                      }
                       onRemove={() => removePlayer(gp.id)}
                     />
                   ))}
                 </SortableContext>
               </DndContext>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <div className="py-8 text-center text-muted-foreground">
+                <Users className="mx-auto mb-2 h-12 w-12 opacity-50" />
                 <p>Add players to start recording the game</p>
               </div>
             )}
@@ -615,21 +718,21 @@ export default function NewGame2Page() {
           <CardContent className="space-y-4">
             {/* Duration */}
             <div>
-              <label className="text-sm font-medium flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4" />
                 Duration (minutes)
               </label>
               <Input
                 type="number"
                 value={formData.durationMinutes}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData({ ...formData, durationMinutes: e.target.value })
                 }
                 placeholder="90"
                 className={errors.durationMinutes ? 'border-red-500' : ''}
               />
               {errors.durationMinutes && (
-                <p className="text-sm text-red-500 mt-1">{errors.durationMinutes}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.durationMinutes}</p>
               )}
             </div>
 
@@ -638,12 +741,12 @@ export default function NewGame2Page() {
               <label className="text-sm font-medium">Notes</label>
               <textarea
                 value={formData.notes}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 placeholder="Game highlights, memorable moments, or any other notes..."
                 rows={3}
-                className="w-full p-2 border rounded-md resize-none"
+                className="w-full resize-none rounded-md border p-2"
               />
             </div>
           </CardContent>
@@ -659,12 +762,12 @@ export default function NewGame2Page() {
           <Button type="submit" disabled={loading} className="flex-1">
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Recording...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="mr-2 h-4 w-4" />
                 Record Game
               </>
             )}
