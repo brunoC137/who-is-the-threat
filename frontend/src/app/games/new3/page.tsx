@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { GuestPlayerDialog } from '@/components/GuestPlayerDialog';
+import { GuestDeckDialog } from '@/components/GuestDeckDialog';
 import { 
   ArrowLeft, 
   Save, 
@@ -26,6 +28,7 @@ interface Player {
   name: string;
   nickname?: string;
   profileImage?: string;
+  isGuest?: boolean;
 }
 
 interface Deck {
@@ -37,6 +40,7 @@ interface Deck {
     name: string;
     nickname?: string;
   };
+  isGuestDeck?: boolean;
 }
 
 interface GamePlayer {
@@ -211,6 +215,14 @@ export default function NewGamePage() {
     return decks.find(d => d._id === deckId);
   };
 
+  const handleGuestPlayerCreated = (guestPlayer: Player) => {
+    setPlayers(prev => [...prev, guestPlayer]);
+  };
+
+  const handleGuestDeckCreated = (guestDeck: Deck) => {
+    setDecks(prev => [...prev, guestDeck]);
+  };
+
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -297,7 +309,7 @@ export default function NewGamePage() {
                         <option value="">Select Player</option>
                         {players.map(player => (
                           <option key={player._id} value={player._id}>
-                            {player.nickname || player.name}
+                            {player.nickname || player.name} {player.isGuest ? '(Guest)' : ''}
                           </option>
                         ))}
                       </select>
@@ -319,6 +331,13 @@ export default function NewGamePage() {
                           </option>
                         ))}
                       </select>
+                      {gamePlayer.player && selectedPlayer?.isGuest && playerDecks.length === 0 && (
+                        <GuestDeckDialog
+                          guestPlayerId={gamePlayer.player}
+                          guestPlayerName={selectedPlayer.nickname || selectedPlayer.name}
+                          onGuestDeckCreated={handleGuestDeckCreated}
+                        />
+                      )}
                     </div>
 
                     {/* Placement */}
@@ -350,8 +369,11 @@ export default function NewGamePage() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium flex items-center gap-2">
                           {selectedPlayer.nickname || selectedPlayer.name}
+                          {selectedPlayer.isGuest && (
+                            <Badge variant="secondary" className="text-xs">Guest</Badge>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {selectedDeck.name} • {selectedDeck.commander}
@@ -368,10 +390,13 @@ export default function NewGamePage() {
               );
             })}
 
-            <Button type="button" onClick={addPlayer} variant="outline" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Player
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button type="button" onClick={addPlayer} variant="outline" className="flex-1">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Player
+              </Button>
+              <GuestPlayerDialog onGuestPlayerCreated={handleGuestPlayerCreated} />
+            </div>
 
             {errors.players && (
               <p className="text-sm text-red-500">{errors.players}</p>

@@ -28,6 +28,7 @@ export default function RegisterPage() {
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [guestPlayerInfo, setGuestPlayerInfo] = useState<{ exists: boolean; message?: string }>({ exists: false });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -113,6 +114,14 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Check if guest player was converted
+        if (data.convertedFromGuest) {
+          setGuestPlayerInfo({
+            exists: true,
+            message: data.message || 'Your guest player data has been preserved!'
+          });
+        }
+        
         // Auto-login after successful registration
         login(data.user, data.token);
         router.push('/dashboard');
@@ -133,6 +142,32 @@ export default function RegisterPage() {
     // Clear field error when user starts typing
     if (errors[field]) {
       setErrors({ ...errors, [field]: '' });
+    }
+    
+    // Check for guest player when nickname changes
+    if (field === 'nickname' && e.target.value.trim().length >= 2) {
+      checkGuestPlayer(e.target.value.trim());
+    } else if (field === 'nickname') {
+      setGuestPlayerInfo({ exists: false });
+    }
+  };
+
+  const checkGuestPlayer = async (nickname: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players/guest/check/${encodeURIComponent(nickname)}`);
+      const data = await response.json();
+      
+      if (response.ok && data.exists) {
+        setGuestPlayerInfo({
+          exists: true,
+          message: t('auth.guestPlayerFound') || `Guest player "${nickname}" found! Your games will be preserved when you register.`
+        });
+      } else {
+        setGuestPlayerInfo({ exists: false });
+      }
+    } catch (error) {
+      // Silently fail - not critical
+      setGuestPlayerInfo({ exists: false });
     }
   };
 
@@ -241,9 +276,19 @@ export default function RegisterPage() {
                   placeholder={t('auth.displayNameForGames')}
                   className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('auth.shownDuringGames')}
-                </p>
+                {guestPlayerInfo.exists && guestPlayerInfo.message && (
+                  <div className="mt-2 p-2 bg-green-500/10 border border-green-500/30 rounded">
+                    <p className="text-xs text-green-400 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      {guestPlayerInfo.message}
+                    </p>
+                  </div>
+                )}
+                {!guestPlayerInfo.exists && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('auth.shownDuringGames')}
+                  </p>
+                )}
               </div>
 
               {/* Email */}
