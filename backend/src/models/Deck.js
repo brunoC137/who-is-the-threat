@@ -40,7 +40,11 @@ const DeckSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [30, 'Tag cannot be more than 30 characters']
-  }]
+  }],
+  isGuestDeck: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

@@ -6,6 +6,76 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
+// @desc    Create guest deck for guest player
+// @route   POST /decks/guest
+// @access  Private
+router.post('/guest', protect, [
+  body('guestPlayerId')
+    .isMongoId()
+    .withMessage('Guest player ID must be a valid MongoDB ObjectId'),
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Deck name must be between 1 and 100 characters'),
+  body('commander')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Commander name must be between 1 and 100 characters')
+], async (req, res, next) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { guestPlayerId, name, commander } = req.body;
+
+    // Verify that the player is a guest
+    const guestPlayer = await Player.findById(guestPlayerId);
+    if (!guestPlayer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Guest player not found'
+      });
+    }
+
+    if (!guestPlayer.isGuest) {
+      return res.status(400).json({
+        success: false,
+        message: 'Player is not a guest player'
+      });
+    }
+
+    // Create guest deck
+    const deck = await Deck.create({
+      name,
+      commander,
+      owner: guestPlayerId,
+      isGuestDeck: true
+    });
+
+    // Add deck to guest player's decks array
+    await Player.findByIdAndUpdate(guestPlayerId, {
+      $push: { decks: deck._id }
+    });
+
+    const populatedDeck = await Deck.findById(deck._id)
+      .populate('owner', 'name nickname profileImage');
+
+    res.status(201).json({
+      success: true,
+      data: populatedDeck
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Get all decks
 // @route   GET /decks
 // @access  Private
