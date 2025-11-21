@@ -140,6 +140,14 @@ router.post('/login', [
       });
     }
 
+    // Prevent guest players from logging in
+    if (user.isGuest) {
+      return res.status(401).json({
+        success: false,
+        message: 'Guest players cannot login. Please register first.'
+      });
+    }
+
     // Check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
