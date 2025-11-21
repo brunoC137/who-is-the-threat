@@ -18,9 +18,10 @@ import {
   User,
   Layers,
   MessageSquare,
-  Eye,
-  ExternalLink,
-  Target
+  Target,
+  Crown,
+  Skull,
+  BookOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import { gamesAPI } from '@/lib/api';
@@ -192,101 +193,48 @@ export default function GameDetailsPage() {
   const completedGame = game.players.every(p => p.placement);
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-8">
-        <Link href="/games">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        
-        <div className="flex-1">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
+    <div className="min-h-screen bg-background">
+      {/* Mobile-First Header - Compact */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <Link href="/games">
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold truncate">
                 {completedGame ? t('games.completedGame') : t('games.gameSession')}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
-                <span className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(game.date)}
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  {totalPlayers} {t('games.playersCount')}
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {totalPlayers}
                 </span>
                 {game.durationMinutes && (
-                  <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {formatDuration(game.durationMinutes)}
-                  </span>
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDuration(game.durationMinutes)}
+                    </span>
+                  </>
                 )}
               </div>
-              
-              {/* Game Creator */}
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={game.createdBy.profileImage} alt={game.createdBy.name} />
-                  <AvatarFallback>
-                    {game.createdBy.name?.charAt(0)?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-muted-foreground">
-                  {t('games.recordedByUser')} <strong>{game.createdBy.nickname || game.createdBy.name}</strong>
-                </span>
-              </div>
-
-              {/* Winner Highlight */}
-              {winner && (
-                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 p-4 rounded-lg mb-4">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="h-6 w-6 text-yellow-600" />
-                    <div>
-                      <p className="font-semibold text-yellow-800">{t('games.gameWinner')}</p>
-                      <p className="text-yellow-700">
-                        {winner.player.nickname || winner.player.name} with {winner.deck.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Elimination Summary */}
-              {(() => {
-                const eliminations = game.players.filter(p => p.eliminatedBy);
-                if (eliminations.length > 0) {
-                  return (
-                    <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg mb-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Target className="h-5 w-5 text-red-600" />
-                        <p className="font-semibold text-red-800">{t('games.eliminationsTitle')}</p>
-                      </div>
-                      <div className="space-y-1">
-                        {eliminations.map((eliminated, index) => (
-                          <p key={index} className="text-sm text-red-700">
-                            <span className="font-medium">
-                              {eliminated.eliminatedBy?.nickname || eliminated.eliminatedBy?.name}
-                            </span>
-                            {' ' + t('games.eliminatedText') + ' '}
-                            <span className="font-medium">
-                              {eliminated.player.nickname || eliminated.player.name}
-                            </span>
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
             </div>
             
             {canEdit && (
-              <Button asChild>
+              <Button size="sm" asChild className="shrink-0 h-8 sm:h-10">
                 <Link href={`/games/${game._id}/edit`}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('games.editGameButton')}
+                  <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('games.editGameButton')}</span>
                 </Link>
               </Button>
             )}
@@ -294,27 +242,64 @@ export default function GameDetailsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Players & Results */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                {t('games.playersAndResults')}
-              </CardTitle>
-              <CardDescription>
-                {completedGame ? t('games.finalStandings') : t('games.gameParticipants')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {sortedPlayers.map((participant, index) => (
-                  <div key={`${participant.player._id}-${participant.deck._id}`} 
-                       className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3 flex-1">
-                      <Avatar className="w-12 h-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Winner Highlight - Mobile Optimized */}
+        {winner && (
+          <Card className="border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-background overflow-hidden">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="shrink-0">
+                  <div className="relative">
+                    <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-yellow-500">
+                      <AvatarImage src={winner.player.profileImage} alt={winner.player.name} />
+                      <AvatarFallback className="bg-yellow-500 text-white">
+                        {winner.player.name?.charAt(0)?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1">
+                      <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 shrink-0" />
+                    <p className="font-bold text-sm sm:text-base text-yellow-700 dark:text-yellow-400">
+                      {t('games.gameWinner')}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-base sm:text-lg truncate">
+                    {winner.player.nickname || winner.player.name}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                    {winner.deck.name} • {winner.deck.commander}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Players & Results - Mobile First Design */}
+        <Card>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+              {t('games.playersAndResults')}
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              {completedGame ? t('games.finalStandings') : t('games.gameParticipants')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6">
+            <div className="space-y-3 sm:space-y-4">
+              {sortedPlayers.map((participant, index) => (
+                <Card key={`${participant.player._id}-${participant.deck._id}`} 
+                      className="border-muted bg-muted/30">
+                  <CardContent className="p-3 sm:p-4">
+                    {/* Player Header */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
                         <AvatarImage 
                           src={participant.player.profileImage} 
                           alt={participant.player.name} 
@@ -324,218 +309,260 @@ export default function GameDetailsPage() {
                         </AvatarFallback>
                       </Avatar>
                       
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className="font-semibold text-sm sm:text-base">
                             {participant.player.nickname || participant.player.name}
                           </p>
                           {getPlacementBadge(participant.placement)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="link" size="sm" className="p-0 h-auto" asChild>
-                            <Link href={`/decks/${participant.deck._id}`}>
-                              {participant.deck.name}
-                            </Link>
-                          </Button>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-sm text-muted-foreground">
+                        
+                        {/* Deck Info */}
+                        <div className="space-y-1">
+                          <Link 
+                            href={`/decks/${participant.deck._id}`}
+                            className="text-sm font-medium text-primary hover:underline block truncate"
+                          >
+                            {participant.deck.name}
+                          </Link>
+                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                             {participant.deck.commander}
-                          </span>
+                          </p>
                         </div>
                         
                         {/* Color Identity */}
                         {participant.deck.colorIdentity && participant.deck.colorIdentity.length > 0 && (
-                          <div className="flex gap-1 mt-2">
+                          <div className="flex gap-1 mt-2 flex-wrap">
                             {participant.deck.colorIdentity.map(color => (
                               <Badge
                                 key={color}
                                 variant="outline"
-                                className={`text-xs ${colorMap[color]?.color || 'bg-gray-100 text-gray-800'}`}
+                                className={`text-xs px-2 py-0 ${colorMap[color]?.color || 'bg-gray-100 text-gray-800'}`}
                               >
                                 {color}
                               </Badge>
                             ))}
                           </div>
                         )}
-                        
-                        {/* Elimination Information */}
-                        {participant.eliminatedBy && participant.placement && participant.placement > 1 && (
-                          <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
-                            <span>💀 {t('games.eliminatedByText')}</span>
-                            <Link 
-                              href={`/players/${participant.eliminatedBy._id}`}
-                              className="font-medium hover:underline"
-                            >
-                              {participant.eliminatedBy.nickname || participant.eliminatedBy.name}
-                            </Link>
-                          </div>
-                        )}
-
-                        {/* Borrowed Deck Information */}
-                        {participant.borrowedFrom && (
-                          <div className="flex items-center gap-2 mt-2 text-sm text-purple-600">
-                            <span>📚 Borrowed from</span>
-                            <Link 
-                              href={`/players/${participant.borrowedFrom._id}`}
-                              className="font-medium hover:underline"
-                            >
-                              {participant.borrowedFrom.nickname || participant.borrowedFrom.name}
-                            </Link>
-                          </div>
-                        )}
                       </div>
                     </div>
                     
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/players/${participant.player._id}`}>
-                          <User className="h-3 w-3 mr-1" />
-                          {t('games.playerButton')}
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/decks/${participant.deck._id}`}>
-                          <Layers className="h-3 w-3 mr-1" />
-                          {t('games.deckButton')}
-                        </Link>
-                      </Button>
+                    {/* Additional Info */}
+                    <div className="space-y-2">
+                      {/* Elimination Info */}
+                      {participant.eliminatedBy && participant.placement && participant.placement > 1 && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/20">
+                          <Skull className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 shrink-0" />
+                          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">
+                            {t('games.eliminatedByText')}{' '}
+                            <Link 
+                              href={`/players/${participant.eliminatedBy._id}`}
+                              className="font-semibold hover:underline"
+                            >
+                              {participant.eliminatedBy.nickname || participant.eliminatedBy.name}
+                            </Link>
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Borrowed Deck Info */}
+                      {participant.borrowedFrom && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
+                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500 shrink-0" />
+                          <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400">
+                            Borrowed from{' '}
+                            <Link 
+                              href={`/players/${participant.borrowedFrom._id}`}
+                              className="font-semibold hover:underline"
+                            >
+                              {participant.borrowedFrom.nickname || participant.borrowedFrom.name}
+                            </Link>
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8">
+                          <Link href={`/players/${participant.player._id}`}>
+                            <User className="h-3 w-3 mr-1" />
+                            {t('games.playerButton')}
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8">
+                          <Link href={`/decks/${participant.deck._id}`}>
+                            <Layers className="h-3 w-3 mr-1" />
+                            {t('games.deckButton')}
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Elimination Summary - Mobile Optimized */}
+        {(() => {
+          const eliminations = game.players.filter(p => p.eliminatedBy);
+          if (eliminations.length > 0) {
+            return (
+              <Card className="border-red-500/30 bg-gradient-to-br from-red-500/5 to-background">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+                    {t('games.eliminationsTitle')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {eliminations.map((eliminated, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 sm:p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <Skull className="h-4 w-4 text-red-500 shrink-0" />
+                      <p className="text-xs sm:text-sm text-foreground flex-1">
+                        <span className="font-semibold">
+                          {eliminated.eliminatedBy?.nickname || eliminated.eliminatedBy?.name}
+                        </span>
+                        {' ' + t('games.eliminatedText') + ' '}
+                        <span className="font-semibold">
+                          {eliminated.player.nickname || eliminated.player.name}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Game Notes - Mobile Optimized */}
+        {game.notes && (
+          <Card>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                {t('games.gameNotesTitle')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm sm:prose max-w-none dark:prose-invert">
+                <p className="whitespace-pre-line text-sm sm:text-base">{game.notes}</p>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Game Notes */}
-          {game.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  {t('games.gameNotesTitle')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm max-w-none">
-                  <p className="whitespace-pre-line">{game.notes}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('games.gameSummary')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{t('games.dateLabel')}</span>
-                <span className="text-sm font-medium">{formatDate(game.date)}</span>
+        {/* Game Summary - Mobile Optimized */}
+        <Card>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">{t('games.gameSummary')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">{t('games.dateLabel')}</p>
+                <p className="text-sm sm:text-base font-medium">{formatDate(game.date)}</p>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{t('games.playersAndResults')}</span>
-                <span className="text-sm font-medium">{totalPlayers}</span>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">{t('games.playersAndResults')}</p>
+                <p className="text-sm sm:text-base font-medium">{totalPlayers}</p>
               </div>
               
               {game.durationMinutes && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{t('games.durationLabel')}</span>
-                  <span className="text-sm font-medium">{formatDuration(game.durationMinutes)}</span>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">{t('games.durationLabel')}</p>
+                  <p className="text-sm sm:text-base font-medium">{formatDuration(game.durationMinutes)}</p>
                 </div>
               )}
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{t('games.statusLabel')}</span>
-                <Badge variant={completedGame ? "default" : "secondary"}>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">{t('games.statusLabel')}</p>
+                <Badge variant={completedGame ? "default" : "secondary"} className="text-xs">
                   {completedGame ? t('games.completedStatus') : t('games.inProgressStatus')}
                 </Badge>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {winner && (
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{t('games.winnerLabel')}</span>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {winner.player.nickname || winner.player.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {winner.deck.name}
-                      </p>
-                    </div>
+        {/* Commanders Used - Mobile Optimized */}
+        <Card>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">{t('games.commandersTitle')}</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">{t('games.commandersUsed')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {game.players.map((participant) => (
+                <div key={`${participant.player._id}-${participant.deck._id}`} 
+                     className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted">
+                  <Avatar className="w-10 h-10 shrink-0">
+                    <AvatarImage 
+                      src={participant.player.profileImage} 
+                      alt={participant.player.name} 
+                    />
+                    <AvatarFallback className="text-xs">
+                      {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {participant.deck.commander}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {participant.player.nickname || participant.player.name}
+                    </p>
                   </div>
+                  {participant.placement === 1 && (
+                    <Trophy className="h-4 w-4 text-yellow-500 shrink-0" />
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Commanders Used */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('games.commandersTitle')}</CardTitle>
-              <CardDescription>{t('games.commandersUsed')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {game.players.map((participant) => (
-                  <div key={`${participant.player._id}-${participant.deck._id}`} 
-                       className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage 
-                        src={participant.player.profileImage} 
-                        alt={participant.player.name} 
-                      />
-                      <AvatarFallback className="text-xs">
-                        {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {participant.deck.commander}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {participant.player.nickname || participant.player.name}
-                      </p>
-                    </div>
-                    {participant.placement === 1 && (
-                      <Trophy className="h-4 w-4 text-yellow-500" />
-                    )}
-                  </div>
-                ))}
+        {/* Meta Information - Mobile Optimized */}
+        <Card>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">{t('games.detailsTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+              <Avatar className="w-8 h-8 shrink-0">
+                <AvatarImage src={game.createdBy.profileImage} alt={game.createdBy.name} />
+                <AvatarFallback className="text-xs">
+                  {game.createdBy.name?.charAt(0)?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">{t('games.recordedByUser')}</p>
+                <p className="font-medium truncate">{game.createdBy.nickname || game.createdBy.name}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Meta Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('games.detailsTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('games.recordedLabel')}:</span>
-                <p className="font-medium">{formatDateTime(game.createdAt)}</p>
+            </div>
+            
+            <div className="space-y-1 p-2 rounded-md bg-muted/50">
+              <p className="text-muted-foreground">{t('games.recordedLabel')}</p>
+              <p className="font-medium">{formatDateTime(game.createdAt)}</p>
+            </div>
+            
+            {game.updatedAt !== game.createdAt && (
+              <div className="space-y-1 p-2 rounded-md bg-muted/50">
+                <p className="text-muted-foreground">{t('games.lastUpdatedLabel')}</p>
+                <p className="font-medium">{formatDateTime(game.updatedAt)}</p>
               </div>
-              
-              {game.updatedAt !== game.createdAt && (
-                <div>
-                  <span className="text-muted-foreground">{t('games.lastUpdatedLabel')}:</span>
-                  <p className="font-medium">{formatDateTime(game.updatedAt)}</p>
-                </div>
-              )}
-              
-              <div>
-                <span className="text-muted-foreground">{t('games.gameIdLabel')}:</span>
-                <p className="font-mono text-xs break-all">{game._id}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+            
+            <div className="space-y-1 p-2 rounded-md bg-muted/50">
+              <p className="text-muted-foreground">{t('games.gameIdLabel')}</p>
+              <p className="font-mono text-xs break-all text-muted-foreground">{game._id}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
