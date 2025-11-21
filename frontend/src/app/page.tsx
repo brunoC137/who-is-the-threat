@@ -86,14 +86,25 @@ export default function HomePage() {
         {ussrMode && (
           <div
             className="
-              fixed left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-red-900/70 
-              border border-red-300/40 rounded-xl text-center shadow-xl
+              fixed 
+              left-1/2 -translate-x-1/2 z-50
+              px-4 py-2 
+              bg-red-900/80 
+              backdrop-blur-md
+              border border-red-300/40 
+              rounded-xl text-center 
+              shadow-xl
               animate-[quoteFade_5s_infinite]
-              bottom-20 md:bottom-20
-              top-4 md:top-auto
+
+              /* RESPONSIVE POSITIONING */
+              top-20 md:top-auto 
+              md:bottom-20
+
+              /* WIDTH CONTROL */
+              max-w-[90%] 
             "
           >
-            <p className="text-red-100 text-base md:text-lg font-bold tracking-wide drop-shadow-md">
+            <p className="text-red-100 text-base md:text-lg font-bold tracking-wide drop-shadow-md leading-snug">
               {communistQuotes[quoteIndex]}
             </p>
           </div>
