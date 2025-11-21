@@ -157,10 +157,12 @@ export default function RegisterPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players/guest/check/${encodeURIComponent(nickname)}`);
       const data = await response.json();
       
+      const defaultMessage = `Guest player "${nickname}" found! Your games will be preserved when you register.`;
+      
       if (response.ok && data.exists) {
         setGuestPlayerInfo({
           exists: true,
-          message: t('auth.guestPlayerFound') || `Guest player "${nickname}" found! Your games will be preserved when you register.`
+          message: t('auth.guestPlayerFound') || defaultMessage
         });
       } else {
         setGuestPlayerInfo({ exists: false });

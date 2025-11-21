@@ -14,10 +14,22 @@ import {
 } from '@/components/ui/dialog';
 import { Layers, Loader2, Plus } from 'lucide-react';
 
+interface Deck {
+  _id: string;
+  name: string;
+  commander: string;
+  owner: {
+    _id: string;
+    name: string;
+    nickname?: string;
+  };
+  isGuestDeck?: boolean;
+}
+
 interface GuestDeckDialogProps {
   guestPlayerId: string;
   guestPlayerName: string;
-  onGuestDeckCreated: (guestDeck: any) => void;
+  onGuestDeckCreated: (guestDeck: Deck) => void;
   triggerButton?: React.ReactNode;
 }
 

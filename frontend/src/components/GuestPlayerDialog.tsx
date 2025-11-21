@@ -14,8 +14,16 @@ import {
 } from '@/components/ui/dialog';
 import { UserPlus, Loader2, User } from 'lucide-react';
 
+interface Player {
+  _id: string;
+  name: string;
+  nickname?: string;
+  profileImage?: string;
+  isGuest?: boolean;
+}
+
 interface GuestPlayerDialogProps {
-  onGuestPlayerCreated: (guestPlayer: any) => void;
+  onGuestPlayerCreated: (guestPlayer: Player) => void;
 }
 
 export function GuestPlayerDialog({ onGuestPlayerCreated }: GuestPlayerDialogProps) {
