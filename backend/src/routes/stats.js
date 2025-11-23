@@ -1042,22 +1042,25 @@ router.get('/advanced-metrics', protect, async (req, res, next) => {
       const winRate = (wins / totalGames) * 100;
       
       // 1. Weighted Win Score (WWS)
-      const weightFactor = 1.5;
-      const wws = (wins / totalGames) * totalGames * weightFactor;
+      const wws = totalGames > 0
+        ? (wins * Math.log(totalGames + 1))
+        : 0;
       
       // 2. Bayesian True Win Rate (BTWR)
-      const priorWins = 5;
-      const priorGames = 10;
-      const btwr = ((wins + priorWins) / (totalGames + priorGames)) * 100;
+      const priorWins = 1;
+      const priorGames = 4;
+
+      const btwr = totalGames > 0 
+        ? (((wins + priorWins) / (totalGames + priorGames)) * 100)
+        : 0;
       
       // 3. Dominance Index (DI)
-      const maxPlacement = Math.max(...placements);
-      const normalizedAvgPlacement = maxPlacement + 1 - averagePlacement;
-      const mean = placements.reduce((sum, p) => sum + p, 0) / placements.length;
-      const variance = placements.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / placements.length;
-      const standardDeviation = Math.sqrt(variance);
-      const consistencyFactor = 1 / (1 + standardDeviation);
-      const di = normalizedAvgPlacement * consistencyFactor * 10;
+      let firstPlaces = placements.filter(p => p === 1).length;
+      let secondPlaces = placements.filter(p => p === 2).length;
+
+      const di = totalGames > 0
+        ? ((firstPlaces + secondPlaces * 0.5) / totalGames)
+        : 0;
       
       deckMetrics.push({
         _id: deck._id,
@@ -1076,18 +1079,18 @@ router.get('/advanced-metrics', protect, async (req, res, next) => {
       });
     }
     
-    // Sort by each metric to get top 5
+    // Sort by each metric to get top 6
     const topByWWS = [...deckMetrics]
       .sort((a, b) => b.weightedWinScore - a.weightedWinScore)
-      .slice(0, 5);
+      .slice(0, 6);
     
     const topByBTWR = [...deckMetrics]
       .sort((a, b) => b.bayesianTrueWinRate - a.bayesianTrueWinRate)
-      .slice(0, 5);
+      .slice(0, 6);
     
     const topByDI = [...deckMetrics]
       .sort((a, b) => b.dominanceIndex - a.dominanceIndex)
-      .slice(0, 5);
+      .slice(0, 6);
 
     res.status(200).json({
       success: true,

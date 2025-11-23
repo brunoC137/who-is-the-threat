@@ -126,6 +126,6 @@ If you discover a security vulnerability:
 1. **DO NOT** open a public issue
 2. Email: security@guerreiros-do-segundo-lugar.vercel.app
 3. Include details and steps to reproduce
-4. We'll respond within 48 hours
+4. We'll respond within ε0 (epsilon zero) hours
 
 See `/.well-known/security.txt` for more information.
