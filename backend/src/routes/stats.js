@@ -374,6 +374,47 @@ router.get('/deck/:id', protect, async (req, res, next) => {
       placementDistribution[placement] = (placementDistribution[placement] || 0) + 1;
     });
 
+    // Calculate Advanced Metrics
+    
+    // 1. Weighted Win Score (WWS): Represents decks that win a lot and are played a lot
+    // Formula: (winRate / 100) × gamesPlayed × weight_factor
+    const weightFactor = 1.5; // Balances win quality vs play frequency
+    const wws = totalGames > 0 ? 
+      ((wins / totalGames) * totalGames * weightFactor).toFixed(2) : 0;
+    
+    // 2. Bayesian True Win Rate (BTWR): Adjusts win rate to punish low sample sizes
+    // Uses a prior of 50% win rate with 10 virtual games
+    const priorWins = 5;
+    const priorGames = 10;
+    const btwr = totalGames > 0 ? 
+      (((wins + priorWins) / (totalGames + priorGames)) * 100).toFixed(2) : 0;
+    
+    // 3. Dominance Index (DI): Captures performance consistency
+    // Based on average placement and variance
+    // Lower placement is better, so we invert it: (maxPlacement + 1 - avgPlacement)
+    // Then we factor in consistency (lower variance = higher DI)
+    let di = 0;
+    if (totalGames > 0) {
+      const maxPlacement = Math.max(...placements);
+      const normalizedAvgPlacement = maxPlacement + 1 - parseFloat(averagePlacement);
+      
+      // Calculate placement variance
+      const mean = placements.reduce((sum, p) => sum + p, 0) / placements.length;
+      const variance = placements.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / placements.length;
+      const standardDeviation = Math.sqrt(variance);
+      
+      // DI formula: normalized placement score × (1 / (1 + stdDev))
+      // This rewards both good average placement and consistency
+      const consistencyFactor = 1 / (1 + standardDeviation);
+      di = (normalizedAvgPlacement * consistencyFactor * 10).toFixed(2); // Scaled by 10 for readability
+    }
+
+    const advancedMetrics = {
+      weightedWinScore: parseFloat(wws),
+      bayesianTrueWinRate: parseFloat(btwr),
+      dominanceIndex: parseFloat(di)
+    };
+
     // Calculate matchup data against other decks
     const deckMatchups = {};
     games.forEach(game => {
@@ -454,6 +495,7 @@ router.get('/deck/:id', protect, async (req, res, next) => {
           averagePlacement: parseFloat(averagePlacement),
           placementDistribution
         },
+        advancedMetrics,
         matchups: deckMatchupsArray,
         recentGames
       }
@@ -963,6 +1005,99 @@ router.get('/borrowed-decks', protect, async (req, res, next) => {
         bestBorrowers,
         worstBorrowers,
         totalPlayersWithBorrowedDecks: borrowedDeckRankings.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get advanced metrics for all decks
+// @route   GET /stats/advanced-metrics
+// @access  Private
+router.get('/advanced-metrics', protect, async (req, res, next) => {
+  try {
+    // Get all decks with their game data
+    const allDecks = await Deck.find().populate('owner', 'name nickname');
+    
+    const deckMetrics = [];
+
+    for (const deck of allDecks) {
+      // Get all games for this deck
+      const games = await Game.find({ 'players.deck': deck._id });
+      
+      const totalGames = games.length;
+      
+      if (totalGames === 0) continue; // Skip decks with no games
+      
+      const wins = games.filter(game => 
+        game.players.find(p => p.deck.toString() === deck._id.toString() && p.placement === 1)
+      ).length;
+      
+      const placements = games.map(game => 
+        game.players.find(p => p.deck.toString() === deck._id.toString()).placement
+      );
+      
+      const averagePlacement = placements.reduce((sum, placement) => sum + placement, 0) / totalGames;
+      const winRate = (wins / totalGames) * 100;
+      
+      // 1. Weighted Win Score (WWS)
+      const wws = totalGames > 0
+        ? (wins * Math.log(totalGames + 1))
+        : 0;
+      
+      // 2. Bayesian True Win Rate (BTWR)
+      const priorWins = 1;
+      const priorGames = 4;
+
+      const btwr = totalGames > 0 
+        ? (((wins + priorWins) / (totalGames + priorGames)) * 100)
+        : 0;
+      
+      // 3. Dominance Index (DI)
+      let firstPlaces = placements.filter(p => p === 1).length;
+      let secondPlaces = placements.filter(p => p === 2).length;
+
+      const di = totalGames > 0
+        ? ((firstPlaces + secondPlaces * 0.5) / totalGames)
+        : 0;
+      
+      deckMetrics.push({
+        _id: deck._id,
+        name: deck.name,
+        commander: deck.commander,
+        deckImage: deck.deckImage,
+        colorIdentity: deck.colorIdentity,
+        owner: deck.owner,
+        gamesPlayed: totalGames,
+        wins,
+        winRate: parseFloat(winRate.toFixed(2)),
+        averagePlacement: parseFloat(averagePlacement.toFixed(2)),
+        weightedWinScore: parseFloat(wws.toFixed(2)),
+        bayesianTrueWinRate: parseFloat(btwr.toFixed(2)),
+        dominanceIndex: parseFloat(di.toFixed(2))
+      });
+    }
+    
+    // Sort by each metric to get top 6
+    const topByWWS = [...deckMetrics]
+      .sort((a, b) => b.weightedWinScore - a.weightedWinScore)
+      .slice(0, 6);
+    
+    const topByBTWR = [...deckMetrics]
+      .sort((a, b) => b.bayesianTrueWinRate - a.bayesianTrueWinRate)
+      .slice(0, 6);
+    
+    const topByDI = [...deckMetrics]
+      .sort((a, b) => b.dominanceIndex - a.dominanceIndex)
+      .slice(0, 6);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        topByWeightedWinScore: topByWWS,
+        topByBayesianTrueWinRate: topByBTWR,
+        topByDominanceIndex: topByDI
       }
     });
   } catch (error) {
