@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MetricInfo } from '@/components/MetricInfo';
 import { 
   ArrowLeft, 
   Edit, 
@@ -22,7 +23,9 @@ import {
   Users,
   Swords,
   Shield,
-  Eye
+  Eye,
+  Award,
+  BarChart
 } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI, statsAPI, gamesAPI } from '@/lib/api';
@@ -119,7 +122,13 @@ interface DeckStats {
     wins: number;
     winRate: number;
   }>;
+  advancedMetrics?: {
+    weightedWinScore: number;
+    bayesianTrueWinRate: number;
+    dominanceIndex: number;
+  };
 }
+
 
 export default function DeckPage() {
   const { user } = useAuth();
@@ -161,7 +170,8 @@ export default function DeckPage() {
             recentGames: statsResponse_data.recentGames || [],
             matchups: statsResponse_data.matchups || [],
             winRateVsDecks: [],
-            monthlyPerformance: []
+            monthlyPerformance: [],
+            advancedMetrics: statsResponse_data.advancedMetrics || undefined
           });
         }
       } catch (error: any) {
@@ -369,6 +379,95 @@ export default function DeckPage() {
               </Card>
             </div>
           </div>
+
+          {/* Advanced Metrics */}
+          {stats?.advancedMetrics && stats.gamesPlayed > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <BarChart className="h-6 w-6" />
+                Advanced Performance Metrics
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Weighted Win Score */}
+                <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center">
+                      Weighted Win Score
+                      <MetricInfo
+                        title="Weighted Win Score (WWS)"
+                        description="Represents decks that win a lot and are played frequently. Balances win quality with play frequency."
+                        formula="(WinRate × GamesPlayed × 1.5)"
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                          {stats.advancedMetrics.weightedWinScore.toFixed(1)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Higher is better. Rewards both wins and activity.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Bayesian True Win Rate */}
+                <Card className="border-purple-500/20 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center">
+                      Bayesian Win Rate
+                      <MetricInfo
+                        title="Bayesian True Win Rate (BTWR)"
+                        description="A statistically adjusted win rate that accounts for sample size. Punishes decks with few games to provide more accurate comparisons."
+                        formula="(Wins + 5) / (Games + 10) × 100"
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
+                          {stats.advancedMetrics.bayesianTrueWinRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Most statistically accurate win rate metric.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dominance Index */}
+                <Card className="border-green-500/20 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center">
+                      Dominance Index
+                      <MetricInfo
+                        title="Dominance Index (DI)"
+                        description="Captures performance consistency by considering both average placement and variance. Rewards decks that perform consistently well."
+                        formula="(NormalizedPlacement × ConsistencyFactor × 10)"
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold text-green-600 dark:text-green-400">
+                          {stats.advancedMetrics.dominanceIndex.toFixed(1)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Higher scores indicate consistent strong performance.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
 
           {/* Deck Matchups */}
           {stats?.matchups && stats.matchups.length > 0 && (

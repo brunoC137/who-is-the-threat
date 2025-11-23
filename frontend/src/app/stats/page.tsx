@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MetricInfo } from '@/components/MetricInfo';
 import { 
   Trophy, 
   Target, 
@@ -15,7 +16,9 @@ import {
   Layers,
   Crown,
   BarChart3,
-  Calendar
+  Calendar,
+  Award,
+  Zap
 } from 'lucide-react';
 
 interface GlobalStats {
@@ -78,6 +81,11 @@ export default function StatsPage() {
     }>;
     totalPlayersWithBorrowedDecks: number;
   } | null>(null);
+  const [advancedMetrics, setAdvancedMetrics] = useState<{
+    topByWeightedWinScore: Array<any>;
+    topByBayesianTrueWinRate: Array<any>;
+    topByDominanceIndex: Array<any>;
+  } | null>(null);
 
   useEffect(() => {
     const fetchGlobalStats = async () => {
@@ -85,11 +93,14 @@ export default function StatsPage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
 
-        const [globalResponse, borrowedResponse] = await Promise.all([
+        const [globalResponse, borrowedResponse, advancedResponse] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/global`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/borrowed-decks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/advanced-metrics`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -102,6 +113,11 @@ export default function StatsPage() {
         if (borrowedResponse.ok) {
           const result = await borrowedResponse.json();
           setBorrowedDeckStats(result.data || result);
+        }
+
+        if (advancedResponse.ok) {
+          const result = await advancedResponse.json();
+          setAdvancedMetrics(result.data || result);
         }
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -413,6 +429,272 @@ export default function StatsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Advanced Deck Metrics */}
+      {advancedMetrics && (
+        <div className="space-y-8">
+          {/* Weighted Win Score */}
+          <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Award className="h-5 w-5 text-blue-400" />
+                Top Decks by Weighted Win Score
+                <MetricInfo
+                  title="Weighted Win Score (WWS)"
+                  description="Represents decks that win a lot and are played frequently. Balances win quality with play frequency."
+                  formula="(WinRate × GamesPlayed × 1.5)"
+                />
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Decks that combine high win rates with frequent play
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {advancedMetrics.topByWeightedWinScore && advancedMetrics.topByWeightedWinScore.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {advancedMetrics.topByWeightedWinScore.map((deck, index) => (
+                    <div
+                      key={deck._id}
+                      onClick={() => router.push(`/decks/${deck._id}`)}
+                      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="relative h-40 rounded-lg overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900">
+                        {deck.deckImage ? (
+                          <>
+                            <div 
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20" />
+                        )}
+                        
+                        <div className="relative h-full flex flex-col justify-between p-4">
+                          <div className="flex items-start justify-between">
+                            <Badge className={`${
+                              index === 0 ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg" :
+                              index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-0" :
+                              index === 2 ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-0" :
+                              "bg-slate-600/80 text-gray-200 border-0 backdrop-blur-sm"
+                            } font-bold`}>
+                              #{index + 1}
+                            </Badge>
+                            <div className="text-right">
+                              <span className="font-bold text-2xl text-blue-400 drop-shadow-lg">
+                                {deck.weightedWinScore.toFixed(1)}
+                              </span>
+                              <p className="text-xs text-gray-300 drop-shadow">WWS</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-white drop-shadow-lg line-clamp-1">
+                              {deck.name}
+                            </h3>
+                            <p className="text-sm text-gray-200 drop-shadow line-clamp-1">
+                              {deck.commander}
+                            </p>
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-gray-300 drop-shadow">
+                                by {deck.owner?.nickname || deck.owner?.name}
+                              </span>
+                              <span className="text-xs text-gray-300 drop-shadow bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
+                                {deck.gamesPlayed} games
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Bayesian True Win Rate */}
+          <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <BarChart3 className="h-5 w-5 text-purple-400" />
+                Top Decks by Bayesian Win Rate
+                <MetricInfo
+                  title="Bayesian True Win Rate (BTWR)"
+                  description="A statistically adjusted win rate that accounts for sample size. Punishes decks with few games to provide more accurate comparisons."
+                  formula="(Wins + 5) / (Games + 10) × 100"
+                />
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Most statistically accurate win rate rankings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {advancedMetrics.topByBayesianTrueWinRate && advancedMetrics.topByBayesianTrueWinRate.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {advancedMetrics.topByBayesianTrueWinRate.map((deck, index) => (
+                    <div
+                      key={deck._id}
+                      onClick={() => router.push(`/decks/${deck._id}`)}
+                      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="relative h-40 rounded-lg overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900">
+                        {deck.deckImage ? (
+                          <>
+                            <div 
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-blue-600/20 to-pink-600/20" />
+                        )}
+                        
+                        <div className="relative h-full flex flex-col justify-between p-4">
+                          <div className="flex items-start justify-between">
+                            <Badge className={`${
+                              index === 0 ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg" :
+                              index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-0" :
+                              index === 2 ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-0" :
+                              "bg-slate-600/80 text-gray-200 border-0 backdrop-blur-sm"
+                            } font-bold`}>
+                              #{index + 1}
+                            </Badge>
+                            <div className="text-right">
+                              <span className="font-bold text-2xl text-purple-400 drop-shadow-lg">
+                                {deck.bayesianTrueWinRate.toFixed(1)}%
+                              </span>
+                              <p className="text-xs text-gray-300 drop-shadow">BTWR</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-white drop-shadow-lg line-clamp-1">
+                              {deck.name}
+                            </h3>
+                            <p className="text-sm text-gray-200 drop-shadow line-clamp-1">
+                              {deck.commander}
+                            </p>
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-gray-300 drop-shadow">
+                                by {deck.owner?.nickname || deck.owner?.name}
+                              </span>
+                              <span className="text-xs text-gray-300 drop-shadow bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
+                                {deck.gamesPlayed} games
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Dominance Index */}
+          <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Zap className="h-5 w-5 text-green-400" />
+                Top Decks by Dominance Index
+                <MetricInfo
+                  title="Dominance Index (DI)"
+                  description="Captures performance consistency by considering both average placement and variance. Rewards decks that perform consistently well."
+                  formula="(NormalizedPlacement × ConsistencyFactor × 10)"
+                />
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Most consistently strong performers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {advancedMetrics.topByDominanceIndex && advancedMetrics.topByDominanceIndex.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {advancedMetrics.topByDominanceIndex.map((deck, index) => (
+                    <div
+                      key={deck._id}
+                      onClick={() => router.push(`/decks/${deck._id}`)}
+                      className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="relative h-40 rounded-lg overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900">
+                        {deck.deckImage ? (
+                          <>
+                            <div 
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-emerald-600/20 to-teal-600/20" />
+                        )}
+                        
+                        <div className="relative h-full flex flex-col justify-between p-4">
+                          <div className="flex items-start justify-between">
+                            <Badge className={`${
+                              index === 0 ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg" :
+                              index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-0" :
+                              index === 2 ? "bg-gradient-to-r from-orange-500 to-red-500 text-white border-0" :
+                              "bg-slate-600/80 text-gray-200 border-0 backdrop-blur-sm"
+                            } font-bold`}>
+                              #{index + 1}
+                            </Badge>
+                            <div className="text-right">
+                              <span className="font-bold text-2xl text-green-400 drop-shadow-lg">
+                                {deck.dominanceIndex.toFixed(1)}
+                              </span>
+                              <p className="text-xs text-gray-300 drop-shadow">DI</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-white drop-shadow-lg line-clamp-1">
+                              {deck.name}
+                            </h3>
+                            <p className="text-sm text-gray-200 drop-shadow line-clamp-1">
+                              {deck.commander}
+                            </p>
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-gray-300 drop-shadow">
+                                by {deck.owner?.nickname || deck.owner?.name}
+                              </span>
+                              <span className="text-xs text-gray-300 drop-shadow bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
+                                {deck.gamesPlayed} games
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="absolute inset-0 bg-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
