@@ -525,6 +525,7 @@ export const translations = {
       gameEnded: 'Game Over!',
       winner: 'Winner',
       placement: 'Placement',
+      errorSaving: 'An error occurred while saving the game',
     },
   },
   'pt-BR': {
@@ -1053,6 +1054,7 @@ export const translations = {
       gameEnded: 'Fim de Jogo!',
       winner: 'Vencedor',
       placement: 'Colocação',
+      errorSaving: 'Ocorreu um erro ao salvar a partida',
     },
   },
 };

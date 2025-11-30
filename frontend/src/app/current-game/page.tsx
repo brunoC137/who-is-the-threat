@@ -129,6 +129,8 @@ export default function CurrentGamePage() {
   const [notes, setNotes] = useState('');
   const [actionHistory, setActionHistory] = useState<ActionHistoryItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
   
   // UI state
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<string | null>(null);
@@ -417,6 +419,7 @@ export default function CurrentGamePage() {
 
   const finalizeGame = async () => {
     setSaving(true);
+    setErrorMessage(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) {
@@ -451,14 +454,31 @@ export default function CurrentGamePage() {
         router.push('/games');
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Failed to save game');
+        setErrorMessage(errorData.message || t('currentGame.errorSaving'));
       }
     } catch (error) {
       console.error('Error saving game:', error);
-      alert('An error occurred while saving the game');
+      setErrorMessage(t('currentGame.errorSaving'));
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEndGame = () => {
+    // Set remaining players placements
+    const alivePlayers = gamePlayers.filter(p => !p.isEliminated);
+    if (alivePlayers.length > 1) {
+      // Multiple players left, they tie for 1st
+      setGamePlayers(prev => prev.map(p => {
+        if (!p.isEliminated) {
+          return { ...p, placement: 1 };
+        }
+        return p;
+      }));
+    }
+    setGameEnded(true);
+    setIsTimerRunning(false);
+    setShowEndGameConfirm(false);
   };
 
   const getPlayerName = (player: Player): string => {
@@ -778,23 +798,7 @@ export default function CurrentGamePage() {
             <Button
               size="lg"
               variant="destructive"
-              onClick={() => {
-                if (confirm(t('currentGame.confirmEndGame'))) {
-                  // Set remaining players placements
-                  const alivePlayers = gamePlayers.filter(p => !p.isEliminated);
-                  if (alivePlayers.length > 1) {
-                    // Multiple players left, they tie for 1st
-                    setGamePlayers(prev => prev.map(p => {
-                      if (!p.isEliminated) {
-                        return { ...p, placement: 1 };
-                      }
-                      return p;
-                    }));
-                  }
-                  setGameEnded(true);
-                  setIsTimerRunning(false);
-                }
-              }}
+              onClick={() => setShowEndGameConfirm(true)}
               className="w-full h-14 text-lg font-bold"
             >
               <Skull className="h-5 w-5 mr-2" />
@@ -803,6 +807,58 @@ export default function CurrentGamePage() {
           )}
         </div>
       </div>
+
+      {/* End Game Confirmation Modal */}
+      {showEndGameConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Skull className="h-5 w-5" />
+                {t('currentGame.endGame')}
+              </CardTitle>
+              <CardDescription>
+                {t('currentGame.confirmEndGame')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowEndGameConfirm(false)}
+                className="flex-1"
+              >
+                {t('actions.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleEndGame}
+                className="flex-1"
+              >
+                {t('currentGame.endGame')}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto">
+          <Card className="bg-destructive/90 border-destructive">
+            <CardContent className="py-3 px-4 flex items-center justify-between">
+              <span className="text-destructive-foreground text-sm">{errorMessage}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setErrorMessage(null)}
+                className="text-destructive-foreground hover:bg-destructive/80"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
