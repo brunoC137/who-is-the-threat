@@ -51,7 +51,7 @@ interface Deck {
     name: string;
     nickname?: string;
     profileImage?: string;
-  };
+  } | null;
   createdAt: string;
 }
 
@@ -66,8 +66,8 @@ interface DeckMatchup {
       _id: string;
       name: string;
       nickname?: string;
-    };
-  };
+    } | null;
+  } | null;
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -91,12 +91,12 @@ interface DeckStats {
         _id: string;
         name: string;
         nickname?: string;
-      };
+      } | null;
       deck: {
         _id: string;
         name: string;
         commander: string;
-      };
+      } | null;
       placement: number;
     }>;
     durationMinutes?: number;
@@ -110,8 +110,8 @@ interface DeckStats {
       owner: {
         name: string;
         nickname?: string;
-      };
-    };
+      } | null;
+    } | null;
     gamesPlayed: number;
     wins: number;
     winRate: number;
@@ -188,7 +188,7 @@ export default function DeckPage() {
   }, [deckId]);
 
   // Check permissions
-  const canEdit = user && deck && (user.isAdmin || user.id === deck.owner._id);
+  const canEdit = user && deck && (user.isAdmin || user.id === deck.owner?._id);
 
   if (loading) {
     return (
@@ -265,13 +265,13 @@ export default function DeckPage() {
             {/* Owner */}
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={deck.owner.profileImage} alt={deck.owner.name} />
+                <AvatarImage src={deck.owner?.profileImage} alt={deck.owner?.name || 'Unknown Owner'} />
                 <AvatarFallback>
-                  {deck.owner.name?.charAt(0)?.toUpperCase() || '?'}
+                  {deck.owner?.name?.charAt(0)?.toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-muted-foreground">
-                {t('decks.ownedBy')} <strong>{deck.owner.nickname || deck.owner.name}</strong>
+                {t('decks.ownedBy')} <strong>{deck.owner ? (deck.owner.nickname || deck.owner.name) : (t('common.deletedUser') || 'Deleted User')}</strong>
               </span>
             </div>
 
@@ -477,17 +477,17 @@ export default function DeckPage() {
                 {t('decks.deckMatchups')}
               </h2>
               <div className="grid grid-cols-1 gap-4">
-                {stats.matchups.map((matchup) => (
-                  <Card key={matchup.opponentDeck._id}>
+                {stats.matchups.filter(m => m.opponentDeck).map((matchup, index) => (
+                  <Card key={matchup.opponentDeck?._id || `matchup-${index}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="flex-shrink-0">
-                            {matchup.opponentDeck.deckImage ? (
+                            {matchup.opponentDeck?.deckImage ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img 
                                 src={matchup.opponentDeck.deckImage}
-                                alt={matchup.opponentDeck.commander}
+                                alt={matchup.opponentDeck?.commander || 'Unknown Commander'}
                                 className="w-12 h-12 rounded object-cover"
                               />
                             ) : (
@@ -497,12 +497,12 @@ export default function DeckPage() {
                             )}
                           </div>
                           <div>
-                            <h3 className="font-semibold">{matchup.opponentDeck.name}</h3>
+                            <h3 className="font-semibold">{matchup.opponentDeck?.name || (t('common.deletedDeck') || 'Deleted Deck')}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {matchup.opponentDeck.commander}
+                              {matchup.opponentDeck?.commander || 'Unknown Commander'}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              by {matchup.opponentDeck.owner.nickname || matchup.opponentDeck.owner.name}
+                              by {matchup.opponentDeck?.owner?.nickname || matchup.opponentDeck?.owner?.name || (t('common.deletedUser') || 'Deleted User')}
                             </p>
                           </div>
                         </div>
@@ -593,16 +593,17 @@ export default function DeckPage() {
               </h2>
               <div className="space-y-3">
                 {stats?.winRateVsDecks
+                  .filter(m => m.opponentDeck)
                   .sort((a, b) => b.gamesPlayed - a.gamesPlayed)
-                  .map((matchup) => (
-                  <Card key={matchup.opponentDeck._id}>
+                  .map((matchup, index) => (
+                  <Card key={matchup.opponentDeck?._id || `matchup-vs-${index}`}>
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h4 className="font-medium">{matchup.opponentDeck.name}</h4>
+                          <h4 className="font-medium">{matchup.opponentDeck?.name || (t('common.deletedDeck') || 'Deleted Deck')}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {matchup.opponentDeck.commander} • 
-                            {matchup.opponentDeck.owner.nickname || matchup.opponentDeck.owner.name}
+                            {matchup.opponentDeck?.commander || 'Unknown Commander'} • 
+                            {matchup.opponentDeck?.owner?.nickname || matchup.opponentDeck?.owner?.name || (t('common.deletedUser') || 'Deleted User')}
                           </p>
                         </div>
                         <div className="text-right">

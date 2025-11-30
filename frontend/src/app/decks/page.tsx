@@ -24,7 +24,7 @@ interface Deck {
     name: string;
     nickname?: string;
     profileImage?: string;
-  };
+  } | null;
   createdAt: string;
   stats?: {
     gamesPlayed: number;
@@ -126,13 +126,13 @@ export default function DecksPage() {
 
   const filteredDecks = decks.filter(deck => {
     // First filter by ownership if not showing all decks
-    const matchesOwnership = showAllDecks || (user && deck.owner._id === user.id);
+    const matchesOwnership = showAllDecks || (user && deck.owner?._id === user.id);
 
     const matchesSearch = 
       deck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deck.commander.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deck.owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (deck.owner.nickname && deck.owner.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
+      (deck.owner?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (deck.owner?.nickname && deck.owner.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesColors = selectedColors.length === 0 || 
       (deck.colorIdentity && selectedColors.every(color => deck.colorIdentity!.includes(color)));
@@ -305,13 +305,13 @@ export default function DecksPage() {
                   {/* Owner */}
                   <div className="flex items-center gap-2">
                     <Avatar className="w-7 h-7 ring-2 ring-border/50">
-                      <AvatarImage src={deck.owner.profileImage} alt={deck.owner.name} />
+                      <AvatarImage src={deck.owner?.profileImage} alt={deck.owner?.name || 'Unknown Owner'} />
                       <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
-                        {deck.owner.name?.charAt(0)?.toUpperCase() || '?'}
+                        {deck.owner?.name?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm text-muted-foreground">
-                      {deck.owner.nickname || deck.owner.name}
+                      {deck.owner ? (deck.owner.nickname || deck.owner.name) : (t('common.deletedUser') || 'Deleted User')}
                     </span>
                   </div>
 
@@ -376,7 +376,7 @@ export default function DecksPage() {
                         </a>
                       </Button>
                     )}
-                    {(user?.isAdmin || user?.id === deck.owner._id) && (
+                    {(user?.isAdmin || user?.id === deck.owner?._id) && (
                       <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
                         <Link href={`/decks/${deck._id}/edit`}>Edit</Link>
                       </Button>
@@ -452,7 +452,7 @@ export default function DecksPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {showAllDecks ? pagination.total : (user ? decks.filter(d => d.owner._id === user.id).length : 0)}
+                {showAllDecks ? pagination.total : (user ? decks.filter(d => d.owner?._id === user.id).length : 0)}
               </CardTitle>
               <CardDescription>
                 {showAllDecks ? "Total Decks" : "Your Decks"}
@@ -463,7 +463,7 @@ export default function DecksPage() {
             <Card>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">
-                  {user ? decks.filter(d => d.owner._id === user.id).length : 0}
+                  {user ? decks.filter(d => d.owner?._id === user.id).length : 0}
                 </CardTitle>
                 <CardDescription>Your Decks</CardDescription>
               </CardHeader>
