@@ -33,27 +33,27 @@ interface EliminationStats {
     recentEliminations: number;
   };
   mostEliminations: Array<{
-    player: Player;
+    player: Player | null;
     count: number;
   }>;
   mostEliminated: Array<{
-    player: Player;
+    player: Player | null;
     count: number;
   }>;
   topMatchups: Array<{
-    eliminator: Player;
-    victim: Player;
+    eliminator: Player | null;
+    victim: Player | null;
     count: number;
   }>;
 }
 
 interface PlayerEliminationStats {
   playersEliminated: Array<{
-    player: Player;
+    player: Player | null;
     count: number;
   }>;
   eliminatedBy: Array<{
-    player: Player;
+    player: Player | null;
     count: number;
   }>;
 }
@@ -261,19 +261,19 @@ export default function EliminationsPage() {
                       <Sword className="h-5 w-5 text-red-400" />
                       {t('eliminations.playersEliminatedBy')} {selectedPlayer.nickname || selectedPlayer.name}
                     </h4>
-                    {playerStats.playersEliminated.length > 0 ? (
+                    {playerStats.playersEliminated.filter(v => v.player).length > 0 ? (
                       <div className="space-y-3">
-                        {playerStats.playersEliminated.map((victim, index) => (
-                          <div key={victim.player._id} className="flex items-center justify-between">
+                        {playerStats.playersEliminated.filter(v => v.player).map((victim, index) => (
+                          <div key={victim.player?._id || `victim-${index}`} className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
-                                <AvatarImage src={victim.player.profileImage} alt={victim.player.name} />
+                                <AvatarImage src={victim.player?.profileImage} alt={victim.player?.name || 'Unknown Player'} />
                                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
-                                  {victim.player.name?.charAt(0)?.toUpperCase() || '?'}
+                                  {victim.player?.name?.charAt(0)?.toUpperCase() || '?'}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-white font-medium">
-                                {victim.player.nickname || victim.player.name}
+                                {victim.player?.nickname || victim.player?.name || 'Deleted Player'}
                               </span>
                             </div>
                             <Badge className="bg-red-600/80 text-white border-0">
@@ -293,19 +293,19 @@ export default function EliminationsPage() {
                       <Skull className="h-5 w-5 text-blue-400" />
                       {t('eliminations.playersWhoEliminated')} {selectedPlayer.nickname || selectedPlayer.name}
                     </h4>
-                    {playerStats.eliminatedBy.length > 0 ? (
+                    {playerStats.eliminatedBy.filter(e => e.player).length > 0 ? (
                       <div className="space-y-3">
-                        {playerStats.eliminatedBy.map((eliminator, index) => (
-                          <div key={eliminator.player._id} className="flex items-center justify-between">
+                        {playerStats.eliminatedBy.filter(e => e.player).map((eliminator, index) => (
+                          <div key={eliminator.player?._id || `elim-${index}`} className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
-                                <AvatarImage src={eliminator.player.profileImage} alt={eliminator.player.name} />
+                                <AvatarImage src={eliminator.player?.profileImage} alt={eliminator.player?.name || 'Unknown Player'} />
                                 <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white text-xs">
-                                  {eliminator.player.name?.charAt(0)?.toUpperCase() || '?'}
+                                  {eliminator.player?.name?.charAt(0)?.toUpperCase() || '?'}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-white font-medium">
-                                {eliminator.player.nickname || eliminator.player.name}
+                                {eliminator.player?.nickname || eliminator.player?.name || 'Deleted Player'}
                               </span>
                             </div>
                             <Badge className="bg-blue-600/80 text-white border-0">
@@ -335,11 +335,11 @@ export default function EliminationsPage() {
               <CardDescription className="text-gray-400">{t('eliminations.mostEliminations')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {stats?.mostEliminations && stats.mostEliminations.length > 0 ? (
+              {stats?.mostEliminations && stats.mostEliminations.filter(p => p.player).length > 0 ? (
                 <div className="space-y-4">
-                  {stats.mostEliminations.map((player, index) => (
-                    <div key={player.player._id} className="flex items-center gap-4 p-4 bg-slate-800/50 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer"
-                         onClick={() => router.push(`/players/${player.player._id}`)}>
+                  {stats.mostEliminations.filter(p => p.player).map((player, index) => (
+                    <div key={player.player?._id || `hunter-${index}`} className="flex items-center gap-4 p-4 bg-slate-800/50 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer"
+                         onClick={() => player.player?._id && router.push(`/players/${player.player._id}`)}>
                       <Badge 
                         className={
                           index === 0 
@@ -354,13 +354,13 @@ export default function EliminationsPage() {
                         {index === 0 ? '🎯' : index === 1 ? '🔥' : index === 2 ? '⚔️' : `#${index + 1}`}
                       </Badge>
                       <Avatar className="w-12 h-12 ring-2 ring-red-500/50">
-                        <AvatarImage src={player.player.profileImage} alt={player.player.name || 'Player'} />
+                        <AvatarImage src={player.player?.profileImage} alt={player.player?.name || 'Player'} />
                         <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white">
-                          {player.player.name?.charAt(0)?.toUpperCase() || '?'}
+                          {player.player?.name?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-white">{player.player.nickname || player.player.name || 'Unknown Player'}</p>
+                        <p className="font-medium text-white">{player.player?.nickname || player.player?.name || 'Deleted Player'}</p>
                         <p className="text-sm text-gray-400">
                           {player.count} {player.count !== 1 ? t('eliminations.eliminations') : t('eliminations.elimination')}
                         </p>
@@ -397,11 +397,11 @@ export default function EliminationsPage() {
               <CardDescription className="text-gray-400">{t('eliminations.eliminatedMostOften')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {stats?.mostEliminated && stats.mostEliminated.length > 0 ? (
+              {stats?.mostEliminated && stats.mostEliminated.filter(p => p.player).length > 0 ? (
                 <div className="space-y-4">
-                  {stats.mostEliminated.map((player, index) => (
-                    <div key={player.player._id} className="flex items-center gap-4 p-4 bg-slate-800/50 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer"
-                         onClick={() => router.push(`/players/${player.player._id}`)}>
+                  {stats.mostEliminated.filter(p => p.player).map((player, index) => (
+                    <div key={player.player?._id || `hunted-${index}`} className="flex items-center gap-4 p-4 bg-slate-800/50 border border-slate-700/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer"
+                         onClick={() => player.player?._id && router.push(`/players/${player.player._id}`)}>
                       <Badge 
                         className={
                           index === 0 
@@ -416,13 +416,13 @@ export default function EliminationsPage() {
                         {index === 0 ? '💀' : index === 1 ? '🛡️' : index === 2 ? '⚰️' : `#${index + 1}`}
                       </Badge>
                       <Avatar className="w-12 h-12 ring-2 ring-blue-500/50">
-                        <AvatarImage src={player.player.profileImage} alt={player.player.name || 'Player'} />
+                        <AvatarImage src={player.player?.profileImage} alt={player.player?.name || 'Player'} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                          {player.player.name?.charAt(0)?.toUpperCase() || '?'}
+                          {player.player?.name?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-white">{player.player.nickname || player.player.name || 'Unknown Player'}</p>
+                        <p className="font-medium text-white">{player.player?.nickname || player.player?.name || 'Deleted Player'}</p>
                         <p className="text-sm text-gray-400">
                           {t('eliminations.eliminated')} {player.count} {player.count !== 1 ? t('eliminations.times') : t('eliminations.time')}
                         </p>
@@ -460,10 +460,10 @@ export default function EliminationsPage() {
             <CardDescription className="text-gray-400">{t('eliminations.frequentMatchups')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {stats?.topMatchups && stats.topMatchups.length > 0 ? (
+            {stats?.topMatchups && stats.topMatchups.filter(m => m.eliminator && m.victim).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stats.topMatchups.map((matchup, index) => (
-                  <div key={`${matchup.eliminator._id}-${matchup.victim._id}`} className="relative group">
+                {stats.topMatchups.filter(m => m.eliminator && m.victim).map((matchup, index) => (
+                  <div key={`${matchup.eliminator?._id || `elim-${index}`}-${matchup.victim?._id || `vic-${index}`}`} className="relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
                     <Card className="relative bg-slate-800/50 border-slate-700/50 p-4 hover:bg-slate-700/50 transition-colors">
                       <div className="flex items-center justify-between mb-3">
@@ -480,14 +480,14 @@ export default function EliminationsPage() {
                         {/* Eliminator */}
                         <div className="flex items-center gap-3">
                           <Avatar className="w-10 h-10 ring-2 ring-red-500/50">
-                            <AvatarImage src={matchup.eliminator.profileImage} alt={matchup.eliminator.name || 'Player'} />
+                            <AvatarImage src={matchup.eliminator?.profileImage} alt={matchup.eliminator?.name || 'Player'} />
                             <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white text-sm">
-                              {matchup.eliminator.name?.charAt(0)?.toUpperCase() || '?'}
+                              {matchup.eliminator?.name?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
                             <p className="font-medium text-white text-sm">
-                              {matchup.eliminator.nickname || matchup.eliminator.name || 'Unknown'}
+                              {matchup.eliminator?.nickname || matchup.eliminator?.name || 'Deleted Player'}
                             </p>
                             <p className="text-xs text-red-400">{t('eliminations.eliminator')}</p>
                           </div>
@@ -506,14 +506,14 @@ export default function EliminationsPage() {
                           <Skull className="h-4 w-4 text-blue-400" />
                           <div className="flex-1">
                             <p className="font-medium text-white text-sm">
-                              {matchup.victim.nickname || matchup.victim.name || 'Unknown'}
+                              {matchup.victim?.nickname || matchup.victim?.name || 'Deleted Player'}
                             </p>
                             <p className="text-xs text-blue-400">{t('eliminations.victim')}</p>
                           </div>
                           <Avatar className="w-10 h-10 ring-2 ring-blue-500/50">
-                            <AvatarImage src={matchup.victim.profileImage} alt={matchup.victim.name || 'Player'} />
+                            <AvatarImage src={matchup.victim?.profileImage} alt={matchup.victim?.name || 'Player'} />
                             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                              {matchup.victim.name?.charAt(0)?.toUpperCase() || '?'}
+                              {matchup.victim?.name?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                         </div>
