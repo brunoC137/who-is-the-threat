@@ -108,7 +108,7 @@ export default function GameDetailsPage() {
   }, [gameId, t]);
 
   // Check permissions
-  const canEdit = user && game && (user.isAdmin || user.id === game.createdBy._id);
+  const canEdit = user && game && (user.isAdmin || (game.createdBy?._id && user.id === game.createdBy._id));
 
   if (loading) {
     return (
@@ -251,9 +251,9 @@ export default function GameDetailsPage() {
                 <div className="shrink-0">
                   <div className="relative">
                     <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-yellow-500">
-                      <AvatarImage src={winner.player.profileImage} alt={winner.player.name} />
+                      <AvatarImage src={winner.player?.profileImage} alt={winner.player?.name || 'Unknown Player'} />
                       <AvatarFallback className="bg-yellow-500 text-white">
-                        {winner.player.name?.charAt(0)?.toUpperCase() || '?'}
+                        {winner.player?.name?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1">
@@ -269,10 +269,10 @@ export default function GameDetailsPage() {
                     </p>
                   </div>
                   <p className="font-semibold text-base sm:text-lg truncate">
-                    {winner.player.nickname || winner.player.name}
+                    {winner.player?.nickname || winner.player?.name || 'Unknown Player'}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {winner.deck.name} • {winner.deck.commander}
+                    {(winner.deck?.name || 'Unknown Deck')} • {(winner.deck?.commander || 'Unknown Commander')}
                   </p>
                 </div>
               </div>
@@ -294,44 +294,48 @@ export default function GameDetailsPage() {
           <CardContent className="px-3 sm:px-6">
             <div className="space-y-3 sm:space-y-4">
               {sortedPlayers.map((participant, index) => (
-                <Card key={`${participant.player._id}-${participant.deck._id}`} 
+                <Card key={`${participant.player?._id || 'unknown'}-${participant.deck?._id || 'unknown'}`} 
                       className="border-muted bg-muted/30">
                   <CardContent className="p-3 sm:p-4">
                     {/* Player Header */}
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
                         <AvatarImage 
-                          src={participant.player.profileImage} 
-                          alt={participant.player.name} 
+                          src={participant.player?.profileImage} 
+                          alt={participant.player?.name || 'Unknown Player'} 
                         />
                         <AvatarFallback>
-                          {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
+                          {participant.player?.name?.charAt(0)?.toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <p className="font-semibold text-sm sm:text-base">
-                            {participant.player.nickname || participant.player.name}
+                            {participant.player?.nickname || participant.player?.name || 'Unknown Player'}
                           </p>
                           {getPlacementBadge(participant.placement)}
                         </div>
                         
                         {/* Deck Info */}
                         <div className="space-y-1">
-                          <Link 
-                            href={`/decks/${participant.deck._id}`}
-                            className="text-sm font-medium text-primary hover:underline block truncate"
-                          >
-                            {participant.deck.name}
-                          </Link>
+                          {participant.deck?._id ? (
+                            <Link 
+                              href={`/decks/${participant.deck._id}`}
+                              className="text-sm font-medium text-primary hover:underline block truncate"
+                            >
+                              {participant.deck?.name || 'Unknown Deck'}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-medium block truncate">{participant.deck?.name || 'Unknown Deck'}</span>
+                          )}
                           <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                            {participant.deck.commander}
+                            {participant.deck?.commander || 'Unknown Commander'}
                           </p>
                         </div>
                         
                         {/* Color Identity */}
-                        {participant.deck.colorIdentity && participant.deck.colorIdentity.length > 0 && (
+                        {participant.deck?.colorIdentity && participant.deck.colorIdentity.length > 0 && (
                           <div className="flex gap-1 mt-2 flex-wrap">
                             {participant.deck.colorIdentity.map(color => (
                               <Badge
@@ -384,13 +388,13 @@ export default function GameDetailsPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-2 pt-2">
                         <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8">
-                          <Link href={`/players/${participant.player._id}`}>
+                          <Link href={`/players/${participant.player?._id || ''}`}>
                             <User className="h-3 w-3 mr-1" />
                             {t('games.playerButton')}
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8">
-                          <Link href={`/decks/${participant.deck._id}`}>
+                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8" disabled={!participant.deck?._id}>
+                          <Link href={`/decks/${participant.deck?._id || ''}`}>
                             <Layers className="h-3 w-3 mr-1" />
                             {t('games.deckButton')}
                           </Link>
@@ -498,23 +502,23 @@ export default function GameDetailsPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {game.players.map((participant) => (
-                <div key={`${participant.player._id}-${participant.deck._id}`} 
+                <div key={`${participant.player?._id || 'unknown'}-${participant.deck?._id || 'unknown'}`} 
                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-muted">
                   <Avatar className="w-10 h-10 shrink-0">
                     <AvatarImage 
-                      src={participant.player.profileImage} 
-                      alt={participant.player.name} 
+                      src={participant.player?.profileImage} 
+                      alt={participant.player?.name || 'Unknown Player'} 
                     />
                     <AvatarFallback className="text-xs">
-                      {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
+                      {participant.player?.name?.charAt(0)?.toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">
-                      {participant.deck.commander}
+                      {participant.deck?.commander || 'Unknown Commander'}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {participant.player.nickname || participant.player.name}
+                      {participant.player?.nickname || participant.player?.name || 'Unknown Player'}
                     </p>
                   </div>
                   {participant.placement === 1 && (
@@ -533,15 +537,15 @@ export default function GameDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-xs sm:text-sm">
             <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-              <Avatar className="w-8 h-8 shrink-0">
-                <AvatarImage src={game.createdBy.profileImage} alt={game.createdBy.name} />
+                <Avatar className="w-8 h-8 shrink-0">
+                <AvatarImage src={game.createdBy?.profileImage} alt={game.createdBy?.name || 'Unknown User'} />
                 <AvatarFallback className="text-xs">
-                  {game.createdBy.name?.charAt(0)?.toUpperCase() || '?'}
+                  {game.createdBy?.name?.charAt(0)?.toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">{t('games.recordedByUser')}</p>
-                <p className="font-medium truncate">{game.createdBy.nickname || game.createdBy.name}</p>
+                <p className="font-medium truncate">{game.createdBy?.nickname || game.createdBy?.name || 'Unknown User'}</p>
               </div>
             </div>
             
