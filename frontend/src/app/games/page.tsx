@@ -76,21 +76,22 @@ export default function GamesPage() {
   const filteredAndSortedGames = games
     .filter(game => {
       // Filter by search term
+      const term = searchTerm.toLowerCase();
       const matchesSearch = 
         game.players.some(p => 
-          p.player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (p.player.nickname && p.player.nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          p.deck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.deck.commander.toLowerCase().includes(searchTerm.toLowerCase())
+          (p.player?.name || '').toLowerCase().includes(term) ||
+          (p.player?.nickname || '').toLowerCase().includes(term) ||
+          (p.deck?.name || '').toLowerCase().includes(term) ||
+          (p.deck?.commander || '').toLowerCase().includes(term)
         ) ||
-        (game.notes && game.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+        (game.notes && game.notes.toLowerCase().includes(term));
 
       // Filter by type
       let matchesFilter = true;
       if (filterBy === 'my-games') {
-        matchesFilter = game.players.some(p => p.player._id === user?.id);
+        matchesFilter = game.players.some(p => p.player?._id === user?.id);
       } else if (filterBy === 'my-wins') {
-        matchesFilter = game.players.some(p => p.player._id === user?.id && p.placement === 1);
+        matchesFilter = game.players.some(p => p.player?._id === user?.id && p.placement === 1);
       }
 
       return matchesSearch && matchesFilter;
@@ -243,7 +244,7 @@ export default function GamesPage() {
                     <Button variant="default" size="sm" asChild className="shadow-glow-sm">
                       <Link href={`/games/${game._id}`}>{t('games.viewDetails')}</Link>
                     </Button>
-                    {(user?.isAdmin || user?.id === game.createdBy._id) && (
+                    {(user?.isAdmin || (game.createdBy?._id && user?.id === game.createdBy?._id)) && (
                       <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
                         <Link href={`/games/${game._id}/edit`}>{t('actions.edit')}</Link>
                       </Button>
@@ -259,7 +260,7 @@ export default function GamesPage() {
                     .sort((a, b) => a.placement - b.placement)
                     .map((participant) => (
                     <div
-                      key={`${participant.player._id}-${participant.deck._id}`}
+                      key={`${participant.player?._id || 'unknown'}-${participant.deck?._id || 'unknown'}`}
                       className="group relative overflow-hidden rounded-xl border-2 border-border/50 bg-muted/20 p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-glow-sm"
                     >
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -274,20 +275,20 @@ export default function GamesPage() {
                           <div className="flex items-center gap-2 mb-2">
                             <Avatar className="w-7 h-7 ring-2 ring-border/50">
                               <AvatarImage 
-                                src={participant.player.profileImage} 
-                                alt={participant.player.name} 
+                                src={participant.player?.profileImage} 
+                                alt={participant.player?.name || 'Unknown Player'} 
                               />
                               <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
-                                {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
+                                {participant.player?.name?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="font-semibold text-sm truncate">
-                              {participant.player.nickname || participant.player.name}
+                              {participant.player?.nickname || participant.player?.name || t('players.unknown')}
                             </span>
                           </div>
                           <div className="text-xs space-y-1">
-                            <div className="font-semibold text-foreground/90">{participant.deck.name}</div>
-                            <div className="text-muted-foreground">{participant.deck.commander}</div>
+                            <div className="font-semibold text-foreground/90">{participant.deck?.name || t('decks.unknown')}</div>
+                            <div className="text-muted-foreground">{participant.deck?.commander || ''}</div>
                           </div>
                         </div>
                       </div>
@@ -313,7 +314,7 @@ export default function GamesPage() {
                 {/* Game Creator */}
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <p className="text-xs text-muted-foreground">
-                    {t('games.recordedBy')} <span className="font-medium text-foreground">{game.createdBy.nickname || game.createdBy.name}</span> • {' '}
+                    {t('games.recordedBy')} <span className="font-medium text-foreground">{game.createdBy?.nickname || game.createdBy?.name || t('players.unknown')}</span> • {' '}
                     {new Date(game.createdAt).toLocaleDateString()}
                   </p>
                 </div>
