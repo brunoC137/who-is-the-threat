@@ -359,7 +359,7 @@ export default function GameDetailsPage() {
                           <Skull className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 shrink-0" />
                           <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">
                             {t('games.eliminatedByText')}{' '}
-                            {participant.eliminatedBy._id ? (
+                            {participant.eliminatedBy?._id ? (
                               <Link 
                                 href={`/players/${participant.eliminatedBy._id}`}
                                 className="font-semibold hover:underline"
@@ -379,7 +379,7 @@ export default function GameDetailsPage() {
                           <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500 shrink-0" />
                           <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400">
                             Borrowed from{' '}
-                            {participant.borrowedFrom._id ? (
+                            {participant.borrowedFrom?._id ? (
                               <Link 
                                 href={`/players/${participant.borrowedFrom._id}`}
                                 className="font-semibold hover:underline"
@@ -395,13 +395,13 @@ export default function GameDetailsPage() {
                       
                       {/* Action Buttons */}
                       <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8" disabled={!participant.player?._id}>
+                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8" disabled={!participant.player || !participant.player._id}>
                           <Link href={`/players/${participant.player?._id || ''}`}>
                             <User className="h-3 w-3 mr-1" />
                             {t('games.playerButton')}
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8" disabled={!participant.deck?._id}>
+                        <Button variant="outline" size="sm" asChild className="flex-1 text-xs h-8" disabled={!participant.deck || !participant.deck._id}>
                           <Link href={`/decks/${participant.deck?._id || ''}`}>
                             <Layers className="h-3 w-3 mr-1" />
                             {t('games.deckButton')}
