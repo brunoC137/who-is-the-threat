@@ -40,7 +40,7 @@ interface PlayerMatchup {
     name: string;
     nickname?: string;
     profileImage?: string;
-  };
+  } | null;
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -71,7 +71,7 @@ interface PlayerStats {
       _id: string;
       name: string;
       commander: string;
-    };
+    } | null;
     totalPlayers: number;
     durationMinutes?: number;
   }>;
@@ -83,11 +83,11 @@ interface PlayerStats {
   }>;
   eliminationStats?: {
     playersEliminated: Array<{
-      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      player: { _id: string; name: string; nickname?: string; profileImage?: string } | null;
       count: number;
     }>;
     eliminatedBy: Array<{
-      player: { _id: string; name: string; nickname?: string; profileImage?: string };
+      player: { _id: string; name: string; nickname?: string; profileImage?: string } | null;
       count: number;
     }>;
   };
@@ -347,22 +347,22 @@ export default function PlayerDetailsPage() {
                 Player Matchups
               </h2>
               <div className="grid grid-cols-1 gap-4">
-                {stats.matchups.map((matchup) => (
-                  <Card key={matchup.opponent._id}>
+                {stats.matchups.filter(m => m.opponent).map((matchup, index) => (
+                  <Card key={matchup.opponent?._id || `matchup-${index}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
-                            <AvatarImage src={matchup.opponent.profileImage} />
+                            <AvatarImage src={matchup.opponent?.profileImage} />
                             <AvatarFallback>
-                              {(matchup.opponent.nickname || matchup.opponent.name)?.charAt(0)?.toUpperCase() || '?'}
+                              {(matchup.opponent?.nickname || matchup.opponent?.name)?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <h3 className="font-semibold">
-                              {matchup.opponent.nickname || matchup.opponent.name}
+                              {matchup.opponent?.nickname || matchup.opponent?.name || 'Deleted Player'}
                             </h3>
-                            {matchup.opponent.nickname && (
+                            {matchup.opponent?.nickname && (
                               <p className="text-sm text-muted-foreground">
                                 {matchup.opponent.name}
                               </p>
@@ -405,17 +405,17 @@ export default function PlayerDetailsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {stats.eliminationStats.playersEliminated.map((stat) => (
-                        <div key={stat.player._id} className="flex items-center justify-between p-3 border rounded-lg">
+                      {stats.eliminationStats.playersEliminated.filter(s => s.player).map((stat, index) => (
+                        <div key={stat.player?._id || `elim-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={stat.player.profileImage} />
+                              <AvatarImage src={stat.player?.profileImage} />
                               <AvatarFallback>
-                                {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
+                                {(stat.player?.nickname || stat.player?.name)?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <p className="font-medium text-sm">
-                              {stat.player.nickname || stat.player.name}
+                              {stat.player?.nickname || stat.player?.name || 'Deleted Player'}
                             </p>
                           </div>
                           <Badge variant="destructive">
@@ -440,17 +440,17 @@ export default function PlayerDetailsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {stats.eliminationStats.eliminatedBy.map((stat) => (
-                        <div key={stat.player._id} className="flex items-center justify-between p-3 border rounded-lg">
+                      {stats.eliminationStats.eliminatedBy.filter(s => s.player).map((stat, index) => (
+                        <div key={stat.player?._id || `by-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={stat.player.profileImage} />
+                              <AvatarImage src={stat.player?.profileImage} />
                               <AvatarFallback>
-                                {(stat.player.nickname || stat.player.name)?.charAt(0)?.toUpperCase() || '?'}
+                                {(stat.player?.nickname || stat.player?.name)?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <p className="font-medium text-sm">
-                              {stat.player.nickname || stat.player.name}
+                              {stat.player?.nickname || stat.player?.name || 'Deleted Player'}
                             </p>
                           </div>
                           <Badge variant="secondary">
@@ -549,8 +549,8 @@ export default function PlayerDetailsPage() {
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Played with:</p>
-                          <p className="font-medium">{game.deck.name}</p>
-                          <p className="text-sm text-muted-foreground">({game.deck.commander})</p>
+                          <p className="font-medium">{game.deck?.name || 'Deleted Deck'}</p>
+                          <p className="text-sm text-muted-foreground">({game.deck?.commander || 'Unknown Commander'})</p>
                         </div>
                       </div>
                     </CardContent>

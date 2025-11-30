@@ -17,7 +17,7 @@ interface Game {
     _id: string;
     name: string;
     nickname?: string;
-  };
+  } | null;
   date: string;
   players: Array<{
     player: {
@@ -25,12 +25,12 @@ interface Game {
       name: string;
       nickname?: string;
       profileImage?: string;
-    };
+    } | null;
     deck: {
       _id: string;
       name: string;
       commander: string;
-    };
+    } | null;
     placement: number;
   }>;
   durationMinutes?: number;
@@ -78,19 +78,19 @@ export default function GamesPage() {
       // Filter by search term
       const matchesSearch = 
         game.players.some(p => 
-          p.player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (p.player.nickname && p.player.nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          p.deck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.deck.commander.toLowerCase().includes(searchTerm.toLowerCase())
+          (p.player?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (p.player?.nickname && p.player.nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (p.deck?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (p.deck?.commander?.toLowerCase().includes(searchTerm.toLowerCase()))
         ) ||
         (game.notes && game.notes.toLowerCase().includes(searchTerm.toLowerCase()));
 
       // Filter by type
       let matchesFilter = true;
       if (filterBy === 'my-games') {
-        matchesFilter = game.players.some(p => p.player._id === user?.id);
+        matchesFilter = game.players.some(p => p.player?._id === user?.id);
       } else if (filterBy === 'my-wins') {
-        matchesFilter = game.players.some(p => p.player._id === user?.id && p.placement === 1);
+        matchesFilter = game.players.some(p => p.player?._id === user?.id && p.placement === 1);
       }
 
       return matchesSearch && matchesFilter;
@@ -243,7 +243,7 @@ export default function GamesPage() {
                     <Button variant="default" size="sm" asChild className="shadow-glow-sm">
                       <Link href={`/games/${game._id}`}>{t('games.viewDetails')}</Link>
                     </Button>
-                    {(user?.isAdmin || user?.id === game.createdBy._id) && (
+                    {(user?.isAdmin || user?.id === game.createdBy?._id) && (
                       <Button variant="outline" size="sm" asChild className="hover:border-accent/50">
                         <Link href={`/games/${game._id}/edit`}>{t('actions.edit')}</Link>
                       </Button>
@@ -257,9 +257,9 @@ export default function GamesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
                   {game.players
                     .sort((a, b) => a.placement - b.placement)
-                    .map((participant) => (
+                    .map((participant, index) => (
                     <div
-                      key={`${participant.player._id}-${participant.deck._id}`}
+                      key={`${participant.player?._id || `unknown-player-${index}`}-${participant.deck?._id || `unknown-deck-${index}`}`}
                       className="group relative overflow-hidden rounded-xl border-2 border-border/50 bg-muted/20 p-4 transition-all duration-300 hover:border-primary/50 hover:shadow-glow-sm"
                     >
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -274,20 +274,28 @@ export default function GamesPage() {
                           <div className="flex items-center gap-2 mb-2">
                             <Avatar className="w-7 h-7 ring-2 ring-border/50">
                               <AvatarImage 
-                                src={participant.player.profileImage} 
-                                alt={participant.player.name} 
+                                src={participant.player?.profileImage} 
+                                alt={participant.player?.name || 'Unknown Player'} 
                               />
                               <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-accent/20">
-                                {participant.player.name?.charAt(0)?.toUpperCase() || '?'}
+                                {participant.player?.name?.charAt(0)?.toUpperCase() || '?'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="font-semibold text-sm truncate">
-                              {participant.player.nickname || participant.player.name}
+                              {participant.player ? (participant.player.nickname || participant.player.name) : (
+                                <span className="text-muted-foreground italic">{t('common.deletedPlayer') || 'Deleted Player'}</span>
+                              )}
                             </span>
                           </div>
                           <div className="text-xs space-y-1">
-                            <div className="font-semibold text-foreground/90">{participant.deck.name}</div>
-                            <div className="text-muted-foreground">{participant.deck.commander}</div>
+                            {participant.deck ? (
+                              <>
+                                <div className="font-semibold text-foreground/90">{participant.deck.name}</div>
+                                <div className="text-muted-foreground">{participant.deck.commander}</div>
+                              </>
+                            ) : (
+                              <div className="text-muted-foreground italic">{t('common.deletedDeck') || 'Deleted Deck'}</div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -313,7 +321,7 @@ export default function GamesPage() {
                 {/* Game Creator */}
                 <div className="border-t border-border/50 pt-4 mt-4">
                   <p className="text-xs text-muted-foreground">
-                    {t('games.recordedBy')} <span className="font-medium text-foreground">{game.createdBy.nickname || game.createdBy.name}</span> • {' '}
+                    {t('games.recordedBy')} <span className="font-medium text-foreground">{game.createdBy ? (game.createdBy.nickname || game.createdBy.name) : (t('common.deletedUser') || 'Deleted User')}</span> • {' '}
                     {new Date(game.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -351,7 +359,7 @@ export default function GamesPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player._id === user.id)).length : 0}
+                {user ? games.filter(g => g.players.some(p => p.player?._id === user.id)).length : 0}
               </CardTitle>
               <CardDescription>{t('games.gamesYouPlayed')}</CardDescription>
             </CardHeader>
@@ -359,7 +367,7 @@ export default function GamesPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player._id === user.id && p.placement === 1)).length : 0}
+                {user ? games.filter(g => g.players.some(p => p.player?._id === user.id && p.placement === 1)).length : 0}
               </CardTitle>
               <CardDescription>{t('games.gamesYouWon')}</CardDescription>
             </CardHeader>

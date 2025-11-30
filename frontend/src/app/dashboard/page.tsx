@@ -34,7 +34,7 @@ interface GlobalStats {
     owner: {
       name: string;
       nickname?: string;
-    };
+    } | null;
     gamesPlayed: number;
     wins: number;
     winRate: number;
@@ -61,7 +61,7 @@ interface UserStats {
     owner: {
       name: string;
       nickname?: string;
-    };
+    } | null;
     gamesPlayed: number;
     wins: number;
     winRate: number;
@@ -70,8 +70,8 @@ interface UserStats {
     _id: string;
     date: string;
     players: Array<{
-      player: { name: string; nickname: string };
-      deck: { name: string; commander: string };
+      player: { name: string; nickname: string } | null;
+      deck: { name: string; commander: string } | null;
       placement: number;
     }>;
   }>;
@@ -299,11 +299,11 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 justify-end mb-1">
                           <Trophy className="h-4 w-4 text-warning" />
                           <p className="text-sm font-medium text-foreground">
-                            {game.players.find(p => p.placement === 1)?.player.nickname}
+                            {game.players.find(p => p.placement === 1)?.player?.nickname || game.players.find(p => p.placement === 1)?.player?.name || (t('common.deletedPlayer') || 'Unknown')}
                           </p>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {game.players.find(p => p.placement === 1)?.deck.commander}
+                          {game.players.find(p => p.placement === 1)?.deck?.commander || (t('common.deletedDeck') || 'Deleted Deck')}
                         </p>
                       </div>
                     </div>

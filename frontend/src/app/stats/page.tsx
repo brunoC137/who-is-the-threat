@@ -48,7 +48,7 @@ interface GlobalStats {
     owner: {
       name: string;
       nickname?: string;
-    };
+    } | null;
     wins: number;
     gamesPlayed: number;
     winRate: number;
