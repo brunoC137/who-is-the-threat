@@ -68,6 +68,11 @@ interface GamePlayer {
   isFirstPlayer?: boolean;
 }
 
+interface CommentaryEntry {
+  text: string;
+  timestamp: number;
+}
+
 interface ActionHistoryItem {
   type: 'life' | 'poison' | 'commanderDamage' | 'elimination' | 'undo';
   playerId: string;
@@ -127,6 +132,8 @@ export default function CurrentGamePage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [notes, setNotes] = useState('');
+  const [commentary, setCommentary] = useState<CommentaryEntry[]>([]);
+  const [commentaryText, setCommentaryText] = useState('');
   const [actionHistory, setActionHistory] = useState<ActionHistoryItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -136,6 +143,7 @@ export default function CurrentGamePage() {
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<string | null>(null);
   const [rollingForFirst, setRollingForFirst] = useState(false);
   const [eliminationPrompt, setEliminationPrompt] = useState<{ playerId: string; reason: string } | null>(null);
+  const [showCommentary, setShowCommentary] = useState(false);
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -417,6 +425,18 @@ export default function CurrentGamePage() {
     setActionHistory(prev => prev.slice(0, -1));
   };
 
+  const addCommentary = () => {
+    if (!commentaryText.trim()) return;
+    
+    const newEntry: CommentaryEntry = {
+      text: commentaryText.trim(),
+      timestamp: Date.now()
+    };
+    
+    setCommentary(prev => [...prev, newEntry]);
+    setCommentaryText('');
+  };
+
   const finalizeGame = async () => {
     setSaving(true);
     setErrorMessage(null);
@@ -439,6 +459,10 @@ export default function CurrentGamePage() {
         players: playersData,
         durationMinutes: Math.ceil(elapsedTime / 60) || 1,
         notes: notes || undefined,
+        commentary: commentary.length > 0 ? commentary.map(c => ({
+          text: c.text,
+          timestamp: new Date(c.timestamp)
+        })) : undefined,
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/games`, {
@@ -631,102 +655,94 @@ export default function CurrentGamePage() {
 
   // Game Phase
   return (
-    <div className="min-h-screen bg-background pb-32">
-      {/* Top Bar */}
-      <div className="sticky top-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border/50 px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-background">
+      {/* Top Bar - Fixed at top with controls */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border/50 px-2 sm:px-4 py-2">
+        <div className="flex items-center justify-between max-w-full">
+          <div className="flex items-center gap-2">
             <Link href="/games">
-              <Button variant="ghost" size="icon">
-                <X className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <X className="h-4 w-4" />
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-lg font-mono font-bold">{formatTime(elapsedTime)}</span>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <span className="text-sm sm:text-lg font-mono font-bold">{formatTime(elapsedTime)}</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCommentary(!showCommentary)}
+              className="h-8 text-xs"
+            >
+              💬
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsTimerRunning(!isTimerRunning)}
               disabled={gameEnded}
+              className="h-8 w-8 p-0"
             >
-              {isTimerRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isTimerRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={undoLastAction}
               disabled={actionHistory.length === 0}
+              className="h-8 w-8 p-0"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3 w-3" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Roll for First Player Button */}
-      {!gamePlayers.some(p => p.isFirstPlayer) && (
-        <div className="px-4 py-4 max-w-7xl mx-auto">
-          <Button
-            size="lg"
-            onClick={rollForFirstPlayer}
-            disabled={rollingForFirst}
-            className="w-full h-14 text-lg font-bold animated-gradient text-white"
-          >
-            <Dices className={`h-6 w-6 mr-2 ${rollingForFirst ? 'animate-spin' : ''}`} />
-            {rollingForFirst ? t('currentGame.rolling') : t('currentGame.rollForFirst')}
-          </Button>
-        </div>
-      )}
+      {/* Main Game Area - Landscape Grid */}
+      <div className="pt-14 pb-16 h-screen overflow-hidden">
+        {/* Roll for First Player Button */}
+        {!gamePlayers.some(p => p.isFirstPlayer) && (
+          <div className="px-2 py-2">
+            <Button
+              size="sm"
+              onClick={rollForFirstPlayer}
+              disabled={rollingForFirst}
+              className="w-full h-10 text-sm font-bold animated-gradient text-white"
+            >
+              <Dices className={`h-4 w-4 mr-2 ${rollingForFirst ? 'animate-spin' : ''}`} />
+              {rollingForFirst ? t('currentGame.rolling') : t('currentGame.rollForFirst')}
+            </Button>
+          </div>
+        )}
 
-      {/* Player Grid */}
-      <div className={`px-4 py-4 max-w-7xl mx-auto grid gap-4 ${
-        gamePlayers.length === 3 ? 'grid-cols-1 sm:grid-cols-3' :
-        gamePlayers.length === 4 ? 'grid-cols-2' :
-        gamePlayers.length === 5 ? 'grid-cols-2 sm:grid-cols-3' :
-        'grid-cols-2 sm:grid-cols-3'
-      }`}>
-        {gamePlayers.map(gamePlayer => (
-          <PlayerCard
-            key={gamePlayer.id}
-            gamePlayer={gamePlayer}
-            allPlayers={gamePlayers}
-            isSelected={selectedPlayerForStats === gamePlayer.id}
-            onSelect={() => setSelectedPlayerForStats(
-              selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
-            )}
-            onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
-            onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
-            onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
-            t={t}
-          />
-        ))}
-      </div>
-
-      {/* Notes Section */}
-      <div className="px-4 py-4 max-w-7xl mx-auto">
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
-              {t('currentGame.gameNotes')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-2">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('currentGame.notesPlaceholder')}
-              rows={2}
-              className="w-full p-2 text-sm border rounded-md resize-none bg-background"
-              maxLength={500}
+        {/* Player Grid - Landscape Mode (2x2, 2x3, etc) */}
+        <div className={`h-full w-full grid gap-1 p-1 ${
+          gamePlayers.length === 3 ? 'grid-cols-3 grid-rows-1' :
+          gamePlayers.length === 4 ? 'grid-cols-2 grid-rows-2' :
+          gamePlayers.length === 5 ? 'grid-cols-3 grid-rows-2' :
+          gamePlayers.length === 6 ? 'grid-cols-3 grid-rows-2' :
+          'grid-cols-2 grid-rows-2'
+        }`}>
+          {gamePlayers.map(gamePlayer => (
+            <PlayerCard
+              key={gamePlayer.id}
+              gamePlayer={gamePlayer}
+              allPlayers={gamePlayers}
+              isSelected={selectedPlayerForStats === gamePlayer.id}
+              onSelect={() => setSelectedPlayerForStats(
+                selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+              )}
+              onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+              onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+              onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+              t={t}
             />
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
 
       {/* Elimination Prompt Modal */}
@@ -773,40 +789,111 @@ export default function CurrentGamePage() {
       )}
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 p-4">
-        <div className="max-w-7xl mx-auto flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 p-2">
+        <div className="max-w-full flex gap-2">
           {gameEnded ? (
             <Button
-              size="lg"
+              size="sm"
               onClick={finalizeGame}
               disabled={saving}
-              className="w-full h-14 text-lg font-bold shadow-glow-md"
+              className="w-full h-10 text-sm font-bold shadow-glow-md"
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {t('currentGame.saving')}
                 </>
               ) : (
                 <>
-                  <Save className="h-5 w-5 mr-2" />
+                  <Save className="h-4 w-4 mr-2" />
                   {t('currentGame.saveGame')}
                 </>
               )}
             </Button>
           ) : (
             <Button
-              size="lg"
+              size="sm"
               variant="destructive"
               onClick={() => setShowEndGameConfirm(true)}
-              className="w-full h-14 text-lg font-bold"
+              className="w-full h-10 text-sm font-bold"
             >
-              <Skull className="h-5 w-5 mr-2" />
+              <Skull className="h-4 w-4 mr-2" />
               {t('currentGame.endGame')}
             </Button>
           )}
         </div>
       </div>
+
+      {/* Commentary Modal */}
+      {showCommentary && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg max-h-[80vh] flex flex-col">
+            <CardHeader className="py-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  💬 {t('currentGame.gameCommentary')}
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowCommentary(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto space-y-3 py-2">
+              {/* Commentary List */}
+              {commentary.length > 0 ? (
+                <div className="space-y-2">
+                  {commentary.map((entry, index) => (
+                    <div key={index} className="p-2 bg-muted rounded-md">
+                      <p className="text-sm">{entry.text}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatTime(Math.floor((entry.timestamp - (Date.now() - elapsedTime * 1000)) / 1000) + elapsedTime)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {t('currentGame.noCommentary')}
+                </p>
+              )}
+              
+              {/* Add Commentary */}
+              <div className="space-y-2 pt-2 border-t">
+                <textarea
+                  value={commentaryText}
+                  onChange={(e) => setCommentaryText(e.target.value)}
+                  placeholder={t('currentGame.commentaryPlaceholder')}
+                  rows={3}
+                  className="w-full p-2 text-sm border rounded-md resize-none bg-background"
+                  maxLength={500}
+                />
+                <Button
+                  size="sm"
+                  onClick={addCommentary}
+                  disabled={!commentaryText.trim()}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('currentGame.addCommentary')}
+                </Button>
+              </div>
+
+              {/* Game Notes Section */}
+              <div className="pt-3 border-t space-y-2">
+                <p className="text-sm font-medium">{t('currentGame.gameNotes')}</p>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t('currentGame.notesPlaceholder')}
+                  rows={2}
+                  className="w-full p-2 text-sm border rounded-md resize-none bg-background"
+                  maxLength={500}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* End Game Confirmation Modal */}
       {showEndGameConfirm && (
