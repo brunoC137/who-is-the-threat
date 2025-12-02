@@ -846,7 +846,7 @@ export default function CurrentGamePage() {
                     <div key={index} className="p-2 bg-muted rounded-md">
                       <p className="text-sm">{entry.text}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatTime(Math.floor((entry.timestamp - (Date.now() - elapsedTime * 1000)) / 1000) + elapsedTime)}
+                        {new Date(entry.timestamp).toLocaleTimeString()}
                       </p>
                     </div>
                   ))}
@@ -1110,7 +1110,7 @@ function PlayerCard({
             className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
           >
             <Swords className="h-3 w-3 text-purple-500" />
-            <span className="text-xs">CMD</span>
+            <span className="text-xs">{t('currentGame.cmdDmg')}</span>
           </Button>
         </div>
 
@@ -1120,7 +1120,7 @@ function PlayerCard({
             <div className="flex items-center justify-between mb-2 w-full">
               <span className="text-xs font-medium text-green-400 flex items-center gap-1">
                 <Droplet className="h-3 w-3" />
-                Poison
+                {t('currentGame.poison')}
               </span>
               <Button variant="ghost" size="sm" onClick={() => setShowPoison(false)} className="h-5 w-5 p-0">
                 <X className="h-3 w-3" />
@@ -1158,7 +1158,7 @@ function PlayerCard({
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-purple-400 flex items-center gap-1">
                 <Swords className="h-3 w-3" />
-                Commander Dmg
+                {t('currentGame.commanderDamage')}
               </span>
               <Button variant="ghost" size="sm" onClick={() => setShowCommanderDamage(false)} className="h-5 w-5 p-0">
                 <X className="h-3 w-3" />
