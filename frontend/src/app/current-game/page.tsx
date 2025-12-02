@@ -702,7 +702,7 @@ export default function CurrentGamePage() {
         </div>
       </div>
 
-      {/* Main Game Area - Landscape Grid */}
+      {/* Main Game Area - Responsive Landscape Grid */}
       <div className="pt-14 pb-16 h-screen overflow-hidden">
         {/* Roll for First Player Button */}
         {!gamePlayers.some(p => p.isFirstPlayer) && (
@@ -719,14 +719,11 @@ export default function CurrentGamePage() {
           </div>
         )}
 
-        {/* Player Grid - Landscape Mode (2x2, 2x3, etc) */}
-        <div className={`h-full w-full grid gap-1 p-1 ${
-          gamePlayers.length === 3 ? 'grid-cols-3 grid-rows-1' :
-          gamePlayers.length === 4 ? 'grid-cols-2 grid-rows-2' :
-          gamePlayers.length === 5 ? 'grid-cols-3 grid-rows-2' :
-          gamePlayers.length === 6 ? 'grid-cols-3 grid-rows-2' :
-          'grid-cols-2 grid-rows-2'
-        }`}>
+        {/* Player Grid - Responsive auto-fit layout */}
+        <div className="h-full w-full p-1 grid gap-1 auto-rows-fr"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+          }}>
           {gamePlayers.map(gamePlayer => (
             <PlayerCard
               key={gamePlayer.id}
@@ -984,17 +981,15 @@ function PlayerCard({
 
   if (gamePlayer.isEliminated) {
     return (
-      <div className="relative p-4 rounded-xl bg-card/30 border-2 border-destructive/30 opacity-60">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Skull className="h-16 w-16 text-destructive/40" />
-        </div>
-        <div className="text-center">
-          <Avatar className="h-12 w-12 mx-auto mb-2 grayscale">
+      <div className="relative h-full w-full min-h-[200px] rounded-lg bg-card/30 border-2 border-destructive/30 opacity-60 flex items-center justify-center">
+        <div className="text-center p-2">
+          <Skull className="h-8 w-8 mx-auto text-destructive/40 mb-1" />
+          <Avatar className="h-8 w-8 mx-auto mb-1 grayscale">
             <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-            <AvatarFallback>{gamePlayer.player.name?.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="text-xs">{gamePlayer.player.name?.charAt(0)}</AvatarFallback>
           </Avatar>
-          <p className="font-semibold text-sm">{gamePlayer.player.nickname || gamePlayer.player.name}</p>
-          <Badge variant="destructive" className="mt-1">
+          <p className="font-semibold text-xs truncate">{gamePlayer.player.nickname || gamePlayer.player.name}</p>
+          <Badge variant="destructive" className="mt-1 text-xs">
             #{gamePlayer.placement}
           </Badge>
         </div>
@@ -1004,8 +999,8 @@ function PlayerCard({
 
   return (
     <div 
-      className={`relative rounded-xl overflow-hidden transition-all duration-300 ${
-        gamePlayer.isFirstPlayer ? 'ring-4 ring-yellow-500 shadow-glow-lg' : ''
+      className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full h-full min-h-[200px] ${
+        gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
       } ${isSelected ? 'ring-2 ring-primary' : ''}`}
     >
       {/* Background with deck image or color gradient */}
