@@ -144,6 +144,7 @@ export default function CurrentGamePage() {
   const [rollingForFirst, setRollingForFirst] = useState(false);
   const [eliminationPrompt, setEliminationPrompt] = useState<{ playerId: string; reason: string } | null>(null);
   const [showCommentary, setShowCommentary] = useState(false);
+  const [lifetapMode, setLifetapMode] = useState(false);
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -673,6 +674,14 @@ export default function CurrentGamePage() {
           
           <div className="flex items-center gap-1 sm:gap-2">
             <Button
+              variant={lifetapMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setLifetapMode(v => !v)}
+              className="h-8 text-xs"
+            >
+              {lifetapMode ? 'Lifetap' : 'Grid'}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCommentary(!showCommentary)}
@@ -720,10 +729,10 @@ export default function CurrentGamePage() {
         )}
 
         {/* Player Grid - Responsive auto-fit layout */}
-        <div className="h-full w-full p-1 grid gap-1 auto-rows-fr"
-          style={{
+        <div className={`h-full w-full p-1 grid gap-2 ${lifetapMode ? 'grid-cols-2' : 'auto-rows-fr'}`}
+          style={!lifetapMode ? {
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-          }}>
+          } : undefined}>
           {gamePlayers.map(gamePlayer => (
             <PlayerCard
               key={gamePlayer.id}
@@ -737,6 +746,7 @@ export default function CurrentGamePage() {
               onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
               onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
               t={t}
+              lifetapMode={lifetapMode}
             />
           ))}
         </div>
@@ -957,6 +967,7 @@ interface PlayerCardProps {
   onPoisonChange: (delta: number) => void;
   onCommanderDamageChange: (fromId: string, delta: number) => void;
   t: (key: string) => string;
+  lifetapMode: boolean;
 }
 
 function PlayerCard({
@@ -967,7 +978,8 @@ function PlayerCard({
   onLifeChange,
   onPoisonChange,
   onCommanderDamageChange,
-  t
+  t,
+  lifetapMode
 }: PlayerCardProps) {
   const [showCommanderDamage, setShowCommanderDamage] = useState(false);
   const [showPoison, setShowPoison] = useState(false);
@@ -999,9 +1011,9 @@ function PlayerCard({
 
   return (
     <div 
-      className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full h-full min-h-[200px] ${
+      className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full ${
         gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      } ${isSelected ? 'ring-2 ring-primary' : ''} ${lifetapMode ? 'aspect-[3/2]' : 'h-full min-h-[200px]'}`}
     >
       {/* Background with deck image or color gradient */}
       <div 
@@ -1018,7 +1030,7 @@ function PlayerCard({
           : 'bg-gradient-to-br from-card to-muted'
       }`} />
 
-      <div className="relative h-full flex flex-row items-center p-2 sm:p-3 gap-2">
+      <div className={`relative h-full ${lifetapMode ? 'p-1 sm:p-2' : 'p-2 sm:p-3'} flex flex-col items-stretch gap-2`}>
         {/* First Player Crown */}
         {gamePlayer.isFirstPlayer && (
           <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full">
@@ -1026,7 +1038,7 @@ function PlayerCard({
           </div>
         )}
 
-        {/* Left Side: Player Info & Stats */}
+        {/* Top: Player Info & quick stats */}
         <div className="flex flex-col gap-1 min-w-0">
           {/* Player Info */}
           <div className="flex items-center gap-1" onClick={onSelect}>
@@ -1072,46 +1084,76 @@ function PlayerCard({
         </div>
 
         {/* Center: Life Total - Large and Prominent */}
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className={`text-5xl sm:text-6xl md:text-7xl font-bold ${getLifeColor(gamePlayer.life)} transition-colors`}>
-            {gamePlayer.life}
+        <div className="flex-1 relative">
+          <div className={`absolute inset-0 flex items-center justify-center`}>
+            <div className={`${lifetapMode ? 'rotate-90' : ''} select-none`}>
+              <div className={`font-bold ${lifetapMode ? 'text-[8rem] leading-none sm:text-[10rem]' : 'text-6xl sm:text-7xl md:text-8xl'} ${getLifeColor(gamePlayer.life)} transition-colors`}> 
+                {gamePlayer.life}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Right Side: Life Control Buttons - Vertical Stack */}
-        <div className="flex flex-col gap-1 justify-center">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onLifeChange(5)}
-            className="h-10 w-12 text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
-          >
-            +5
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onLifeChange(1)}
-            className="h-10 w-12 text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
-          >
-            +1
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onLifeChange(-1)}
-            className="h-10 w-12 text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
-          >
-            -1
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onLifeChange(-5)}
-            className="h-10 w-12 text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
-          >
-            -5
-          </Button>
+          {lifetapMode ? (
+            <>
+              {/* Top + button */}
+              <div className="absolute top-1 left-0 right-0 flex justify-center">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => onLifeChange(1)}
+                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 text-xl"
+                >
+                  +
+                </Button>
+              </div>
+              {/* Bottom - button */}
+              <div className="absolute bottom-1 left-0 right-0 flex justify-center">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => onLifeChange(-1)}
+                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 text-xl"
+                >
+                  -
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => onLifeChange(-1)}
+                className="h-12 sm:h-14 text-xl font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50"
+              >
+                -1
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => onLifeChange(1)}
+                className="h-12 sm:h-14 text-xl font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50"
+              >
+                +1
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => onLifeChange(-5)}
+                className="h-12 sm:h-14 text-xl font-bold bg-red-600/20 hover:bg-red-600/40 border-red-600/50"
+              >
+                -5
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => onLifeChange(5)}
+                className="h-12 sm:h-14 text-xl font-bold bg-green-600/20 hover:bg-green-600/40 border-green-600/50"
+              >
+                +5
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Poison Modal */}
