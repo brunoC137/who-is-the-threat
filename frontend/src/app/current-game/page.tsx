@@ -1023,43 +1023,40 @@ function PlayerCard({
           : 'bg-gradient-to-br from-card to-muted'
       }`} />
 
-      <div className="relative p-4">
+      <div className="relative h-full flex flex-col p-2 sm:p-3">
         {/* First Player Crown */}
         {gamePlayer.isFirstPlayer && (
-          <div className="absolute -top-1 -right-1 bg-yellow-500 text-yellow-900 p-1 rounded-full">
-            <Trophy className="h-4 w-4" />
+          <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full">
+            <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
           </div>
         )}
 
-        {/* Player Info */}
-        <div className="flex items-center gap-2 mb-3" onClick={onSelect}>
-          <Avatar className="h-10 w-10 ring-2 ring-white/20">
+        {/* Player Info - Compact */}
+        <div className="flex items-center gap-1 mb-1 sm:mb-2" onClick={onSelect}>
+          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-white/20">
             <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-            <AvatarFallback className="text-sm bg-primary/20">
+            <AvatarFallback className="text-xs bg-primary/20">
               {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm truncate text-white">
+            <p className="font-bold text-xs sm:text-sm truncate text-white">
               {gamePlayer.player.nickname || gamePlayer.player.name}
-            </p>
-            <p className="text-xs text-white/70 truncate">
-              {gamePlayer.deck.commander}
             </p>
           </div>
         </div>
 
         {/* Life Total - Main Control */}
-        <div className="text-center mb-3">
-          <div className={`text-5xl sm:text-6xl font-bold ${getLifeColor(gamePlayer.life)} transition-colors`}>
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+          <div className={`text-3xl sm:text-4xl md:text-5xl font-bold ${getLifeColor(gamePlayer.life)} transition-colors mb-1`}>
             {gamePlayer.life}
           </div>
-          <div className="flex justify-center gap-2 mt-2">
+          <div className="flex justify-center gap-1">
             <Button
               size="sm"
               variant="outline"
               onClick={() => onLifeChange(-5)}
-              className="h-10 w-12 text-lg font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50"
+              className="h-7 w-9 sm:h-8 sm:w-10 text-xs sm:text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
             >
               -5
             </Button>
@@ -1067,7 +1064,7 @@ function PlayerCard({
               size="sm"
               variant="outline"
               onClick={() => onLifeChange(-1)}
-              className="h-10 w-10 text-lg font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-xs sm:text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
             >
               -1
             </Button>
@@ -1075,7 +1072,7 @@ function PlayerCard({
               size="sm"
               variant="outline"
               onClick={() => onLifeChange(1)}
-              className="h-10 w-10 text-lg font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-xs sm:text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
             >
               +1
             </Button>
@@ -1083,7 +1080,7 @@ function PlayerCard({
               size="sm"
               variant="outline"
               onClick={() => onLifeChange(5)}
-              className="h-10 w-12 text-lg font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50"
+              className="h-7 w-9 sm:h-8 sm:w-10 text-xs sm:text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
             >
               +5
             </Button>
@@ -1091,15 +1088,15 @@ function PlayerCard({
         </div>
 
         {/* Secondary Stats Row */}
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1 mt-1">
           {/* Poison Counter */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowPoison(!showPoison)}
-            className={`h-8 px-2 gap-1 ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+            className={`h-6 px-1.5 gap-0.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
           >
-            <Droplet className="h-4 w-4 text-green-500" />
+            <Droplet className="h-3 w-3 text-green-500" />
             <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold' : ''}>
               {gamePlayer.poison}
             </span>
@@ -1110,36 +1107,36 @@ function PlayerCard({
             variant="outline"
             size="sm"
             onClick={() => setShowCommanderDamage(!showCommanderDamage)}
-            className="h-8 px-2 gap-1 bg-background/50"
+            className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
           >
-            <Swords className="h-4 w-4 text-purple-500" />
-            <span className="text-xs">{t('currentGame.cmdDmg')}</span>
+            <Swords className="h-3 w-3 text-purple-500" />
+            <span className="text-xs">CMD</span>
           </Button>
         </div>
 
         {/* Poison Modal */}
         {showPoison && (
-          <div className="mt-3 p-3 bg-black/40 rounded-lg border border-green-500/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-400 flex items-center gap-1">
-                <Droplet className="h-4 w-4" />
-                {t('currentGame.poisonCounters')}
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-lg p-2 flex flex-col items-center justify-center">
+            <div className="flex items-center justify-between mb-2 w-full">
+              <span className="text-xs font-medium text-green-400 flex items-center gap-1">
+                <Droplet className="h-3 w-3" />
+                Poison
               </span>
-              <Button variant="ghost" size="sm" onClick={() => setShowPoison(false)}>
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={() => setShowPoison(false)} className="h-5 w-5 p-0">
+                <X className="h-3 w-3" />
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onPoisonChange(-1)}
                 disabled={gamePlayer.poison <= 0}
-                className="h-10 w-10"
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-3 w-3" />
               </Button>
-              <span className="text-3xl font-bold text-green-400 w-12 text-center">
+              <span className="text-xl sm:text-2xl font-bold text-green-400 w-8 sm:w-10 text-center">
                 {gamePlayer.poison}
               </span>
               <Button
@@ -1147,9 +1144,9 @@ function PlayerCard({
                 variant="outline"
                 onClick={() => onPoisonChange(1)}
                 disabled={gamePlayer.poison >= 10}
-                className="h-10 w-10"
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -1157,23 +1154,23 @@ function PlayerCard({
 
         {/* Commander Damage Modal */}
         {showCommanderDamage && (
-          <div className="mt-3 p-3 bg-black/40 rounded-lg border border-purple-500/30">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-lg p-2 flex flex-col overflow-auto">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-400 flex items-center gap-1">
-                <Swords className="h-4 w-4" />
-                {t('currentGame.commanderDamage')}
+              <span className="text-xs font-medium text-purple-400 flex items-center gap-1">
+                <Swords className="h-3 w-3" />
+                Commander Dmg
               </span>
-              <Button variant="ghost" size="sm" onClick={() => setShowCommanderDamage(false)}>
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={() => setShowCommanderDamage(false)} className="h-5 w-5 p-0">
+                <X className="h-3 w-3" />
               </Button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1 flex-1 overflow-auto">
               {allPlayers
                 .filter(p => p.id !== gamePlayer.id && !p.isEliminated)
                 .map(opponent => {
                   const damage = gamePlayer.commanderDamage[opponent.playerId] || 0;
                   return (
-                    <div key={opponent.id} className="flex items-center justify-between">
+                    <div key={opponent.id} className="flex items-center justify-between bg-white/5 rounded px-1 py-0.5">
                       <span className="text-xs truncate flex-1 text-white/80">
                         {opponent.player.nickname || opponent.player.name}
                       </span>
@@ -1183,20 +1180,20 @@ function PlayerCard({
                           variant="ghost"
                           onClick={() => onCommanderDamageChange(opponent.playerId, -1)}
                           disabled={damage <= 0}
-                          className="h-6 w-6 p-0"
+                          className="h-5 w-5 p-0"
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-2.5 w-2.5" />
                         </Button>
-                        <span className={`w-8 text-center font-bold ${damage >= 21 ? 'text-red-500' : damage >= 15 ? 'text-orange-500' : ''}`}>
+                        <span className={`w-6 text-center text-xs font-bold ${damage >= 21 ? 'text-red-500' : damage >= 15 ? 'text-orange-500' : 'text-white'}`}>
                           {damage}
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => onCommanderDamageChange(opponent.playerId, 1)}
-                          className="h-6 w-6 p-0"
+                          className="h-5 w-5 p-0"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-2.5 w-2.5" />
                         </Button>
                       </div>
                     </div>
