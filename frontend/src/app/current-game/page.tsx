@@ -1018,7 +1018,7 @@ function PlayerCard({
           : 'bg-gradient-to-br from-card to-muted'
       }`} />
 
-      <div className="relative h-full flex flex-col p-2 sm:p-3">
+      <div className="relative h-full flex flex-row items-center p-2 sm:p-3 gap-2">
         {/* First Player Crown */}
         {gamePlayer.isFirstPlayer && (
           <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full">
@@ -1026,86 +1026,91 @@ function PlayerCard({
           </div>
         )}
 
-        {/* Player Info - Compact */}
-        <div className="flex items-center gap-1 mb-1 sm:mb-2" onClick={onSelect}>
-          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-white/20">
-            <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-            <AvatarFallback className="text-xs bg-primary/20">
-              {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-xs sm:text-sm truncate text-white">
-              {gamePlayer.player.nickname || gamePlayer.player.name}
-            </p>
+        {/* Left Side: Player Info & Stats */}
+        <div className="flex flex-col gap-1 min-w-0">
+          {/* Player Info */}
+          <div className="flex items-center gap-1" onClick={onSelect}>
+            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-white/20">
+              <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+              <AvatarFallback className="text-xs bg-primary/20">
+                {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-xs sm:text-sm truncate text-white">
+                {gamePlayer.player.nickname || gamePlayer.player.name}
+              </p>
+            </div>
+          </div>
+
+          {/* Secondary Stats */}
+          <div className="flex gap-1">
+            {/* Poison Counter */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPoison(!showPoison)}
+              className={`h-6 px-1.5 gap-0.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+            >
+              <Droplet className="h-3 w-3 text-green-500" />
+              <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold' : ''}>
+                {gamePlayer.poison}
+              </span>
+            </Button>
+
+            {/* Commander Damage */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+              className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
+            >
+              <Swords className="h-3 w-3 text-purple-500" />
+              <span className="text-xs">{t('currentGame.cmdDmg')}</span>
+            </Button>
           </div>
         </div>
 
-        {/* Life Total - Main Control */}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-          <div className={`text-3xl sm:text-4xl md:text-5xl font-bold ${getLifeColor(gamePlayer.life)} transition-colors mb-1`}>
+        {/* Center: Life Total - Large and Prominent */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className={`text-5xl sm:text-6xl md:text-7xl font-bold ${getLifeColor(gamePlayer.life)} transition-colors`}>
             {gamePlayer.life}
           </div>
-          <div className="flex justify-center gap-1">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onLifeChange(-5)}
-              className="h-7 w-9 sm:h-8 sm:w-10 text-xs sm:text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
-            >
-              -5
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onLifeChange(-1)}
-              className="h-7 w-7 sm:h-8 sm:w-8 text-xs sm:text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
-            >
-              -1
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onLifeChange(1)}
-              className="h-7 w-7 sm:h-8 sm:w-8 text-xs sm:text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
-            >
-              +1
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onLifeChange(5)}
-              className="h-7 w-9 sm:h-8 sm:w-10 text-xs sm:text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
-            >
-              +5
-            </Button>
-          </div>
         </div>
 
-        {/* Secondary Stats Row */}
-        <div className="flex justify-center gap-1 mt-1">
-          {/* Poison Counter */}
+        {/* Right Side: Life Control Buttons - Vertical Stack */}
+        <div className="flex flex-col gap-1 justify-center">
           <Button
-            variant="outline"
             size="sm"
-            onClick={() => setShowPoison(!showPoison)}
-            className={`h-6 px-1.5 gap-0.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+            variant="outline"
+            onClick={() => onLifeChange(5)}
+            className="h-10 w-12 text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
           >
-            <Droplet className="h-3 w-3 text-green-500" />
-            <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold' : ''}>
-              {gamePlayer.poison}
-            </span>
+            +5
           </Button>
-
-          {/* Commander Damage */}
           <Button
-            variant="outline"
             size="sm"
-            onClick={() => setShowCommanderDamage(!showCommanderDamage)}
-            className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
+            variant="outline"
+            onClick={() => onLifeChange(1)}
+            className="h-10 w-12 text-sm font-bold bg-green-500/20 hover:bg-green-500/40 border-green-500/50 p-0"
           >
-            <Swords className="h-3 w-3 text-purple-500" />
-            <span className="text-xs">{t('currentGame.cmdDmg')}</span>
+            +1
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onLifeChange(-1)}
+            className="h-10 w-12 text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
+          >
+            -1
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onLifeChange(-5)}
+            className="h-10 w-12 text-sm font-bold bg-red-500/20 hover:bg-red-500/40 border-red-500/50 p-0"
+          >
+            -5
           </Button>
         </div>
 
