@@ -145,8 +145,88 @@ export default function CurrentGamePage() {
   const [eliminationPrompt, setEliminationPrompt] = useState<{ playerId: string; reason: string } | null>(null);
   const [showCommentary, setShowCommentary] = useState(false);
   const [lifetapMode, setLifetapMode] = useState(false);
+  const [playerSeats, setPlayerSeats] = useState<{ [playerId: string]: number }>({}); // Track player seat positions
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-detect landscape orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+      if (typeof window !== 'undefined') {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        setLifetapMode(isLandscape);
+      }
+    };
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
+  // Assign seat positions when game starts
+  useEffect(() => {
+    if (gamePlayers.length > 0 && Object.keys(playerSeats).length === 0) {
+      const seats: { [playerId: string]: number } = {};
+      gamePlayers.forEach((player, index) => {
+        seats[player.id] = index;
+      });
+      setPlayerSeats(seats);
+    }
+  }, [gamePlayers, playerSeats]);
+
+  // Get rotation for player based on seat position
+  const getPlayerRotation = (playerId: string): number => {
+    if (!lifetapMode) return 0;
+    
+    const seatIndex = playerSeats[playerId] || 0;
+    const totalPlayers = gamePlayers.length;
+    
+    // For 4 players: bottom=0°, right=90°, top=180°, left=270°
+    // For 3 players: bottom=0°, top-right=90°, top-left=270°
+    // For 5-6 players: distribute around the circle
+    
+    if (totalPlayers === 2) {
+      return seatIndex === 0 ? 0 : 180;
+    } else if (totalPlayers === 3) {
+      const rotations = [0, 120, 240]; // Or use 0, 90, 270 for better symmetry
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 4) {
+      const rotations = [0, 90, 180, 270];
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 5) {
+      const rotations = [0, 72, 144, 216, 288];
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 6) {
+      const rotations = [0, 60, 120, 180, 240, 300];
+      return rotations[seatIndex] || 0;
+    }
+    
+    return 0;
+  };
+
+  // Determine which column a player should be in (for landscape 2-column layout)
+  const getPlayerColumn = (playerId: string): 'left' | 'right' => {
+    const seatIndex = playerSeats[playerId] || 0;
+    const totalPlayers = gamePlayers.length;
+    
+    // Left column: players 0 and 3 (bottom and left)
+    // Right column: players 1 and 2 (right and top)
+    if (totalPlayers === 4) {
+      return seatIndex === 0 || seatIndex === 3 ? 'left' : 'right';
+    } else if (totalPlayers === 3) {
+      return seatIndex === 0 ? 'left' : 'right';
+    } else if (totalPlayers === 2) {
+      return seatIndex === 0 ? 'left' : 'right';
+    } else {
+      // For 5-6 players, split evenly
+      return seatIndex < Math.ceil(totalPlayers / 2) ? 'left' : 'right';
+    }
+  };
 
   // Fetch players and decks
   useEffect(() => {
@@ -728,28 +808,81 @@ export default function CurrentGamePage() {
           </div>
         )}
 
-        {/* Player Grid - Responsive auto-fit layout */}
-        <div className={`h-full w-full p-1 grid gap-2 ${lifetapMode ? 'grid-cols-2' : 'auto-rows-fr'}`}
-          style={!lifetapMode ? {
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
-          } : undefined}>
-          {gamePlayers.map(gamePlayer => (
-            <PlayerCard
-              key={gamePlayer.id}
-              gamePlayer={gamePlayer}
-              allPlayers={gamePlayers}
-              isSelected={selectedPlayerForStats === gamePlayer.id}
-              onSelect={() => setSelectedPlayerForStats(
-                selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
-              )}
-              onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
-              onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
-              onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
-              t={t}
-              lifetapMode={lifetapMode}
-            />
-          ))}
-        </div>
+        {/* Player Grid - Portrait or Landscape */}
+        {lifetapMode ? (
+          /* LANDSCAPE MODE - 2 Column Layout with Seat-Based Positioning */
+          <div className="h-full w-full p-1 grid grid-cols-2 gap-2">
+            {/* Left Column */}
+            <div className="flex flex-col gap-2 justify-center">
+              {gamePlayers
+                .filter(gp => getPlayerColumn(gp.id) === 'left')
+                .map(gamePlayer => (
+                  <PlayerCard
+                    key={gamePlayer.id}
+                    gamePlayer={gamePlayer}
+                    allPlayers={gamePlayers}
+                    isSelected={selectedPlayerForStats === gamePlayer.id}
+                    onSelect={() => setSelectedPlayerForStats(
+                      selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+                    )}
+                    onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+                    onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+                    onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+                    t={t}
+                    lifetapMode={lifetapMode}
+                    rotation={getPlayerRotation(gamePlayer.id)}
+                  />
+                ))}
+            </div>
+            
+            {/* Right Column */}
+            <div className="flex flex-col gap-2 justify-center">
+              {gamePlayers
+                .filter(gp => getPlayerColumn(gp.id) === 'right')
+                .map(gamePlayer => (
+                  <PlayerCard
+                    key={gamePlayer.id}
+                    gamePlayer={gamePlayer}
+                    allPlayers={gamePlayers}
+                    isSelected={selectedPlayerForStats === gamePlayer.id}
+                    onSelect={() => setSelectedPlayerForStats(
+                      selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+                    )}
+                    onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+                    onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+                    onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+                    t={t}
+                    lifetapMode={lifetapMode}
+                    rotation={getPlayerRotation(gamePlayer.id)}
+                  />
+                ))}
+            </div>
+          </div>
+        ) : (
+          /* PORTRAIT MODE - Auto-fit Grid */
+          <div className="h-full w-full p-1 grid gap-2 auto-rows-fr"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+            }}>
+            {gamePlayers.map(gamePlayer => (
+              <PlayerCard
+                key={gamePlayer.id}
+                gamePlayer={gamePlayer}
+                allPlayers={gamePlayers}
+                isSelected={selectedPlayerForStats === gamePlayer.id}
+                onSelect={() => setSelectedPlayerForStats(
+                  selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+                )}
+                onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+                onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+                onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+                t={t}
+                lifetapMode={lifetapMode}
+                rotation={0}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Elimination Prompt Modal */}
@@ -968,6 +1101,7 @@ interface PlayerCardProps {
   onCommanderDamageChange: (fromId: string, delta: number) => void;
   t: (key: string) => string;
   lifetapMode: boolean;
+  rotation: number;
 }
 
 function PlayerCard({
@@ -979,7 +1113,8 @@ function PlayerCard({
   onPoisonChange,
   onCommanderDamageChange,
   t,
-  lifetapMode
+  lifetapMode,
+  rotation
 }: PlayerCardProps) {
   const [showCommanderDamage, setShowCommanderDamage] = useState(false);
   const [showPoison, setShowPoison] = useState(false);
@@ -1013,7 +1148,7 @@ function PlayerCard({
     <div 
       className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full ${
         gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''} ${lifetapMode ? 'aspect-[16/9]' : 'h-full min-h-[200px]'}`}
+      } ${isSelected ? 'ring-2 ring-primary' : ''} ${lifetapMode ? 'aspect-[2/1]' : 'h-full min-h-[200px]'}`}
     >
       {/* Background with deck image or color gradient */}
       <div 
@@ -1030,65 +1165,33 @@ function PlayerCard({
           : 'bg-gradient-to-br from-card to-muted'
       }`} />
 
-      <div className={`relative h-full ${lifetapMode ? 'p-1' : 'p-2 sm:p-3'} flex ${lifetapMode ? 'flex-row items-center' : 'flex-col items-stretch'} gap-2`}>
-        {/* First Player Crown */}
-        {gamePlayer.isFirstPlayer && (
-          <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full z-10">
-            <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
-          </div>
-        )}
-
-        {lifetapMode ? (
-          <>
-            {/* LIFETAP MODE - Horizontal Layout */}
-            
-            {/* Left Side: Player Info */}
-            <div className="flex flex-col gap-1 justify-start min-w-0 w-20 sm:w-24">
-              <div className="flex items-center gap-1" onClick={onSelect}>
-                <Avatar className="h-6 w-6 ring-1 ring-white/20">
-                  <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-                  <AvatarFallback className="text-xs bg-primary/20">
-                    {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPoison(!showPoison)}
-                  className={`h-5 px-1 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
-                >
-                  <Droplet className="h-2.5 w-2.5 text-green-500" />
-                  <span className="ml-0.5">{gamePlayer.poison}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCommanderDamage(!showCommanderDamage)}
-                  className="h-5 px-1 bg-background/50 text-xs"
-                >
-                  <Swords className="h-2.5 w-2.5 text-purple-500" />
-                </Button>
-              </div>
+      {/* Rotated Content Wrapper - THIS IS KEY */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <div className={`w-full h-full relative flex ${lifetapMode ? 'flex-row items-center' : 'flex-col items-stretch'} ${lifetapMode ? 'p-1' : 'p-2 sm:p-3'} gap-2`}>
+          {/* First Player Crown */}
+          {gamePlayer.isFirstPlayer && (
+            <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full z-10">
+              <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
             </div>
+          )}
 
-            {/* Center: Large Rotated Life Total + Horizontal Buttons */}
-            <div className="flex-1 relative flex items-center justify-center">
-              {/* Rotated Life Number */}
-              <div className="transform rotate-90 select-none">
-                <div className={`font-bold text-[6rem] sm:text-[8rem] leading-none ${getLifeColor(gamePlayer.life)} transition-colors`}>
-                  {gamePlayer.life}
-                </div>
-              </div>
-              
-              {/* Left Side Buttons (-, -5) - Horizontally positioned */}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 flex gap-1">
+          {lifetapMode ? (
+          <>
+            {/* LIFETAP MODE - Simple horizontal layout, entire card rotates */}
+            <div className="w-full h-full flex flex-row items-center justify-between p-2 gap-2">
+              {/* Left: Minus buttons */}
+              <div className="flex flex-col gap-1">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => onLifeChange(-5)}
-                  className="h-12 w-10 text-lg font-bold bg-red-600/30 hover:bg-red-600/50 border-red-600/50 p-0"
+                  className="h-12 w-12 text-lg font-bold bg-red-600/30 hover:bg-red-600/50 border-red-600/50 p-0"
                 >
                   -5
                 </Button>
@@ -1096,19 +1199,26 @@ function PlayerCard({
                   size="sm"
                   variant="outline"
                   onClick={() => onLifeChange(-1)}
-                  className="h-12 w-10 text-lg font-bold bg-red-500/30 hover:bg-red-500/50 border-red-500/50 p-0"
+                  className="h-12 w-12 text-lg font-bold bg-red-500/30 hover:bg-red-500/50 border-red-500/50 p-0"
                 >
                   -1
                 </Button>
               </div>
 
-              {/* Right Side Buttons (+1, +5) - Horizontally positioned */}
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+              {/* Center: Life total */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className={`font-bold text-6xl sm:text-7xl ${getLifeColor(gamePlayer.life)} transition-colors select-none`}>
+                  {gamePlayer.life}
+                </div>
+              </div>
+
+              {/* Right: Plus buttons */}
+              <div className="flex flex-col gap-1">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => onLifeChange(1)}
-                  className="h-12 w-10 text-lg font-bold bg-green-500/30 hover:bg-green-500/50 border-green-500/50 p-0"
+                  className="h-12 w-12 text-lg font-bold bg-green-500/30 hover:bg-green-500/50 border-green-500/50 p-0"
                 >
                   +1
                 </Button>
@@ -1116,20 +1226,45 @@ function PlayerCard({
                   size="sm"
                   variant="outline"
                   onClick={() => onLifeChange(5)}
-                  className="h-12 w-10 text-lg font-bold bg-green-600/30 hover:bg-green-600/50 border-green-600/50 p-0"
+                  className="h-12 w-12 text-lg font-bold bg-green-600/30 hover:bg-green-600/50 border-green-600/50 p-0"
                 >
                   +5
                 </Button>
               </div>
             </div>
 
-            {/* Right Side: Player Name (rotated) */}
-            <div className="w-20 sm:w-24 flex items-center justify-center">
-              <div className="transform rotate-90 origin-center">
-                <p className="font-bold text-xs sm:text-sm truncate text-white whitespace-nowrap">
-                  {gamePlayer.player.nickname || gamePlayer.player.name}
-                </p>
-              </div>
+            {/* Player info - small at corners */}
+            <div className="absolute top-2 left-2 flex items-center gap-1">
+              <Avatar className="h-6 w-6 ring-1 ring-white/20">
+                <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+                <AvatarFallback className="text-xs bg-primary/20">
+                  {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs font-semibold text-white truncate max-w-[100px]">
+                {gamePlayer.player.nickname || gamePlayer.player.name}
+              </span>
+            </div>
+
+            {/* Secondary stats - bottom corners */}
+            <div className="absolute bottom-2 left-2 flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPoison(!showPoison)}
+                className={`h-6 px-1.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+              >
+                <Droplet className="h-3 w-3 text-green-500" />
+                <span className="ml-0.5">{gamePlayer.poison}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+                className="h-6 px-1.5 bg-background/50 text-xs"
+              >
+                <Swords className="h-3 w-3 text-purple-500" />
+              </Button>
             </div>
           </>
         ) : (
@@ -1316,7 +1451,8 @@ function PlayerCard({
             </div>
           </div>
         )}
-      </div>
+        </div> {/* Close inner content wrapper */}
+      </div> {/* Close rotated content wrapper */}
     </div>
   );
 }
