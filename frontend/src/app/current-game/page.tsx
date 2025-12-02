@@ -1013,7 +1013,7 @@ function PlayerCard({
     <div 
       className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full ${
         gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''} ${lifetapMode ? 'aspect-[3/2]' : 'h-full min-h-[200px]'}`}
+      } ${isSelected ? 'ring-2 ring-primary' : ''} ${lifetapMode ? 'aspect-[16/9]' : 'h-full min-h-[200px]'}`}
     >
       {/* Background with deck image or color gradient */}
       <div 
@@ -1030,96 +1030,168 @@ function PlayerCard({
           : 'bg-gradient-to-br from-card to-muted'
       }`} />
 
-      <div className={`relative h-full ${lifetapMode ? 'p-1 sm:p-2' : 'p-2 sm:p-3'} flex flex-col items-stretch gap-2`}>
+      <div className={`relative h-full ${lifetapMode ? 'p-1' : 'p-2 sm:p-3'} flex ${lifetapMode ? 'flex-row items-center' : 'flex-col items-stretch'} gap-2`}>
         {/* First Player Crown */}
         {gamePlayer.isFirstPlayer && (
-          <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full">
+          <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full z-10">
             <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
           </div>
         )}
 
-        {/* Top: Player Info & quick stats */}
-        <div className="flex flex-col gap-1 min-w-0">
-          {/* Player Info */}
-          <div className="flex items-center gap-1" onClick={onSelect}>
-            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-white/20">
-              <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-              <AvatarFallback className="text-xs bg-primary/20">
-                {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-xs sm:text-sm truncate text-white">
-                {gamePlayer.player.nickname || gamePlayer.player.name}
-              </p>
-            </div>
-          </div>
-
-          {/* Secondary Stats */}
-          <div className="flex gap-1">
-            {/* Poison Counter */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPoison(!showPoison)}
-              className={`h-6 px-1.5 gap-0.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
-            >
-              <Droplet className="h-3 w-3 text-green-500" />
-              <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold' : ''}>
-                {gamePlayer.poison}
-              </span>
-            </Button>
-
-            {/* Commander Damage */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCommanderDamage(!showCommanderDamage)}
-              className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
-            >
-              <Swords className="h-3 w-3 text-purple-500" />
-              <span className="text-xs">{t('currentGame.cmdDmg')}</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Center: Life Total - Large and Prominent */}
-        <div className="flex-1 relative">
-          <div className={`absolute inset-0 flex items-center justify-center`}>
-            <div className={`${lifetapMode ? 'rotate-90' : ''} select-none`}>
-              <div className={`font-bold ${lifetapMode ? 'text-[8rem] leading-none sm:text-[10rem]' : 'text-6xl sm:text-7xl md:text-8xl'} ${getLifeColor(gamePlayer.life)} transition-colors`}> 
-                {gamePlayer.life}
+        {lifetapMode ? (
+          <>
+            {/* LIFETAP MODE - Horizontal Layout */}
+            
+            {/* Left Side: Player Info */}
+            <div className="flex flex-col gap-1 justify-start min-w-0 w-20 sm:w-24">
+              <div className="flex items-center gap-1" onClick={onSelect}>
+                <Avatar className="h-6 w-6 ring-1 ring-white/20">
+                  <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+                  <AvatarFallback className="text-xs bg-primary/20">
+                    {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </div>
-            </div>
-          </div>
-
-          {lifetapMode ? (
-            <>
-              {/* Top + button */}
-              <div className="absolute top-1 left-0 right-0 flex justify-center">
+              <div className="flex flex-col gap-0.5">
                 <Button
-                  size="lg"
-                  variant="secondary"
-                  onClick={() => onLifeChange(1)}
-                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 text-xl"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPoison(!showPoison)}
+                  className={`h-5 px-1 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
                 >
-                  +
+                  <Droplet className="h-2.5 w-2.5 text-green-500" />
+                  <span className="ml-0.5">{gamePlayer.poison}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+                  className="h-5 px-1 bg-background/50 text-xs"
+                >
+                  <Swords className="h-2.5 w-2.5 text-purple-500" />
                 </Button>
               </div>
-              {/* Bottom - button */}
-              <div className="absolute bottom-1 left-0 right-0 flex justify-center">
+            </div>
+
+            {/* Center: Large Rotated Life Total + Horizontal Buttons */}
+            <div className="flex-1 relative flex items-center justify-center">
+              {/* Rotated Life Number */}
+              <div className="transform rotate-90 select-none">
+                <div className={`font-bold text-[6rem] sm:text-[8rem] leading-none ${getLifeColor(gamePlayer.life)} transition-colors`}>
+                  {gamePlayer.life}
+                </div>
+              </div>
+              
+              {/* Left Side Buttons (-, -5) - Horizontally positioned */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 flex gap-1">
                 <Button
-                  size="lg"
-                  variant="secondary"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onLifeChange(-5)}
+                  className="h-12 w-10 text-lg font-bold bg-red-600/30 hover:bg-red-600/50 border-red-600/50 p-0"
+                >
+                  -5
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => onLifeChange(-1)}
-                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 text-xl"
+                  className="h-12 w-10 text-lg font-bold bg-red-500/30 hover:bg-red-500/50 border-red-500/50 p-0"
                 >
-                  -
+                  -1
                 </Button>
               </div>
-            </>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 mt-1">
+
+              {/* Right Side Buttons (+1, +5) - Horizontally positioned */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onLifeChange(1)}
+                  className="h-12 w-10 text-lg font-bold bg-green-500/30 hover:bg-green-500/50 border-green-500/50 p-0"
+                >
+                  +1
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onLifeChange(5)}
+                  className="h-12 w-10 text-lg font-bold bg-green-600/30 hover:bg-green-600/50 border-green-600/50 p-0"
+                >
+                  +5
+                </Button>
+              </div>
+            </div>
+
+            {/* Right Side: Player Name (rotated) */}
+            <div className="w-20 sm:w-24 flex items-center justify-center">
+              <div className="transform rotate-90 origin-center">
+                <p className="font-bold text-xs sm:text-sm truncate text-white whitespace-nowrap">
+                  {gamePlayer.player.nickname || gamePlayer.player.name}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* GRID MODE - Vertical Layout */}
+            
+            {/* Top: Player Info & quick stats */}
+            <div className="flex flex-col gap-1 min-w-0">
+              {/* Player Info */}
+              <div className="flex items-center gap-1" onClick={onSelect}>
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8 ring-1 ring-white/20">
+                  <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+                  <AvatarFallback className="text-xs bg-primary/20">
+                    {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-xs sm:text-sm truncate text-white">
+                    {gamePlayer.player.nickname || gamePlayer.player.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Secondary Stats */}
+              <div className="flex gap-1">
+                {/* Poison Counter */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPoison(!showPoison)}
+                  className={`h-6 px-1.5 gap-0.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+                >
+                  <Droplet className="h-3 w-3 text-green-500" />
+                  <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold' : ''}>
+                    {gamePlayer.poison}
+                  </span>
+                </Button>
+
+                {/* Commander Damage */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+                  className="h-6 px-1.5 gap-0.5 bg-background/50 text-xs"
+                >
+                  <Swords className="h-3 w-3 text-purple-500" />
+                  <span className="text-xs">{t('currentGame.cmdDmg')}</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Center: Life Total - Large and Prominent */}
+            <div className="flex-1 relative">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="font-bold text-6xl sm:text-7xl md:text-8xl transition-colors select-none">
+                  <span className={getLifeColor(gamePlayer.life)}>{gamePlayer.life}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom: Life Control Buttons */}
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 size="lg"
                 variant="outline"
@@ -1153,8 +1225,8 @@ function PlayerCard({
                 +5
               </Button>
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {/* Poison Modal */}
         {showPoison && (
