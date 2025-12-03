@@ -18,7 +18,8 @@ import {
   Plus,
   X,
   Target,
-  Languages
+  Languages,
+  Gamepad2
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -50,6 +51,11 @@ export function Navigation({ children }: NavigationProps) {
       name: t('nav.dashboard'),
       href: '/dashboard',
       icon: Home,
+    },
+    {
+      name: t('nav.currentGame'),
+      href: '/current-game',
+      icon: Gamepad2,
     },
     {
       name: t('nav.players'),

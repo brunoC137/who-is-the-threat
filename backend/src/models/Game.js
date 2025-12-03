@@ -48,7 +48,20 @@ const GameSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Notes cannot be more than 500 characters']
-  }
+  },
+  commentary: [{
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [500, 'Commentary text cannot be more than 500 characters']
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      required: true
+    }
+  }]
 }, {
   timestamps: true
 });
