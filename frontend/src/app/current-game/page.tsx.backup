@@ -12,32 +12,66 @@ import {
   ArrowLeft, 
   Save, 
   Loader2, 
+  Plus, 
+  Minus,
+  X,
+  Trophy,
+  Clock,
   Users,
   Dices,
   Skull,
-  Check,
-  X,
-  Plus,
+  Heart,
+  Shield,
+  Droplet,
   Play,
+  Pause,
+  RotateCcw,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  Swords
 } from 'lucide-react';
 import Link from 'next/link';
-import { 
-  GameTopBar, 
-  GameGrid, 
-  GamePlayer as ImportedGamePlayer,
-  Player as ImportedPlayer,
-  Deck as ImportedDeck,
-  CommentaryEntry as ImportedCommentaryEntry,
-  getPlayerRotation,
-  checkElimination,
-  formatTime,
-} from '@/components/current-game';
 
-// Type aliases for compatibility
-type Player = ImportedPlayer;
-type Deck = ImportedDeck;
-type GamePlayer = ImportedGamePlayer;
-type CommentaryEntry = ImportedCommentaryEntry;
+interface Player {
+  _id: string;
+  name: string;
+  nickname?: string;
+  profileImage?: string;
+}
+
+interface Deck {
+  _id: string;
+  name: string;
+  commander: string;
+  deckImage?: string;
+  colorIdentity?: string[];
+  owner: {
+    _id: string;
+    name: string;
+    nickname?: string;
+  };
+}
+
+interface GamePlayer {
+  id: string;
+  playerId: string;
+  deckId: string;
+  player: Player;
+  deck: Deck;
+  life: number;
+  poison: number;
+  commanderDamage: { [opponentId: string]: number };
+  isEliminated: boolean;
+  eliminatedBy?: string;
+  placement?: number;
+  isFirstPlayer?: boolean;
+}
+
+interface CommentaryEntry {
+  text: string;
+  timestamp: number;
+}
 
 interface ActionHistoryItem {
   type: 'life' | 'poison' | 'commanderDamage' | 'elimination' | 'undo';
@@ -125,11 +159,48 @@ export default function CurrentGamePage() {
     }
   }, [gamePlayers, playerSeats]);
 
-  // Wrapper for getPlayerRotation from utils
-  const getPlayerRotationWrapper = (playerId: string): number => {
+  // Get rotation for player based on seat position
+  const getPlayerRotation = (playerId: string): number => {
     const seatIndex = playerSeats[playerId] || 0;
     const totalPlayers = gamePlayers.length;
-    return getPlayerRotation(seatIndex, totalPlayers);
+    
+    // For 4 players: bottom=0°, right=90°, top=180°, left=270°
+    if (totalPlayers === 2) {
+      return seatIndex === 0 ? 0 : 180;
+    } else if (totalPlayers === 3) {
+      const rotations = [0, 120, 240];
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 4) {
+      const rotations = [0, 90, 180, 270];
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 5) {
+      const rotations = [0, 72, 144, 216, 288];
+      return rotations[seatIndex] || 0;
+    } else if (totalPlayers === 6) {
+      const rotations = [0, 60, 120, 180, 240, 300];
+      return rotations[seatIndex] || 0;
+    }
+    
+    return 0;
+  };
+
+  // Determine which column a player should be in (for landscape 2-column layout)
+  const getPlayerColumn = (playerId: string): 'left' | 'right' => {
+    const seatIndex = playerSeats[playerId] || 0;
+    const totalPlayers = gamePlayers.length;
+    
+    // Left column: players 0 and 3 (bottom and left)
+    // Right column: players 1 and 2 (right and top)
+    if (totalPlayers === 4) {
+      return seatIndex === 0 || seatIndex === 3 ? 'left' : 'right';
+    } else if (totalPlayers === 3) {
+      return seatIndex === 0 ? 'left' : 'right';
+    } else if (totalPlayers === 2) {
+      return seatIndex === 0 ? 'left' : 'right';
+    } else {
+      // For 5-6 players, split evenly
+      return seatIndex < Math.ceil(totalPlayers / 2) ? 'left' : 'right';
+    }
   };
 
   // Fetch players and decks
@@ -182,6 +253,17 @@ export default function CurrentGamePage() {
       }
     };
   }, [isTimerRunning, gameEnded]);
+
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const getPlayerDecks = (playerId: string) => {
     return availableDecks.filter(deck => deck.owner._id === playerId);
@@ -631,15 +713,50 @@ export default function CurrentGamePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Bar - Fixed at top with controls */}
-      <GameTopBar
-        elapsedTime={elapsedTime}
-        isTimerRunning={isTimerRunning}
-        gameEnded={gameEnded}
-        canUndo={actionHistory.length > 0}
-        onToggleTimer={() => setIsTimerRunning(!isTimerRunning)}
-        onUndo={undoLastAction}
-        onToggleCommentary={() => setShowCommentary(!showCommentary)}
-      />
+      <div className="fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border/50 px-2 sm:px-4 py-2">
+        <div className="flex items-center justify-between max-w-full">
+          <div className="flex items-center gap-2">
+            <Link href="/games">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <span className="text-sm sm:text-lg font-mono font-bold">{formatTime(elapsedTime)}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCommentary(!showCommentary)}
+              className="h-8 text-xs"
+            >
+              💬
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTimerRunning(!isTimerRunning)}
+              disabled={gameEnded}
+              className="h-8 w-8 p-0"
+            >
+              {isTimerRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undoLastAction}
+              disabled={actionHistory.length === 0}
+              className="h-8 w-8 p-0"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Main Game Area - Responsive Landscape Grid */}
       <div className="pt-14 pb-16 h-screen overflow-hidden">
@@ -659,17 +776,51 @@ export default function CurrentGamePage() {
         )}
 
         {/* Player Grid - Landscape 2-Column Layout */}
-        <GameGrid
-          gamePlayers={gamePlayers}
-          playerSeats={playerSeats}
-          selectedPlayerForStats={selectedPlayerForStats}
-          onSelectPlayer={(playerId) => setSelectedPlayerForStats(playerId)}
-          onLifeChange={updatePlayerLife}
-          onPoisonChange={updatePlayerPoison}
-          onCommanderDamageChange={updateCommanderDamage}
-          getPlayerRotation={getPlayerRotationWrapper}
-          t={t}
-        />
+        <div className="h-full w-full p-1 grid grid-cols-2 gap-2">
+          {/* Left Column */}
+          <div className="flex flex-col gap-2 justify-center">
+            {gamePlayers
+              .filter(gp => getPlayerColumn(gp.id) === 'left')
+              .map(gamePlayer => (
+                <PlayerCard
+                  key={gamePlayer.id}
+                  gamePlayer={gamePlayer}
+                  allPlayers={gamePlayers}
+                  isSelected={selectedPlayerForStats === gamePlayer.id}
+                  onSelect={() => setSelectedPlayerForStats(
+                    selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+                  )}
+                  onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+                  onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+                  onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+                  t={t}
+                  rotation={getPlayerRotation(gamePlayer.id)}
+                />
+              ))}
+          </div>
+          
+          {/* Right Column */}
+          <div className="flex flex-col gap-2 justify-center">
+            {gamePlayers
+              .filter(gp => getPlayerColumn(gp.id) === 'right')
+              .map(gamePlayer => (
+                <PlayerCard
+                  key={gamePlayer.id}
+                  gamePlayer={gamePlayer}
+                    allPlayers={gamePlayers}
+                    isSelected={selectedPlayerForStats === gamePlayer.id}
+                    onSelect={() => setSelectedPlayerForStats(
+                      selectedPlayerForStats === gamePlayer.id ? null : gamePlayer.id
+                    )}
+                    onLifeChange={(delta) => updatePlayerLife(gamePlayer.id, delta)}
+                    onPoisonChange={(delta) => updatePlayerPoison(gamePlayer.id, delta)}
+                    onCommanderDamageChange={(fromId, delta) => updateCommanderDamage(gamePlayer.id, fromId, delta)}
+                    t={t}
+                    rotation={getPlayerRotation(gamePlayer.id)}
+                  />
+                ))}
+            </div>
+          </div>
       </div>
 
       {/* Elimination Prompt Modal */}
@@ -873,6 +1024,273 @@ export default function CurrentGamePage() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+// Player Card Component
+interface PlayerCardProps {
+  gamePlayer: GamePlayer;
+  allPlayers: GamePlayer[];
+  isSelected: boolean;
+  onSelect: () => void;
+  onLifeChange: (delta: number) => void;
+  onPoisonChange: (delta: number) => void;
+  onCommanderDamageChange: (fromId: string, delta: number) => void;
+  t: (key: string) => string;
+  rotation: number;
+}
+
+function PlayerCard({
+  gamePlayer,
+  allPlayers,
+  isSelected,
+  onSelect,
+  onLifeChange,
+  onPoisonChange,
+  onCommanderDamageChange,
+  t,
+  rotation
+}: PlayerCardProps) {
+  const [showCommanderDamage, setShowCommanderDamage] = useState(false);
+  const [showPoison, setShowPoison] = useState(false);
+
+  const getLifeColor = (life: number): string => {
+    if (life >= 30) return 'text-green-500';
+    if (life >= 20) return 'text-yellow-500';
+    if (life >= 10) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  if (gamePlayer.isEliminated) {
+    return (
+      <div className="relative h-full w-full min-h-[200px] rounded-lg bg-card/30 border-2 border-destructive/30 opacity-60 flex items-center justify-center">
+        <div className="text-center p-2">
+          <Skull className="h-8 w-8 mx-auto text-destructive/40 mb-1" />
+          <Avatar className="h-8 w-8 mx-auto mb-1 grayscale">
+            <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+            <AvatarFallback className="text-xs">{gamePlayer.player.name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <p className="font-semibold text-xs truncate">{gamePlayer.player.nickname || gamePlayer.player.name}</p>
+          <Badge variant="destructive" className="mt-1 text-xs">
+            #{gamePlayer.placement}
+          </Badge>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full aspect-[2/1] ${
+        gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
+      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+    >
+      {/* Background with deck image or color gradient */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ 
+          backgroundImage: gamePlayer.deck.deckImage 
+            ? `url(${gamePlayer.deck.deckImage})` 
+            : undefined 
+        }}
+      />
+      <div className={`absolute inset-0 ${
+        gamePlayer.deck.deckImage 
+          ? 'bg-black/60 backdrop-blur-sm' 
+          : 'bg-gradient-to-br from-card to-muted'
+      }`} />
+
+      {/* Rotated Content Wrapper - THIS IS KEY */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <div className="w-full h-full relative flex flex-row items-center p-1 gap-2">
+          {/* First Player Crown */}
+          {gamePlayer.isFirstPlayer && (
+            <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full z-10">
+              <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+          )}
+
+          {/* LANDSCAPE LAYOUT - Simple horizontal layout, entire card rotates */}
+          <div className="w-full h-full flex flex-row items-center justify-between p-2 gap-2">
+            {/* Left: Minus buttons */}
+            <div className="flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onLifeChange(-5)}
+                className="h-12 w-12 text-lg font-bold bg-red-600/30 hover:bg-red-600/50 border-red-600/50 p-0"
+              >
+                -5
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onLifeChange(-1)}
+                className="h-12 w-12 text-lg font-bold bg-red-500/30 hover:bg-red-500/50 border-red-500/50 p-0"
+              >
+                -1
+              </Button>
+            </div>
+
+            {/* Center: Life total */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className={`font-bold text-6xl sm:text-7xl ${getLifeColor(gamePlayer.life)} transition-colors select-none`}>
+                {gamePlayer.life}
+              </div>
+            </div>
+
+            {/* Right: Plus buttons */}
+            <div className="flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onLifeChange(1)}
+                className="h-12 w-12 text-lg font-bold bg-green-500/30 hover:bg-green-500/50 border-green-500/50 p-0"
+              >
+                +1
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onLifeChange(5)}
+                className="h-12 w-12 text-lg font-bold bg-green-600/30 hover:bg-green-600/50 border-green-600/50 p-0"
+              >
+                +5
+              </Button>
+            </div>
+          </div>
+
+          {/* Player info - small at corners */}
+          <div className="absolute top-2 left-2 flex items-center gap-1">
+            <Avatar className="h-6 w-6 ring-1 ring-white/20">
+              <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
+              <AvatarFallback className="text-xs bg-primary/20">
+                {gamePlayer.player.name?.charAt(0)?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs font-semibold text-white truncate max-w-[100px]">
+              {gamePlayer.player.nickname || gamePlayer.player.name}
+            </span>
+          </div>
+
+          {/* Secondary stats - bottom corners */}
+          <div className="absolute bottom-2 left-2 flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPoison(!showPoison)}
+              className={`h-6 px-1.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+              >
+                <Droplet className="h-3 w-3 text-green-500" />
+                <span className="ml-0.5">{gamePlayer.poison}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+                className="h-6 px-1.5 bg-background/50 text-xs"
+              >
+                <Swords className="h-3 w-3 text-purple-500" />
+              </Button>
+            </div>
+
+          {/* Poison Modal */}
+        {showPoison && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-lg p-2 flex flex-col items-center justify-center">
+            <div className="flex items-center justify-between mb-2 w-full">
+              <span className="text-xs font-medium text-green-400 flex items-center gap-1">
+                <Droplet className="h-3 w-3" />
+                {t('currentGame.poison')}
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => setShowPoison(false)} className="h-5 w-5 p-0">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onPoisonChange(-1)}
+                disabled={gamePlayer.poison <= 0}
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="text-xl sm:text-2xl font-bold text-green-400 w-8 sm:w-10 text-center">
+                {gamePlayer.poison}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onPoisonChange(1)}
+                disabled={gamePlayer.poison >= 10}
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Commander Damage Modal */}
+        {showCommanderDamage && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-lg p-2 flex flex-col overflow-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-purple-400 flex items-center gap-1">
+                <Swords className="h-3 w-3" />
+                {t('currentGame.commanderDamage')}
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => setShowCommanderDamage(false)} className="h-5 w-5 p-0">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="space-y-1 flex-1 overflow-auto">
+              {allPlayers
+                .filter(p => p.id !== gamePlayer.id && !p.isEliminated)
+                .map(opponent => {
+                  const damage = gamePlayer.commanderDamage[opponent.playerId] || 0;
+                  return (
+                    <div key={opponent.id} className="flex items-center justify-between bg-white/5 rounded px-1 py-0.5">
+                      <span className="text-xs truncate flex-1 text-white/80">
+                        {opponent.player.nickname || opponent.player.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onCommanderDamageChange(opponent.playerId, -1)}
+                          disabled={damage <= 0}
+                          className="h-5 w-5 p-0"
+                        >
+                          <Minus className="h-2.5 w-2.5" />
+                        </Button>
+                        <span className={`w-6 text-center text-xs font-bold ${damage >= 21 ? 'text-red-500' : damage >= 15 ? 'text-orange-500' : 'text-white'}`}>
+                          {damage}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onCommanderDamageChange(opponent.playerId, 1)}
+                          className="h-5 w-5 p-0"
+                        >
+                          <Plus className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+        </div> {/* Close inner content wrapper */}
+      </div> {/* Close rotated content wrapper */}
     </div>
   );
 }
