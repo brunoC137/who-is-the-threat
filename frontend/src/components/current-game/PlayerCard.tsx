@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -354,7 +354,10 @@ function CommanderDamageModal({
   onClose,
   t,
 }: CommanderDamageModalProps) {
-  const opponents = allPlayers.filter(p => p.id !== gamePlayer.id && !p.isEliminated);
+  const opponents = useMemo(() => 
+    allPlayers.filter(p => p.id !== gamePlayer.id && !p.isEliminated),
+    [allPlayers, gamePlayer.id]
+  );
 
   return (
     <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center p-2">

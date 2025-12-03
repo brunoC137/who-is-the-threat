@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { PlayerCard } from './PlayerCard';
 import { GamePlayer } from './types';
 import { getPlayerColumn } from './utils';
@@ -27,16 +28,23 @@ export function GameGrid({
   getPlayerRotation,
   t,
 }: GameGridProps) {
-  const getColumnPlayers = (column: 'left' | 'right') => {
-    return gamePlayers.filter(gp => {
+  // Memoize column assignments to avoid recalculating on every render
+  const { leftPlayers, rightPlayers } = useMemo(() => {
+    const left: GamePlayer[] = [];
+    const right: GamePlayer[] = [];
+    
+    gamePlayers.forEach(gp => {
       const seatIndex = playerSeats[gp.id] || 0;
-      const playerColumn = getPlayerColumn(seatIndex, gamePlayers.length);
-      return playerColumn === column;
+      const column = getPlayerColumn(seatIndex, gamePlayers.length);
+      if (column === 'left') {
+        left.push(gp);
+      } else {
+        right.push(gp);
+      }
     });
-  };
-
-  const leftPlayers = getColumnPlayers('left');
-  const rightPlayers = getColumnPlayers('right');
+    
+    return { leftPlayers: left, rightPlayers: right };
+  }, [gamePlayers, playerSeats]);
 
   return (
     <div className="h-full w-full p-1 grid grid-cols-2 gap-2">
