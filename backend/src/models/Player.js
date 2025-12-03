@@ -15,15 +15,21 @@ const PlayerSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: function() {
+      return !this.isGuest;
+    },
     unique: true,
+    sparse: true, // Allows multiple docs without email; guests get synthetic email
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    // Allow plus addressing and longer TLDs (e.g., .local, .info, .museum) up to 15 chars
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,15})+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      return !this.isGuest;
+    },
     minlength: [6, 'Password must be at least 6 characters']
   },
   profileImage: {
@@ -40,6 +46,10 @@ const PlayerSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isGuest: {
+    type: Boolean,
+    default: false
+  },
   decks: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Deck'
@@ -48,9 +58,9 @@ const PlayerSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Hash password before saving
+// Hash password before saving (skip for guest players)
 PlayerSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || this.isGuest) return next();
   
   try {
     const salt = await bcrypt.genSalt(12);
