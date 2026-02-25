@@ -940,17 +940,29 @@ export default function CurrentGamePage() {
       )}
 
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
-      {activeModal && (
-        <div
-          className="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={e => { if (e.target === e.currentTarget) setActiveModal(null); }}
-        >
-          {/* Commander Damage Modal */}
-          {activeModal.type === 'cmdDmg' && (() => {
-            const target = state.players[activeModal.slot];
-            if (!target) return null;
-            return (
-              <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4">
+      {activeModal && (() => {
+        // Get rotation for the modal based on the slot
+        const getModalRotation = () => {
+          if (!activeModal || activeModal.type === 'endConfirm' || activeModal.type === 'rollResult') return 0;
+          const slotConfig = slots.find(s => s.slot === activeModal.slot);
+          return slotConfig?.rotation ?? 0;
+        };
+        const modalRotation = getModalRotation();
+
+        return (
+          <div
+            className="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={e => { if (e.target === e.currentTarget) setActiveModal(null); }}
+          >
+            {/* Commander Damage Modal */}
+            {activeModal.type === 'cmdDmg' && (() => {
+              const target = state.players[activeModal.slot];
+              if (!target) return null;
+              return (
+                <div 
+                  className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4"
+                  style={{ transform: `rotate(${modalRotation}deg)` }}
+                >
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-white flex items-center gap-2">
                     <Shield className="h-4 w-4 text-primary" />
@@ -999,7 +1011,10 @@ export default function CurrentGamePage() {
             const p = state.players[activeModal.slot];
             if (!p) return null;
             return (
-              <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs space-y-5">
+              <div 
+                className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-xs space-y-5"
+                style={{ transform: `rotate(${modalRotation}deg)` }}
+              >
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-white flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 text-green-400" />
@@ -1121,8 +1136,9 @@ export default function CurrentGamePage() {
               </div>
             </div>
           )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1220,7 +1236,7 @@ function PlayerPanelView({
           className="absolute inset-0 bg-cover bg-center opacity-25"
           style={{
             backgroundImage: `url(${player.deckImage})`,
-            filter: 'blur(8px)',
+            filter: 'blur(2px)',
             transform: 'scale(1.1)',
           }}
         />
