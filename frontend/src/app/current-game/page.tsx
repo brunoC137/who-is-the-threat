@@ -146,10 +146,10 @@ function getGridLayout(count: number): { cols: number; slots: SlotGridConfig[] }
       return {
         cols: 2,
         slots: [
-          { slot: 2, rotation: 180 }, // top player
-          { slot: 3, rotation: 90  }, // right player
-          { slot: 0, rotation: 270 }, // left player
-          { slot: 1, rotation: 0   }, // bottom player
+          { slot: 2, rotation: 90 }, // top player
+          { slot: 3, rotation: 270 }, // right player
+          { slot: 0, rotation: 90  }, // left player
+          { slot: 1, rotation: 270   }, // bottom player
         ],
       };
     case 5:
