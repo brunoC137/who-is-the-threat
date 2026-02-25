@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,7 +20,8 @@ import {
   X,
   Target,
   Languages,
-  Swords
+  Swords,
+  Download
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -29,6 +31,7 @@ interface NavigationProps {
 export function Navigation({ children }: NavigationProps) {
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -133,6 +136,15 @@ export function Navigation({ children }: NavigationProps) {
                     <span className="truncate">{user?.nickname || user?.name}</span>
                   </div>
                   <div className="mt-2 space-y-1">
+                    {isInstallable && !isInstalled && (
+                      <button
+                        onClick={promptInstall}
+                        className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                      >
+                        <Download className="h-6 w-6 shrink-0" />
+                        {t('pwa.install')}
+                      </button>
+                    )}
                     <button
                       onClick={toggleLanguage}
                       className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
@@ -277,6 +289,18 @@ export function Navigation({ children }: NavigationProps) {
                         <span className="truncate">{user?.nickname || user?.name}</span>
                       </div>
                       <div className="mt-2 space-y-1">
+                        {isInstallable && !isInstalled && (
+                          <button
+                            onClick={async () => {
+                              await promptInstall();
+                              setIsOpen(false);
+                            }}
+                            className="group flex w-full gap-x-3 rounded-lg p-2 text-sm leading-6 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                          >
+                            <Download className="h-6 w-6 shrink-0" />
+                            {t('pwa.install')}
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             toggleLanguage();
