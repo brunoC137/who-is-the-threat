@@ -1077,7 +1077,10 @@ export default function CurrentGamePage() {
             if (!victim) return null;
             const opponents = state.players.filter(p => p.slotIndex !== activeModal.slot && !p.eliminated);
             return (
-              <div className="bg-gray-900 border border-red-800/50 rounded-2xl p-5 w-full max-w-sm space-y-4">
+              <div 
+                className="bg-gray-900 border border-red-800/50 rounded-2xl p-5 w-full max-w-sm space-y-4"
+                style={{ transform: `rotate(${modalRotation}deg)` }}
+              >
                 <div className="text-center">
                   <Skull className="h-10 w-10 text-red-400 mx-auto mb-2" />
                   <h3 className="font-bold text-white text-lg">{victim.displayName} eliminated!</h3>
