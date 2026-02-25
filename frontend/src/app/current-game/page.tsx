@@ -1233,18 +1233,18 @@ function PlayerPanelView({
       {/* Background: deck image or color gradient (rotated to match player) */}
       {player.deckImage ? (
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-25"
+          className="absolute inset-0 bg-cover bg-center opacity-40"
           style={{
             backgroundImage: `url(${player.deckImage})`,
             filter: 'blur(2px)',
-            transform: `rotate(${rotation}deg) scale(1.1)`,
+            transform: `rotate(${rotation}deg) scale(1.4)`,
           }}
         />
       ) : (
         <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-80`} />
       )}
       {/* Overlay tint */}
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/20" />
 
       {/* Eliminated overlay */}
       {player.eliminated && (
