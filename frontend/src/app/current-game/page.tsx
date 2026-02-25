@@ -72,6 +72,9 @@ type HistoryEntry =
   | { type: 'cmdDmg'; fromSlot: number; toSlot: number; prev: number }
   | { type: 'eliminate'; slot: number; prevState: PlayerGameState };
 
+/** How the deck artwork is displayed in the panel background. */
+type BgStyle = 'blurred' | 'scrolling' | 'centered';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_LIFE = 40;
@@ -282,6 +285,7 @@ export default function CurrentGamePage() {
     | { type: 'poison'; slot: number }
     | { type: 'eliminate'; slot: number; reason: string }
     | { type: 'rollResult'; slot: number }
+    | { type: 'playerMenu'; slot: number }
     | { type: 'endConfirm' }
     | null
   >(null);
@@ -292,6 +296,9 @@ export default function CurrentGamePage() {
 
   // Rolling animation
   const [rolling, setRolling] = useState(false);
+
+  // Per-slot background style preference (persists while game is in progress)
+  const [bgStyles, setBgStyles] = useState<Record<number, BgStyle>>({});
 
   // ── Fetch players & decks ───────────────────────────────────────────────────
   useEffect(() => {
@@ -904,6 +911,15 @@ export default function CurrentGamePage() {
       </div>
 
       {/* ── Game Grid (fixed CSS grid, table-centric — no responsive reflow) ──── */}
+      {/* Ken Burns background-position animation (no transform conflict) */}
+      <style>{`
+        @keyframes kenburns-bg {
+          0%   { background-position: 20% 20%; }
+          33%  { background-position: 80% 20%; }
+          66%  { background-position: 80% 80%; }
+          100% { background-position: 20% 20%; }
+        }
+      `}</style>
       <div
         className="absolute inset-0 pt-8"
         style={{
@@ -920,10 +936,11 @@ export default function CurrentGamePage() {
             rotation={rotation}
             isFirst={state.firstPlayerSlot === slot}
             colSpan={colSpan}
+            bgStyle={bgStyles[slot] ?? 'blurred'}
             onAdjustLife={delta => adjustLife(slot, delta)}
             onOpenCmdDmg={() => setActiveModal({ type: 'cmdDmg', slot })}
             onOpenPoison={() => setActiveModal({ type: 'poison', slot })}
-            onEliminate={() => setActiveModal({ type: 'eliminate', slot, reason: 'manual' })}
+            onOpenPlayerMenu={() => setActiveModal({ type: 'playerMenu', slot })}
           />
         ))}
       </div>
@@ -1110,6 +1127,69 @@ export default function CurrentGamePage() {
             );
           })()}
 
+          {/* Player Menu Modal */}
+          {activeModal.type === 'playerMenu' && (() => {
+            const p = state.players[activeModal.slot];
+            if (!p) return null;
+            const currentBgStyle: BgStyle = bgStyles[activeModal.slot] ?? 'blurred';
+            const bgOptions: { value: BgStyle; label: string; icon: string }[] = [
+              { value: 'blurred',   label: 'Blurred',  icon: '🌫️' },
+              { value: 'scrolling', label: 'Panning',  icon: '🎞️' },
+              { value: 'centered',  label: 'Centered', icon: '🖼️' },
+            ];
+            return (
+              <div
+                className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-5"
+                style={{ transform: `rotate(${modalRotation}deg)` }}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-white text-base leading-tight">{p.displayName}</p>
+                    <p className="text-white/40 text-xs mt-0.5 truncate">{p.deckName} · {p.commanderName}</p>
+                  </div>
+                  <button onClick={() => setActiveModal(null)} className="shrink-0 mt-0.5">
+                    <X className="h-5 w-5 text-white/50 hover:text-white" />
+                  </button>
+                </div>
+
+                {/* Eliminate action */}
+                {!p.eliminated && (
+                  <button
+                    onClick={() => setActiveModal({ type: 'eliminate', slot: activeModal.slot, reason: 'manual' })}
+                    className="w-full p-3 rounded-xl bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 hover:border-red-700/60 text-white text-sm font-medium flex items-center gap-3 transition-all"
+                  >
+                    <Skull className="h-4 w-4 text-red-400 shrink-0" />
+                    Eliminate {p.displayName}
+                  </button>
+                )}
+
+                {/* Background style picker — only when deck has an image */}
+                {p.deckImage && (
+                  <div className="space-y-2">
+                    <p className="text-white/40 text-[11px] uppercase tracking-widest">Background Style</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {bgOptions.map(({ value, label, icon }) => (
+                        <button
+                          key={value}
+                          onClick={() => setBgStyles(prev => ({ ...prev, [activeModal.slot]: value }))}
+                          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-all ${
+                            currentBgStyle === value
+                              ? 'border-primary bg-primary/20 text-primary'
+                              : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+                          }`}
+                        >
+                          <span className="text-lg leading-none">{icon}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* End Game Confirm */}
           {activeModal.type === 'endConfirm' && (
             <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4">
@@ -1153,10 +1233,13 @@ interface PlayerPanelViewProps {
   isFirst: boolean;
   /** CSS grid-column span (used for 3-player bottom panel). */
   colSpan?: number;
+  /** How the deck artwork is rendered in the panel background. */
+  bgStyle: BgStyle;
   onAdjustLife: (delta: number) => void;
   onOpenCmdDmg: () => void;
   onOpenPoison: () => void;
-  onEliminate: () => void;
+  /** Opens the player action menu (contains eliminate + bg-style options). */
+  onOpenPlayerMenu: () => void;
 }
 
 function PlayerPanelView({
@@ -1165,10 +1248,11 @@ function PlayerPanelView({
   rotation,
   isFirst,
   colSpan,
+  bgStyle,
   onAdjustLife,
   onOpenCmdDmg,
   onOpenPoison,
-  onEliminate,
+  onOpenPlayerMenu,
 }: PlayerPanelViewProps) {
   const theme = getColorTheme(player.colorIdentity);
   const totalCmdDmg = player.commanderDamage.reduce((a, b) => a + b, 0);
@@ -1230,16 +1314,45 @@ function PlayerPanelView({
       }`}
       style={outerStyle}
     >
-      {/* Background: deck image or color gradient (rotated to match player) */}
+      {/* Background: deck image (three styles) or color gradient */}
       {player.deckImage ? (
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-40"
-          style={{
-            backgroundImage: `url(${player.deckImage})`,
-            filter: 'blur(2px)',
-            transform: `rotate(${rotation}deg) scale(1.4)`,
-          }}
-        />
+        bgStyle === 'blurred' ? (
+          /* ── Blurred: fills panel, soft blur + slight scale ── */
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              backgroundImage: `url(${player.deckImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(2px)',
+              transform: `rotate(${rotation}deg) scale(1.4)`,
+            }}
+          />
+        ) : bgStyle === 'scrolling' ? (
+          /* ── Panning (Ken Burns): slowly drifts across the panel ── */
+          <div
+            className="absolute inset-0 opacity-55"
+            style={{
+              backgroundImage: `url(${player.deckImage})`,
+              backgroundSize: '140%',
+              backgroundRepeat: 'no-repeat',
+              transform: `rotate(${rotation}deg)`,
+              animation: 'kenburns-bg 25s ease-in-out infinite',
+            }}
+          />
+        ) : (
+          /* ── Centered (contain): full image visible, letterboxed ── */
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              backgroundImage: `url(${player.deckImage})`,
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
+              transform: `rotate(${rotation}deg)`,
+            }}
+          />
+        )
       ) : (
         <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-80`} />
       )}
@@ -1263,12 +1376,15 @@ function PlayerPanelView({
       {/* ── Content (rotated to face the seated player) ────────────────────── */}
       <div className="flex flex-col z-[5]" style={contentStyle}>
 
-        {/* Header: name, deck, badges */}
+        {/* Header: name (opens player menu), deck, badges */}
         <div className="flex items-start justify-between px-2 pt-1.5 pb-0.5 gap-1">
-          <div className="flex-1 min-w-0">
+          <button
+            onClick={onOpenPlayerMenu}
+            className="flex-1 min-w-0 text-left hover:opacity-75 active:opacity-60 transition-opacity"
+          >
             <p className="text-white font-bold text-xs leading-tight truncate">{player.displayName}</p>
             <p className="text-white/50 text-[10px] leading-tight truncate">{player.commanderName}</p>
-          </div>
+          </button>
           {/* Badges */}
           <div className="flex items-center gap-1 shrink-0">
             {player.poison > 0 && (
@@ -1363,15 +1479,6 @@ function PlayerPanelView({
           </div>
         )}
 
-        {/* Skull / eliminate button — sits at the player's visual bottom-right */}
-        {!player.eliminated && (
-          <button
-            onClick={onEliminate}
-            className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/30 text-white/30 hover:bg-red-900/50 hover:text-red-300 flex items-center justify-center transition-colors"
-          >
-            <Skull className="h-3 w-3" />
-          </button>
-        )}
       </div>
     </div>
   );
