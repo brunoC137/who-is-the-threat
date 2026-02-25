@@ -109,36 +109,74 @@ function getColorTheme(colorIdentity?: string[]) {
 
 // ─── Layout helpers ───────────────────────────────────────────────────────────
 
-interface SlotLayout {
+interface SlotGridConfig {
   slot: number;
-  row: 'top' | 'bottom'; // top = rotated 180°
-  colSpan?: number;      // css col-span
+  rotation: 0 | 90 | 180 | 270;
+  colSpan?: number; // CSS grid-column span
 }
 
-function getLayout(count: number): { top: SlotLayout[]; bottom: SlotLayout[] } {
+/**
+ * Returns a fixed CSS-grid layout config for the playing phase.
+ *
+ * For 4 players the layout is table-centric:
+ *   ┌──────────────┬──────────────┐
+ *   │  slot 2 TOP  │ slot 3 RIGHT │
+ *   │   (180°)     │   (90°)      │
+ *   ├──────────────┼──────────────┤
+ *   │ slot 0 LEFT  │ slot 1 BOTTOM│
+ *   │   (270°)     │   (0°)       │
+ *   └──────────────┴──────────────┘
+ *
+ * Each quadrant's content is rotated so it faces the player
+ * sitting at that side of the table — the device orientation
+ * (portrait/landscape) is irrelevant.
+ */
+function getGridLayout(count: number): { cols: number; slots: SlotGridConfig[] } {
   switch (count) {
     case 3:
       return {
-        top:    [{ slot: 1, row: 'top' }, { slot: 2, row: 'top' }],
-        bottom: [{ slot: 0, row: 'bottom', colSpan: 2 }],
+        cols: 2,
+        slots: [
+          { slot: 1, rotation: 180 },
+          { slot: 2, rotation: 180 },
+          { slot: 0, rotation: 0, colSpan: 2 },
+        ],
       };
     case 4:
       return {
-        top:    [{ slot: 2, row: 'top' }, { slot: 3, row: 'top' }],
-        bottom: [{ slot: 0, row: 'bottom' }, { slot: 1, row: 'bottom' }],
+        cols: 2,
+        slots: [
+          { slot: 2, rotation: 180 }, // top player
+          { slot: 3, rotation: 90  }, // right player
+          { slot: 0, rotation: 270 }, // left player
+          { slot: 1, rotation: 0   }, // bottom player
+        ],
       };
     case 5:
       return {
-        top:    [{ slot: 2, row: 'top' }, { slot: 3, row: 'top' }, { slot: 4, row: 'top' }],
-        bottom: [{ slot: 0, row: 'bottom' }, { slot: 1, row: 'bottom' }],
+        cols: 3,
+        slots: [
+          { slot: 2, rotation: 180 },
+          { slot: 3, rotation: 180 },
+          { slot: 4, rotation: 180 },
+          { slot: 0, rotation: 0   },
+          { slot: 1, rotation: 0   },
+        ],
       };
     case 6:
       return {
-        top:    [{ slot: 3, row: 'top' }, { slot: 4, row: 'top' }, { slot: 5, row: 'top' }],
-        bottom: [{ slot: 0, row: 'bottom' }, { slot: 1, row: 'bottom' }, { slot: 2, row: 'bottom' }],
+        cols: 3,
+        slots: [
+          { slot: 3, rotation: 180 },
+          { slot: 4, rotation: 180 },
+          { slot: 5, rotation: 180 },
+          { slot: 0, rotation: 0   },
+          { slot: 1, rotation: 0   },
+          { slot: 2, rotation: 0   },
+        ],
       };
     default:
-      return { top: [], bottom: [] };
+      return { cols: 2, slots: [] };
   }
 }
 
@@ -625,13 +663,23 @@ export default function CurrentGamePage() {
             {/* Player slots */}
             {configs.map((cfg, i) => {
               const playerDecks = cfg.playerId ? getPlayerDecks(cfg.playerId) : [];
-              const positions = ['Bottom-Left', 'Bottom-Right', 'Top-Left', 'Top-Right', 'Top-Center', 'Bottom-Center'];
-              const position = positions[i] ?? `Slot ${i + 1}`;
-              const rotation = i < Math.ceil(state.playerCount / 2) ? '↓' : '↑';
+
+              // For 4-player table-centric layout show cardinal seat positions.
+              // Slot order matches getGridLayout(4): 0=Left, 1=Bottom, 2=Top, 3=Right.
+              const positions4p = ['← Left (270°)', '↓ Bottom (0°)', '↑ Top (180°)', '→ Right (90°)'];
+              const positionsFallback = ['Bottom-Left', 'Bottom-Right', 'Top-Left', 'Top-Right', 'Top-Center', 'Bottom-Center'];
+              const position = state.playerCount === 4
+                ? (positions4p[i] ?? `Slot ${i + 1}`)
+                : (positionsFallback[i] ?? `Slot ${i + 1}`);
+
+              // Arrow showing which way the panel faces (↑ = away from viewer)
+              const rotationArrow = state.playerCount === 4
+                ? ['↺', '↓', '↑', '↻'][i] ?? ''
+                : (i < Math.ceil(state.playerCount / 2) ? '↓' : '↑');
               return (
                 <div key={i} className="bg-card/50 border border-border/50 rounded-xl p-5 space-y-3">
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    {rotation} Slot {i + 1} — {position}
+                    {rotationArrow} Slot {i + 1} — {position}
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -804,7 +852,7 @@ export default function CurrentGamePage() {
 
   // ── Playing Phase ─────────────────────────────────────────────────────────────
 
-  const layout = getLayout(state.playerCount);
+  const { cols, slots } = getGridLayout(state.playerCount);
   const isPaused = !!state.pausedAt;
 
   return (
@@ -855,41 +903,29 @@ export default function CurrentGamePage() {
         </div>
       </div>
 
-      {/* ── Game Grid ─────────────────────────────────────────────────────────── */}
-      <div className="absolute inset-0 pt-8 pb-0 flex flex-col">
-        {/* Top row (rotated 180°) */}
-        <div className="flex flex-1" style={{ minHeight: 0 }}>
-          {layout.top.map(({ slot }) => (
-            <PlayerPanelView
-              key={slot}
-              player={state.players[slot]}
-              allPlayers={state.players}
-              isTop
-              isFirst={state.firstPlayerSlot === slot}
-              onAdjustLife={delta => adjustLife(slot, delta)}
-              onOpenCmdDmg={() => setActiveModal({ type: 'cmdDmg', slot })}
-              onOpenPoison={() => setActiveModal({ type: 'poison', slot })}
-              onEliminate={() => setActiveModal({ type: 'eliminate', slot, reason: 'manual' })}
-            />
-          ))}
-        </div>
-        {/* Bottom row */}
-        <div className="flex flex-1" style={{ minHeight: 0 }}>
-          {layout.bottom.map(({ slot, colSpan }) => (
-            <PlayerPanelView
-              key={slot}
-              player={state.players[slot]}
-              allPlayers={state.players}
-              isTop={false}
-              isFirst={state.firstPlayerSlot === slot}
-              colSpan={colSpan}
-              onAdjustLife={delta => adjustLife(slot, delta)}
-              onOpenCmdDmg={() => setActiveModal({ type: 'cmdDmg', slot })}
-              onOpenPoison={() => setActiveModal({ type: 'poison', slot })}
-              onEliminate={() => setActiveModal({ type: 'eliminate', slot, reason: 'manual' })}
-            />
-          ))}
-        </div>
+      {/* ── Game Grid (fixed CSS grid, table-centric — no responsive reflow) ──── */}
+      <div
+        className="absolute inset-0 pt-8"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: 'repeat(2, 1fr)',
+        }}
+      >
+        {slots.map(({ slot, rotation, colSpan }) => (
+          <PlayerPanelView
+            key={slot}
+            player={state.players[slot]}
+            allPlayers={state.players}
+            rotation={rotation}
+            isFirst={state.firstPlayerSlot === slot}
+            colSpan={colSpan}
+            onAdjustLife={delta => adjustLife(slot, delta)}
+            onOpenCmdDmg={() => setActiveModal({ type: 'cmdDmg', slot })}
+            onOpenPoison={() => setActiveModal({ type: 'poison', slot })}
+            onEliminate={() => setActiveModal({ type: 'eliminate', slot, reason: 'manual' })}
+          />
+        ))}
       </div>
 
       {/* ── Paused Overlay ────────────────────────────────────────────────────── */}
@@ -1096,8 +1132,10 @@ export default function CurrentGamePage() {
 interface PlayerPanelViewProps {
   player: PlayerGameState;
   allPlayers: PlayerGameState[];
-  isTop: boolean;
+  /** Degrees CW the panel content is rotated to face the seated player. */
+  rotation: 0 | 90 | 180 | 270;
   isFirst: boolean;
+  /** CSS grid-column span (used for 3-player bottom panel). */
   colSpan?: number;
   onAdjustLife: (delta: number) => void;
   onOpenCmdDmg: () => void;
@@ -1108,7 +1146,7 @@ interface PlayerPanelViewProps {
 function PlayerPanelView({
   player,
   allPlayers,
-  isTop,
+  rotation,
   isFirst,
   colSpan,
   onAdjustLife,
@@ -1120,17 +1158,63 @@ function PlayerPanelView({
   const totalCmdDmg = player.commanderDamage.reduce((a, b) => a + b, 0);
   const maxCmdDmgFromOne = Math.max(...player.commanderDamage, 0);
   const isDangerous = player.life <= 5 && !player.eliminated;
-  const rotation = isTop ? 'rotate-180' : '';
-  const flexStyle = colSpan === 2 ? { flex: '0 0 100%' } : { flex: 1 };
+
+  // For 90°/270° rotations the content div needs swapped w/h so it fills
+  // the panel correctly after transform. We measure the panel with a
+  // ResizeObserver so it works for any screen size or orientation.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelSize, setPanelSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      setPanelSize({ w: width, h: height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const is90or270 = rotation === 90 || rotation === 270;
+
+  /**
+   * For 0°/180°: fill the panel with position:absolute inset-0, then rotate
+   * around the panel center (transform-origin defaults to 50% 50%).
+   *
+   * For 90°/270°: pre-set the content to panelHeight × panelWidth (swapped)
+   * so that after the 90°/270° CSS rotation the element exactly fills the
+   * panel. We centre it with translate(-50%,-50%) first.
+   */
+  const contentStyle: React.CSSProperties = is90or270 ? {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    // swap dimensions so the rotated element fills the panel
+    width:  panelSize.h > 0 ? `${panelSize.h}px` : 'calc((100dvh - 2rem) / 2)',
+    height: panelSize.w > 0 ? `${panelSize.w}px` : '50dvw',
+    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+  } : {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+  };
+
+  const outerStyle: React.CSSProperties = colSpan
+    ? { gridColumn: `span ${colSpan}` }
+    : {};
 
   return (
     <div
+      ref={panelRef}
       className={`relative overflow-hidden border-r border-b border-white/5 last:border-r-0 ${
         isFirst ? 'ring-2 ring-inset ring-yellow-400/60' : ''
       }`}
-      style={flexStyle}
+      style={outerStyle}
     >
-      {/* Background: deck image or color gradient */}
+      {/* Background: deck image or color gradient (not rotated — fills panel) */}
       {player.deckImage ? (
         <div
           className="absolute inset-0 bg-cover bg-center opacity-25"
@@ -1149,7 +1233,8 @@ function PlayerPanelView({
       {/* Eliminated overlay */}
       {player.eliminated && (
         <div className="absolute inset-0 z-10 bg-black/75 flex items-center justify-center">
-          <div className={`${rotation} text-center`}>
+          {/* Rotate the label so the seated player can read it */}
+          <div style={{ transform: `rotate(${rotation}deg)` }} className="text-center">
             <Skull className="h-8 w-8 text-white/30 mx-auto mb-1" />
             <p className="text-white/40 text-xs font-bold uppercase tracking-widest">
               {player.eliminationOrder === 1 ? 'Last' : `#${(allPlayers.length - (player.eliminationOrder ?? 0) + 1)}`}
@@ -1159,8 +1244,8 @@ function PlayerPanelView({
         </div>
       )}
 
-      {/* Content (rotated for top panels) */}
-      <div className={`relative z-5 h-full flex flex-col ${rotation}`}>
+      {/* ── Content (rotated to face the seated player) ────────────────────── */}
+      <div className="flex flex-col z-[5]" style={contentStyle}>
 
         {/* Header: name, deck, badges */}
         <div className="flex items-start justify-between px-2 pt-1.5 pb-0.5 gap-1">
@@ -1221,14 +1306,12 @@ function PlayerPanelView({
         {/* Buttons row */}
         {!player.eliminated && (
           <div className="flex items-center gap-1 px-2 pb-2">
-            {/* -5 */}
             <button
               onClick={() => onAdjustLife(-5)}
               className="flex-1 h-10 rounded-lg bg-red-900/60 active:bg-red-700/80 text-red-200 font-bold text-sm transition-colors"
             >
               −5
             </button>
-            {/* -1 */}
             <button
               onClick={() => onAdjustLife(-1)}
               className="flex-1 h-10 rounded-lg bg-red-900/40 active:bg-red-700/60 text-red-300 font-bold text-sm transition-colors"
@@ -1249,14 +1332,12 @@ function PlayerPanelView({
             >
               <FlaskConical className="h-4 w-4" />
             </button>
-            {/* +1 */}
             <button
               onClick={() => onAdjustLife(1)}
               className="flex-1 h-10 rounded-lg bg-green-900/40 active:bg-green-700/60 text-green-300 font-bold text-sm transition-colors"
             >
               +1
             </button>
-            {/* +5 */}
             <button
               onClick={() => onAdjustLife(5)}
               className="flex-1 h-10 rounded-lg bg-green-900/60 active:bg-green-700/80 text-green-200 font-bold text-sm transition-colors"
@@ -1266,12 +1347,11 @@ function PlayerPanelView({
           </div>
         )}
 
-        {/* Eliminated: show eliminate button if alive */}
+        {/* Skull / eliminate button — sits at the player's visual bottom-right */}
         {!player.eliminated && (
           <button
             onClick={onEliminate}
             className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/30 text-white/30 hover:bg-red-900/50 hover:text-red-300 flex items-center justify-center transition-colors"
-            style={{ ...(isTop ? { bottom: 'auto', top: '4px', right: '4px' } : {}) }}
           >
             <Skull className="h-3 w-3" />
           </button>
