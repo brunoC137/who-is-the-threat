@@ -489,6 +489,16 @@ export const translations = {
       accountCreationFailed: 'Failed to create account',
       accountCreationError: 'An error occurred while creating your account',
     },
+    // PWA install prompt
+    pwa: {
+      bannerLabel: 'Install app banner',
+      title: 'Install Guerreiros',
+      description: 'Add to your home screen for a faster, app-like experience.',
+      descriptionIOS: 'Add to your home screen for a faster, app-like experience.',
+      iosInstructions: "Tap the Share button, then choose 'Add to Home Screen'.",
+      install: 'Install',
+      notNow: 'Not now',
+    },
   },
   'pt-BR': {
     // Navigation
@@ -979,6 +989,16 @@ export const translations = {
       imageUrlInvalid: 'Por favor, digite uma URL de imagem válida',
       accountCreationFailed: 'Falha ao criar conta',
       accountCreationError: 'Ocorreu um erro ao criar sua conta',
+    },
+    // PWA install prompt
+    pwa: {
+      bannerLabel: 'Banner de instalação do aplicativo',
+      title: 'Instalar Guerreiros',
+      description: 'Adicione à sua tela inicial para uma experiência mais rápida.',
+      descriptionIOS: 'Adicione à sua tela inicial para uma experiência mais rápida.',
+      iosInstructions: "Toque em Compartilhar e escolha 'Adicionar à Tela de Início'.",
+      install: 'Instalar',
+      notNow: 'Agora não',
     },
   },
 };
