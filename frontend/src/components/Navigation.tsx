@@ -18,7 +18,8 @@ import {
   Plus,
   X,
   Target,
-  Languages
+  Languages,
+  Swords
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -70,6 +71,11 @@ export function Navigation({ children }: NavigationProps) {
       name: t('nav.eliminations'),
       href: '/eliminations',
       icon: Target,
+    },
+    {
+      name: t('nav.currentGame'),
+      href: '/current-game',
+      icon: Swords,
     },
     {
       name: t('nav.statistics'),

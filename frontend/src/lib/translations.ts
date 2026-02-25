@@ -11,6 +11,7 @@ export const translations = {
       profile: 'Profile',
       signOut: 'Sign out',
       newGame: 'New Game',
+      currentGame: 'Battle Mode',
     },
     // Common actions
     actions: {
@@ -501,6 +502,7 @@ export const translations = {
       profile: 'Perfil',
       signOut: 'Sair',
       newGame: 'Nova Partida',
+      currentGame: 'Modo Batalha',
     },
     // Common actions
     actions: {
