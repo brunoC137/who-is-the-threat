@@ -1230,14 +1230,14 @@ function PlayerPanelView({
       }`}
       style={outerStyle}
     >
-      {/* Background: deck image or color gradient (not rotated — fills panel) */}
+      {/* Background: deck image or color gradient (rotated to match player) */}
       {player.deckImage ? (
         <div
           className="absolute inset-0 bg-cover bg-center opacity-25"
           style={{
             backgroundImage: `url(${player.deckImage})`,
             filter: 'blur(2px)',
-            transform: 'scale(1.1)',
+            transform: `rotate(${rotation}deg) scale(1.1)`,
           }}
         />
       ) : (
