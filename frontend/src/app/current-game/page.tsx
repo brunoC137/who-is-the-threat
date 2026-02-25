@@ -157,13 +157,13 @@ function getGridLayout(count: number): { cols: number; slots: SlotGridConfig[] }
       };
     case 5:
       return {
-        cols: 3,
+        cols: 2,
         slots: [
-          { slot: 2, rotation: 180 },
-          { slot: 3, rotation: 180 },
-          { slot: 4, rotation: 180 },
-          { slot: 0, rotation: 0   },
-          { slot: 1, rotation: 0   },
+          { slot: 2, rotation: 90 },   // top-left (same as 4-player)
+          { slot: 3, rotation: 270 },  // top-right (same as 4-player)
+          { slot: 0, rotation: 90 },   // middle-left (same as 4-player)
+          { slot: 1, rotation: 270 },  // middle-right (same as 4-player)
+          { slot: 4, rotation: 0, colSpan: 2 }, // bottom center
         ],
       };
     case 6:
@@ -925,7 +925,7 @@ export default function CurrentGamePage() {
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: 'repeat(2, 1fr)',
+          gridTemplateRows: `repeat(${Math.ceil(slots.length / cols)}, 1fr)`,
         }}
       >
         {slots.map(({ slot, rotation, colSpan }) => (
