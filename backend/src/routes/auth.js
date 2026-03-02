@@ -309,11 +309,21 @@ router.post('/forgotpassword', [
         html
       });
 
+      // In development mode, also log the reset URL for easy testing
+      if (process.env.NODE_ENV === 'development') {
+        console.log('\n🔐 ========== PASSWORD RESET TOKEN ==========');
+        console.log('Reset URL:', resetUrl);
+        console.log('Token expires in 10 minutes');
+        console.log('===========================================\n');
+      }
+
       res.status(200).json({
         success: true,
         message: 'If an account with that email exists, a reset link has been sent.'
       });
     } catch (emailError) {
+      console.error('Email error:', emailError);
+      
       // Roll back token if email fails
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
