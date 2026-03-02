@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const PlayerSchema = new mongoose.Schema({
   name: {
@@ -43,7 +44,15 @@ const PlayerSchema = new mongoose.Schema({
   decks: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Deck'
-  }]
+  }],
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpire: {
+    type: Date,
+    select: false
+  }
 }, {
   timestamps: true
 });
@@ -71,6 +80,23 @@ PlayerSchema.methods.toJSON = function() {
   const playerObject = this.toObject();
   delete playerObject.password;
   return playerObject;
+};
+
+// Generate and hash password reset token
+PlayerSchema.methods.getResetPasswordToken = function() {
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash token and store in DB
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expiry to 10 minutes
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 module.exports = mongoose.model('Player', PlayerSchema);
