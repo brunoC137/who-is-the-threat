@@ -8,16 +8,33 @@ const nodemailer = require('nodemailer');
 // optionally testing real SMTP (e.g. Mailtrap) by setting ENABLE_EMAIL_SENDING=true.
 const isEmailEnabled = () => process.env.ENABLE_EMAIL_SENDING === 'true';
 
-const createTransporter = () =>
-  nodemailer.createTransport({
+const createTransporter = () => {
+  const config = {
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || '587', 10),
     secure: process.env.EMAIL_SECURE === 'true',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
-    }
+    },
+    // Add connection timeout and better error handling
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    // Log connection details in development
+    logger: process.env.NODE_ENV === 'development',
+    debug: process.env.NODE_ENV === 'development'
+  };
+
+  console.log('📧 Email transporter config:', {
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    user: config.auth.user
   });
+
+  return nodemailer.createTransport(config);
+};
 
 // Lazily-created transporter instance (only used when email is enabled)
 let transporter = null;
@@ -41,12 +58,26 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 
   // Real SMTP send
-  await getTransporter().sendMail({
-    from: `"${process.env.EMAIL_FROM_NAME || 'Guerreiros do Segundo Lugar'}" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html
-  });
+  try {
+    const result = await getTransporter().sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'Guerreiros do Segundo Lugar'}" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html
+    });
+    console.log('✅ Email sent successfully:', { messageId: result.messageId, to });
+    return result;
+  } catch (error) {
+    console.error('❌ Email sending failed:', {
+      error: error.message,
+      code: error.code,
+      command: error.command,
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_SECURE
+    });
+    throw error;
+  }
 };
 
 module.exports = sendEmail;
