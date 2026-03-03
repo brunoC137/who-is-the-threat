@@ -1,8 +1,10 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const crypto = require('crypto');
 const Player = require('../models/Player');
 const { sendTokenResponse } = require('../utils/auth');
 const { protect } = require('../middleware/auth');
+const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
@@ -248,6 +250,140 @@ router.post('/logout', (req, res) => {
     success: true,
     message: 'Logged out successfully'
   });
+});
+
+// @desc    Forgot password - send reset email
+// @route   POST /auth/forgotpassword
+// @access  Public
+router.post('/forgotpassword', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const user = await Player.findOne({ email: req.body.email });
+
+    // Always respond with success to avoid user enumeration
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a reset link has been sent.'
+      });
+    }
+
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #7c3aed;">Guerreiros do Segundo Lugar</h2>
+        <h3>Password Reset Request</h3>
+        <p>You requested a password reset. Click the button below to set a new password.</p>
+        <p>This link will expire in <strong>10 minutes</strong>.</p>
+        <a href="${resetUrl}"
+           style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">
+          Reset Password
+        </a>
+        <p style="margin-top:16px;color:#6b7280;">If you did not request this, please ignore this email. Your password will remain unchanged.</p>
+        <p style="color:#6b7280;font-size:12px;">Or copy this link: ${resetUrl}</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Reset - Guerreiros do Segundo Lugar',
+        html
+      });
+
+      // In development mode, also log the reset URL for easy testing
+      if (process.env.NODE_ENV === 'development') {
+        console.log('\n🔐 ========== PASSWORD RESET TOKEN ==========');
+        console.log('Reset URL:', resetUrl);
+        console.log('Token expires in 10 minutes');
+        console.log('===========================================\n');
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a reset link has been sent.'
+      });
+    } catch (emailError) {
+      console.error('Email error:', emailError);
+      
+      // Roll back token if email fails
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent. Please try again later.'
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Reset password using token
+// @route   PUT /auth/resetpassword/:resettoken
+// @access  Public
+router.put('/resetpassword/:resettoken', [
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    // Hash the incoming token to compare with stored hash
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.resettoken)
+      .digest('hex');
+
+    const user = await Player.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    }).select('+resetPasswordToken +resetPasswordExpire');
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token.'
+      });
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;

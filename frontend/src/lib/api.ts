@@ -47,6 +47,9 @@ export const authAPI = {
   getMe: () => api.get('/api/auth/me'),
   updateDetails: (data: any) => api.put('/api/auth/updatedetails', data),
   updatePassword: (data: any) => api.put('/api/auth/updatepassword', data),
+  forgotPassword: (data: { email: string }) => api.post('/api/auth/forgotpassword', data),
+  resetPassword: (resettoken: string, data: { password: string }) =>
+    api.put(`/api/auth/resetpassword/${resettoken}`, data),
 };
 
 export const playersAPI = {
