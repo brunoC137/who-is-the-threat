@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const Player = require('../models/Player');
-const { sendTokenResponse } = require('../utils/auth');
+const { sendTokenResponse, generateToken } = require('../utils/auth');
 const { protect } = require('../middleware/auth');
 const sendEmail = require('../utils/sendEmail');
 
@@ -46,7 +46,7 @@ router.post('/register', [
 
     const { name, nickname, email, password, profileImage } = req.body;
 
-    // Check if user exists
+    // Check if user exists with this email
     const existingUser = await Player.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -55,16 +55,54 @@ router.post('/register', [
       });
     }
 
-    // Create user
-    const user = await Player.create({
-      name,
-      nickname,
-      email,
-      password,
-      profileImage
-    });
+    // Check if there's a guest player with matching nickname
+    let guestPlayer = null;
+    if (nickname) {
+      guestPlayer = await Player.findOne({ nickname, isGuest: true });
+    }
 
-    sendTokenResponse(user, 201, res);
+    let user;
+    if (guestPlayer) {
+      // Convert guest player to registered user
+      guestPlayer.email = email;
+      guestPlayer.password = password;
+      guestPlayer.name = name;
+      guestPlayer.isGuest = false;
+      if (profileImage) {
+        guestPlayer.profileImage = profileImage;
+      }
+      
+      user = await guestPlayer.save();
+      
+      // Send token response with additional flag
+      const token = generateToken(user._id);
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Account created successfully. Your guest player data has been preserved.',
+        convertedFromGuest: true,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          nickname: user.nickname,
+          email: user.email,
+          profileImage: user.profileImage,
+          isAdmin: user.isAdmin
+        }
+      });
+    } else {
+      // Create new user
+      user = await Player.create({
+        name,
+        nickname,
+        email,
+        password,
+        profileImage
+      });
+
+      sendTokenResponse(user, 201, res);
+    }
   } catch (error) {
     next(error);
   }
@@ -101,6 +139,14 @@ router.post('/login', [
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
+      });
+    }
+
+    // Prevent guest players from logging in
+    if (user.isGuest) {
+      return res.status(401).json({
+        success: false,
+        message: 'Guest players cannot login. Please register first.'
       });
     }
 

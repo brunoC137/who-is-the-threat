@@ -5,6 +5,91 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
+// @desc    Create guest player
+// @route   POST /players/guest
+// @access  Private
+router.post('/guest', protect, [
+  body('nickname')
+    .trim()
+    .isLength({ min: 2, max: 30 })
+    .withMessage('Nickname must be between 2 and 30 characters')
+], async (req, res, next) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { nickname } = req.body;
+
+    // Check if guest player with this nickname already exists
+    const existingGuest = await Player.findOne({ nickname, isGuest: true });
+    if (existingGuest) {
+      return res.status(400).json({
+        success: false,
+        message: 'A guest player with this nickname already exists'
+      });
+    }
+
+    // Check if registered player with this nickname already exists
+    const existingRegistered = await Player.findOne({ nickname, isGuest: false });
+    if (existingRegistered) {
+      return res.status(400).json({
+        success: false,
+        message: 'A registered player with this nickname already exists'
+      });
+    }
+
+    // Generate synthetic unique email for guest to avoid null unique conflicts
+    const slug = nickname
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'guest';
+    const syntheticEmail = `${slug}+guest@guest.local`;
+
+    // Create guest player with synthetic email (password omitted)
+    const guestPlayer = await Player.create({
+      name: nickname,
+      nickname: nickname,
+      isGuest: true,
+      email: syntheticEmail
+    });
+
+    res.status(201).json({
+      success: true,
+      data: guestPlayer
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Check if guest player exists by nickname
+// @route   GET /players/guest/check/:nickname
+// @access  Public
+router.get('/guest/check/:nickname', async (req, res, next) => {
+  try {
+    const guestPlayer = await Player.findOne({ 
+      nickname: req.params.nickname, 
+      isGuest: true 
+    });
+
+    res.status(200).json({
+      success: true,
+      exists: !!guestPlayer,
+      data: guestPlayer
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Get all players
 // @route   GET /players
 // @access  Private
