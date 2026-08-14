@@ -1,82 +1,73 @@
+import { GamePlayer, Player } from './types';
+import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON, STARTING_LIFE } from './gameReducer';
+
 /**
- * Get text color based on life total
+ * Life total colour. Thresholds are relative to the starting total so they
+ * still read correctly if the format ever changes from 40.
  */
 export function getLifeColor(life: number): string {
-  if (life >= 30) return 'text-green-500';
-  if (life >= 20) return 'text-yellow-500';
-  if (life >= 10) return 'text-orange-500';
-  return 'text-red-500';
+  const ratio = life / STARTING_LIFE;
+
+  if (life <= 0) return 'text-destructive';
+  if (ratio <= 0.25) return 'text-destructive';
+  if (ratio <= 0.5) return 'text-warning';
+  return 'text-foreground';
 }
 
-/**
- * Calculate rotation angle for a player based on their seat position
- */
-export function getPlayerRotation(seatIndex: number, totalPlayers: number): number {
-  if (totalPlayers === 2) {
-    return seatIndex === 0 ? 0 : 180;
-  } else if (totalPlayers === 3) {
-    const rotations = [0, 120, 240];
-    return rotations[seatIndex] || 0;
-  } else if (totalPlayers === 4) {
-    const rotations = [0, 90, 180, 270];
-    return rotations[seatIndex] || 0;
-  } else if (totalPlayers === 5) {
-    const rotations = [0, 72, 144, 216, 288];
-    return rotations[seatIndex] || 0;
-  } else if (totalPlayers === 6) {
-    const rotations = [0, 60, 120, 180, 240, 300];
-    return rotations[seatIndex] || 0;
-  }
-  
-  return 0;
+/** Poison is only interesting as it approaches lethal. */
+export function getPoisonColor(poison: number): string {
+  if (poison >= LETHAL_POISON) return 'text-destructive';
+  if (poison >= LETHAL_POISON - 3) return 'text-warning';
+  return 'text-muted-foreground';
 }
 
-/**
- * Determine which column a player should be in for landscape 2-column layout
- */
-export function getPlayerColumn(seatIndex: number, totalPlayers: number): 'left' | 'right' {
-  if (totalPlayers === 4) {
-    return seatIndex === 0 || seatIndex === 3 ? 'left' : 'right';
-  } else if (totalPlayers === 3) {
-    return seatIndex === 0 ? 'left' : 'right';
-  } else if (totalPlayers === 2) {
-    return seatIndex === 0 ? 'left' : 'right';
-  } else {
-    // For 5-6 players, split evenly
-    return seatIndex < Math.ceil(totalPlayers / 2) ? 'left' : 'right';
-  }
+export function getCommanderDamageColor(damage: number): string {
+  if (damage >= LETHAL_COMMANDER_DAMAGE) return 'text-destructive';
+  if (damage >= LETHAL_COMMANDER_DAMAGE - 6) return 'text-warning';
+  return 'text-foreground';
 }
 
-/**
- * Format time duration in MM:SS format
- */
+/** MM:SS, or H:MM:SS once a game passes the hour mark. */
 export function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+  const mm = mins.toString().padStart(2, '0');
+  const ss = secs.toString().padStart(2, '0');
+
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+export function getDisplayName(player: Player): string {
+  return player.nickname || player.name;
+}
+
+/** Ordinal suffix for placement badges: 1st, 2nd, 3rd, 4th. */
+export function formatPlacement(placement: number | undefined): string {
+  if (!placement) return '—';
+
+  const suffixes: { [key: number]: string } = { 1: 'st', 2: 'nd', 3: 'rd' };
+  return `${placement}${suffixes[placement] || 'th'}`;
 }
 
 /**
- * Check if a player should be eliminated based on game state
+ * Short haptic tap. Silently absent on iOS Safari, which does not implement
+ * the Vibration API — the CSS pulse is the shared feedback channel.
  */
-export function checkElimination(life: number, poison: number, commanderDamage: { [key: string]: number }): {
-  isEliminated: boolean;
-  reason: 'life' | 'poison' | 'commander' | null;
-  fromPlayer?: string;
-} {
-  if (life <= 0) {
-    return { isEliminated: true, reason: 'life' };
+export function haptic(durationMs = 12): void {
+  if (typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+
+  try {
+    navigator.vibrate(durationMs);
+  } catch {
+    // Vibration can throw when the document is not focused; feedback is
+    // non-essential so failing silently is correct here.
   }
-  
-  if (poison >= 10) {
-    return { isEliminated: true, reason: 'poison' };
-  }
-  
-  for (const [playerId, damage] of Object.entries(commanderDamage)) {
-    if (damage >= 21) {
-      return { isEliminated: true, reason: 'commander', fromPlayer: playerId };
-    }
-  }
-  
-  return { isEliminated: false, reason: null };
+}
+
+/** Highest commander damage from any single source, for the card summary. */
+export function getHighestCommanderDamage(gamePlayer: GamePlayer): number {
+  const values = Object.values(gamePlayer.commanderDamage);
+  return values.length > 0 ? Math.max(...values) : 0;
 }

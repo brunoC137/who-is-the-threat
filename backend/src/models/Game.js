@@ -37,7 +37,37 @@ const GameSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Player',
       required: false
-    }
+    },
+    // How this player left the game. Optional: historical games predate the
+    // Current Game tracker and will not have it.
+    eliminationCause: {
+      type: String,
+      enum: ['life', 'poison', 'commanderDamage', 'conceded', 'other'],
+      required: false
+    },
+    // Poison counters at the end of the game (10 is lethal).
+    poison: {
+      type: Number,
+      min: [0, 'Poison counters cannot be negative'],
+      max: [10, 'Poison counters cannot be more than 10'],
+      default: 0
+    },
+    // Commander damage this participant *received*, per source player.
+    // 21 from a single commander is lethal.
+    commanderDamage: [{
+      _id: false,
+      from: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Player',
+        required: true
+      },
+      damage: {
+        type: Number,
+        required: true,
+        min: [0, 'Commander damage cannot be negative'],
+        max: [21, 'Commander damage cannot be more than 21']
+      }
+    }]
   }],
   durationMinutes: {
     type: Number,
@@ -88,7 +118,27 @@ GameSchema.pre('save', function(next) {
   if (winner && winner.eliminatedBy) {
     return next(new Error('Winner (1st place) cannot have an eliminatedBy value'));
   }
-  
+
+  // The winner survived, so they cannot have been eliminated by anything
+  if (winner && winner.eliminationCause) {
+    return next(new Error('Winner (1st place) cannot have an eliminationCause'));
+  }
+
+  // Commander damage must come from a different player, and only once per source
+  for (const participant of this.players) {
+    if (!participant.commanderDamage || participant.commanderDamage.length === 0) continue;
+
+    const sources = participant.commanderDamage.map(entry => entry.from.toString());
+
+    if (sources.some(source => source === participant.player.toString())) {
+      return next(new Error('Commander damage cannot come from the player themselves'));
+    }
+
+    if (new Set(sources).size !== sources.length) {
+      return next(new Error('Commander damage can only have one entry per source player'));
+    }
+  }
+
   next();
 });
 

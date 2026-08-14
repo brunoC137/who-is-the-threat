@@ -5,6 +5,56 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * Referential checks that express-validator cannot express on its own, because
+ * they compare participants against each other rather than validating a single
+ * field. Shared by POST and PUT so both verbs enforce the same rules.
+ *
+ * Returns an error message, or null when the participants are valid.
+ */
+const validateParticipantReferences = (players) => {
+  const participantIds = players.map(p => p.player.toString());
+
+  const winner = players.find(p => p.placement === 1);
+  if (winner && winner.eliminatedBy) {
+    return 'Winner (1st place) cannot have an eliminatedBy value';
+  }
+  if (winner && winner.eliminationCause) {
+    return 'Winner (1st place) cannot have an eliminationCause';
+  }
+
+  for (const participant of players) {
+    const participantId = participant.player.toString();
+
+    if (participant.eliminatedBy) {
+      const eliminatorId = participant.eliminatedBy.toString();
+
+      if (eliminatorId === participantId) {
+        return 'A player cannot be eliminated by themselves';
+      }
+      if (!participantIds.includes(eliminatorId)) {
+        return 'EliminatedBy must reference a player in the game';
+      }
+    }
+
+    if (!Array.isArray(participant.commanderDamage)) continue;
+
+    const sources = participant.commanderDamage.map(entry => entry.from.toString());
+
+    if (sources.some(source => source === participantId)) {
+      return 'Commander damage cannot come from the player themselves';
+    }
+    if (sources.some(source => !participantIds.includes(source))) {
+      return 'Commander damage must reference a player in the game';
+    }
+    if (new Set(sources).size !== sources.length) {
+      return 'Commander damage can only have one entry per source player';
+    }
+  }
+
+  return null;
+};
+
 // @desc    Get all games
 // @route   GET /games
 // @access  Private
@@ -85,7 +135,8 @@ router.get('/:id', protect, async (req, res, next) => {
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage colorIdentity')
       .populate('players.eliminatedBy', 'name nickname profileImage')
-      .populate('players.borrowedFrom', 'name nickname profileImage');
+      .populate('players.borrowedFrom', 'name nickname profileImage')
+      .populate('players.commanderDamage.from', 'name nickname profileImage');
 
     if (!game) {
       return res.status(404).json({
@@ -133,6 +184,24 @@ router.post('/', protect, [
       return /^[0-9a-fA-F]{24}$/.test(value);
     })
     .withMessage('BorrowedFrom must be a valid MongoDB ObjectId or empty'),
+  body('players.*.eliminationCause')
+    .optional({ checkFalsy: true })
+    .isIn(['life', 'poison', 'commanderDamage', 'conceded', 'other'])
+    .withMessage('Elimination cause must be life, poison, commanderDamage, conceded or other'),
+  body('players.*.poison')
+    .optional()
+    .isInt({ min: 0, max: 10 })
+    .withMessage('Poison counters must be between 0 and 10'),
+  body('players.*.commanderDamage')
+    .optional()
+    .isArray()
+    .withMessage('Commander damage must be an array'),
+  body('players.*.commanderDamage.*.from')
+    .isMongoId()
+    .withMessage('Commander damage source must be a valid MongoDB ObjectId'),
+  body('players.*.commanderDamage.*.damage')
+    .isInt({ min: 0, max: 21 })
+    .withMessage('Commander damage must be between 0 and 21'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -141,7 +210,19 @@ router.post('/', protect, [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Notes cannot be more than 500 characters')
+    .withMessage('Notes cannot be more than 500 characters'),
+  body('commentary')
+    .optional()
+    .isArray({ max: 200 })
+    .withMessage('Commentary must be an array of at most 200 entries'),
+  body('commentary.*.text')
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Commentary text must be between 1 and 500 characters'),
+  body('commentary.*.timestamp')
+    .optional()
+    .isISO8601()
+    .withMessage('Commentary timestamp must be in ISO8601 format')
 ], async (req, res, next) => {
   try {
     // Check for validation errors
@@ -186,6 +267,15 @@ router.post('/', protect, [
       });
     }
 
+    // Cross-participant checks (eliminatedBy / commanderDamage references)
+    const referenceError = validateParticipantReferences(req.body.players);
+    if (referenceError) {
+      return res.status(400).json({
+        success: false,
+        message: referenceError
+      });
+    }
+
     const game = await Game.create({
       ...req.body,
       createdBy: req.user._id
@@ -196,7 +286,8 @@ router.post('/', protect, [
       .populate('players.player', 'name nickname profileImage')
       .populate('players.deck', 'name commander deckImage')
       .populate('players.eliminatedBy', 'name nickname profileImage')
-      .populate('players.borrowedFrom', 'name nickname profileImage');
+      .populate('players.borrowedFrom', 'name nickname profileImage')
+      .populate('players.commanderDamage.from', 'name nickname profileImage');
 
     res.status(201).json({
       success: true,
@@ -251,6 +342,24 @@ router.put('/:id', protect, [
       return /^[0-9a-fA-F]{24}$/.test(value);
     })
     .withMessage('BorrowedFrom must be a valid MongoDB ObjectId or empty'),
+  body('players.*.eliminationCause')
+    .optional({ checkFalsy: true })
+    .isIn(['life', 'poison', 'commanderDamage', 'conceded', 'other'])
+    .withMessage('Elimination cause must be life, poison, commanderDamage, conceded or other'),
+  body('players.*.poison')
+    .optional()
+    .isInt({ min: 0, max: 10 })
+    .withMessage('Poison counters must be between 0 and 10'),
+  body('players.*.commanderDamage')
+    .optional()
+    .isArray()
+    .withMessage('Commander damage must be an array'),
+  body('players.*.commanderDamage.*.from')
+    .isMongoId()
+    .withMessage('Commander damage source must be a valid MongoDB ObjectId'),
+  body('players.*.commanderDamage.*.damage')
+    .isInt({ min: 0, max: 21 })
+    .withMessage('Commander damage must be between 0 and 21'),
   body('durationMinutes')
     .optional()
     .isInt({ min: 1, max: 600 })
@@ -259,7 +368,19 @@ router.put('/:id', protect, [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Notes cannot be more than 500 characters')
+    .withMessage('Notes cannot be more than 500 characters'),
+  body('commentary')
+    .optional()
+    .isArray({ max: 200 })
+    .withMessage('Commentary must be an array of at most 200 entries'),
+  body('commentary.*.text')
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Commentary text must be between 1 and 500 characters'),
+  body('commentary.*.timestamp')
+    .optional()
+    .isISO8601()
+    .withMessage('Commentary timestamp must be in ISO8601 format')
 ], async (req, res, next) => {
   try {
     // Check for validation errors
@@ -322,42 +443,30 @@ router.put('/:id', protect, [
         });
       }
 
-      // Validate eliminatedBy references
-      const winner = req.body.players.find(p => p.placement === 1);
-      if (winner && winner.eliminatedBy) {
+      // Cross-participant checks (eliminatedBy / commanderDamage references)
+      const referenceError = validateParticipantReferences(req.body.players);
+      if (referenceError) {
         return res.status(400).json({
           success: false,
-          message: 'Winner (1st place) cannot have an eliminatedBy value'
+          message: referenceError
         });
-      }
-
-      // Validate that eliminatedBy references are players in the game
-      for (const player of req.body.players) {
-        if (player.eliminatedBy) {
-          const eliminatorExists = playerIds.some(id => id.toString() === player.eliminatedBy.toString());
-          if (!eliminatorExists) {
-            return res.status(400).json({
-              success: false,
-              message: 'EliminatedBy must reference a player in the game'
-            });
-          }
-        }
       }
     }
 
     // Clean up the data
     const fieldsToUpdate = { ...req.body };
-    
+
     // Remove undefined fields at top level
-    Object.keys(fieldsToUpdate).forEach(key => 
+    Object.keys(fieldsToUpdate).forEach(key =>
       fieldsToUpdate[key] === undefined && delete fieldsToUpdate[key]
     );
-    
-    // Clean up players array - convert empty strings to null for eliminatedBy
+
+    // Clean up players array - convert empty strings to null for optional refs
     if (fieldsToUpdate.players) {
       fieldsToUpdate.players = fieldsToUpdate.players.map(player => ({
         ...player,
-        eliminatedBy: player.eliminatedBy === '' || player.eliminatedBy === undefined ? null : player.eliminatedBy
+        eliminatedBy: player.eliminatedBy === '' || player.eliminatedBy === undefined ? null : player.eliminatedBy,
+        eliminationCause: player.eliminationCause === '' || player.eliminationCause === undefined ? null : player.eliminationCause
       }));
     }
 
@@ -369,7 +478,8 @@ router.put('/:id', protect, [
     .populate('players.player', 'name nickname profileImage')
     .populate('players.deck', 'name commander deckImage')
     .populate('players.eliminatedBy', 'name nickname profileImage')
-    .populate('players.borrowedFrom', 'name nickname profileImage');
+    .populate('players.borrowedFrom', 'name nickname profileImage')
+    .populate('players.commanderDamage.from', 'name nickname profileImage');
 
     res.status(200).json({
       success: true,

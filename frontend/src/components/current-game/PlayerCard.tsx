@@ -1,422 +1,266 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trophy, Skull, Droplet, Swords, Plus, Minus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Crown, Droplet, Skull, Swords } from 'lucide-react';
 import { GamePlayer } from './types';
-import { getLifeColor } from './utils';
+import { SeatEdge, isSideSeat } from './layout';
+import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON } from './gameReducer';
+import {
+  formatPlacement,
+  getDisplayName,
+  getHighestCommanderDamage,
+  getLifeColor,
+  getPoisonColor,
+  haptic,
+} from './utils';
+import { useHoldRepeat } from './hooks';
 
 interface PlayerCardProps {
   gamePlayer: GamePlayer;
-  allPlayers: GamePlayer[];
-  isSelected: boolean;
-  rotation: number;
-  onSelect: () => void;
+  edge: SeatEdge;
+  isRolling: boolean;
   onLifeChange: (delta: number) => void;
-  onPoisonChange: (delta: number) => void;
-  onCommanderDamageChange: (fromId: string, delta: number) => void;
+  onOpenDetails: () => void;
   t: (key: string) => string;
 }
 
 export function PlayerCard({
   gamePlayer,
-  allPlayers,
-  isSelected,
-  rotation,
-  onSelect,
+  edge,
+  isRolling,
   onLifeChange,
-  onPoisonChange,
-  onCommanderDamageChange,
+  onOpenDetails,
   t,
 }: PlayerCardProps) {
-  const [showCommanderDamage, setShowCommanderDamage] = useState(false);
-  const [showPoison, setShowPoison] = useState(false);
-
   if (gamePlayer.isEliminated) {
-    return (
-      <EliminatedPlayerCard
-        gamePlayer={gamePlayer}
-      />
-    );
+    return <EliminatedPanel gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} t={t} />;
   }
 
   return (
-    <div 
-      className={`relative rounded-lg overflow-hidden transition-all duration-300 w-full aspect-[2/1] ${
-        gamePlayer.isFirstPlayer ? 'ring-2 ring-yellow-500 shadow-glow-lg' : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
-    >
-      {/* Background with deck image or color gradient */}
-      <PlayerCardBackground deckImage={gamePlayer.deck.deckImage} />
-
-      {/* Rotated Content Wrapper */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center"
-        style={{
-          transform: `rotate(${rotation}deg)`,
-          transformOrigin: 'center center',
-        }}
-      >
-        <div className="w-full h-full relative flex flex-row items-center p-1 gap-2">
-          {/* First Player Crown */}
-          {gamePlayer.isFirstPlayer && <FirstPlayerBadge />}
-
-          {/* Landscape Layout */}
-          <LifeControls
-            life={gamePlayer.life}
-            onLifeChange={onLifeChange}
-          />
-
-          {/* Player Info */}
-          <PlayerInfo
-            player={gamePlayer.player}
-            deckImage={gamePlayer.deck.deckImage}
-          />
-
-          {/* Secondary Stats */}
-          <SecondaryStats
-            gamePlayer={gamePlayer}
-            allPlayers={allPlayers}
-            showPoison={showPoison}
-            showCommanderDamage={showCommanderDamage}
-            onTogglePoison={() => setShowPoison(!showPoison)}
-            onToggleCommanderDamage={() => setShowCommanderDamage(!showCommanderDamage)}
-            onPoisonChange={onPoisonChange}
-            onCommanderDamageChange={onCommanderDamageChange}
-            t={t}
-          />
-        </div>
-      </div>
-    </div>
+    <LivePanel
+      gamePlayer={gamePlayer}
+      edge={edge}
+      isRolling={isRolling}
+      onLifeChange={onLifeChange}
+      onOpenDetails={onOpenDetails}
+      t={t}
+    />
   );
 }
 
-function EliminatedPlayerCard({ gamePlayer }: { gamePlayer: GamePlayer }) {
-  return (
-    <div className="relative h-full w-full min-h-[200px] rounded-lg bg-card/30 border-2 border-destructive/30 opacity-60 flex items-center justify-center">
-      <div className="text-center p-2">
-        <Skull className="h-8 w-8 mx-auto text-destructive/40 mb-1" />
-        <Avatar className="h-8 w-8 mx-auto mb-1 grayscale">
-          <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
-          <AvatarFallback className="text-xs">{gamePlayer.player.name?.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <p className="font-semibold text-xs truncate">{gamePlayer.player.nickname || gamePlayer.player.name}</p>
-        <Badge variant="destructive" className="mt-1 text-xs">
-          #{gamePlayer.placement}
-        </Badge>
-      </div>
-    </div>
-  );
-}
-
-function PlayerCardBackground({ deckImage }: { deckImage?: string }) {
-  return (
-    <>
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ 
-          backgroundImage: deckImage ? `url(${deckImage})` : undefined 
-        }}
-      />
-      <div className={`absolute inset-0 ${
-        deckImage 
-          ? 'bg-black/60 backdrop-blur-sm' 
-          : 'bg-gradient-to-br from-card to-muted'
-      }`} />
-    </>
-  );
-}
-
-function FirstPlayerBadge() {
-  return (
-    <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-900 p-0.5 rounded-full z-10">
-      <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
-    </div>
-  );
-}
-
-interface LifeControlsProps {
-  life: number;
-  onLifeChange: (delta: number) => void;
-}
-
-function LifeControls({ life, onLifeChange }: LifeControlsProps) {
-  return (
-    <div className="w-full h-full flex flex-row items-center justify-between p-2 gap-2">
-      {/* Left: Minus buttons */}
-      <div className="flex flex-col gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onLifeChange(-5)}
-          className="h-12 w-12 text-lg font-bold bg-red-600/30 hover:bg-red-600/50 border-red-600/50 p-0"
-        >
-          -5
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onLifeChange(-1)}
-          className="h-12 w-12 text-lg font-bold bg-red-500/30 hover:bg-red-500/50 border-red-500/50 p-0"
-        >
-          -1
-        </Button>
-      </div>
-
-      {/* Center: Life total */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className={`font-bold text-6xl sm:text-7xl ${getLifeColor(life)} transition-colors select-none`}>
-          {life}
-        </div>
-      </div>
-
-      {/* Right: Plus buttons */}
-      <div className="flex flex-col gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onLifeChange(1)}
-          className="h-12 w-12 text-lg font-bold bg-green-500/30 hover:bg-green-500/50 border-green-500/50 p-0"
-        >
-          +1
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onLifeChange(5)}
-          className="h-12 w-12 text-lg font-bold bg-green-600/30 hover:bg-green-600/50 border-green-600/50 p-0"
-        >
-          +5
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface PlayerInfoProps {
-  player: GamePlayer['player'];
-  deckImage?: string;
-}
-
-function PlayerInfo({ player, deckImage }: PlayerInfoProps) {
-  return (
-    <div className="absolute top-2 left-2 flex items-center gap-1">
-      <Avatar className="h-6 w-6 ring-1 ring-white/20">
-        <AvatarImage src={deckImage || player.profileImage} />
-        <AvatarFallback className="text-xs bg-primary/20">
-          {player.name?.charAt(0)?.toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      <span className="text-xs font-semibold text-white truncate max-w-[100px]">
-        {player.nickname || player.name}
-      </span>
-    </div>
-  );
-}
-
-interface SecondaryStatsProps {
-  gamePlayer: GamePlayer;
-  allPlayers: GamePlayer[];
-  showPoison: boolean;
-  showCommanderDamage: boolean;
-  onTogglePoison: () => void;
-  onToggleCommanderDamage: () => void;
-  onPoisonChange: (delta: number) => void;
-  onCommanderDamageChange: (fromId: string, delta: number) => void;
-  t: (key: string) => string;
-}
-
-function SecondaryStats({
+function LivePanel({
   gamePlayer,
-  allPlayers,
-  showPoison,
-  showCommanderDamage,
-  onTogglePoison,
-  onToggleCommanderDamage,
-  onPoisonChange,
-  onCommanderDamageChange,
+  edge,
+  isRolling,
+  onLifeChange,
+  onOpenDetails,
   t,
-}: SecondaryStatsProps) {
+}: PlayerCardProps) {
+  const compact = isSideSeat(edge);
+  const inDanger = gamePlayer.life <= 5 || gamePlayer.poison >= LETHAL_POISON - 2;
+
   return (
-    <>
-      <div className="absolute bottom-2 left-2 flex gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onTogglePoison}
-          className={`h-6 px-1.5 text-xs ${gamePlayer.poison > 0 ? 'bg-green-600/30 border-green-500' : 'bg-background/50'}`}
+    <div
+      className={`relative h-full w-full overflow-hidden rounded-xl border transition-shadow duration-300 ${
+        gamePlayer.isFirstPlayer
+          ? 'border-warning/70 shadow-glow-md'
+          : 'border-border/60'
+      } ${isRolling ? 'animate-pulse' : ''}`}
+    >
+      <PanelBackground deck={gamePlayer.deck} />
+
+      {inDanger && <div className="cg-danger pointer-events-none absolute inset-0 rounded-xl" />}
+
+      {/* Tap zones: the whole panel is the control surface. Left half removes
+          life, right half adds, and the centre column opens the detail sheet.
+          Nothing here is a small target. */}
+      <div className="absolute inset-0 flex">
+        <LifeTapZone
+          label="−"
+          delta={-1}
+          onLifeChange={onLifeChange}
+          ariaLabel={t('currentGame.decreaseLife')}
+        />
+
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          aria-label={t('currentGame.openDetails')}
+          className="relative flex h-full flex-[1.15] flex-col items-center justify-center gap-0.5 px-1"
         >
-          <Droplet className="h-3 w-3 text-green-500" />
-          <span className={gamePlayer.poison > 0 ? 'text-green-400 font-bold ml-0.5' : 'ml-0.5'}>
+          <LifeTotal life={gamePlayer.life} compact={compact} />
+        </button>
+
+        <LifeTapZone
+          label="+"
+          delta={1}
+          onLifeChange={onLifeChange}
+          ariaLabel={t('currentGame.increaseLife')}
+        />
+      </div>
+
+      {/* Identity strip. Kept out of the tap zones so it never eats a press. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 p-1.5">
+        {gamePlayer.isFirstPlayer && (
+          <Crown className="h-3.5 w-3.5 shrink-0 text-warning drop-shadow" />
+        )}
+        <span className="truncate text-[11px] font-semibold leading-none text-white drop-shadow-md">
+          {getDisplayName(gamePlayer.player)}
+        </span>
+        {!compact && (
+          <span className="truncate text-[10px] leading-none text-white/60">
+            {gamePlayer.deck.commander}
+          </span>
+        )}
+      </div>
+
+      {/* Counter summary. Only shown once a counter is actually in play, so a
+          clean board stays clean. */}
+      <CounterStrip gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} />
+    </div>
+  );
+}
+
+interface LifeTapZoneProps {
+  label: string;
+  delta: number;
+  onLifeChange: (delta: number) => void;
+  ariaLabel: string;
+}
+
+function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps) {
+  const holdHandlers = useHoldRepeat(() => {
+    haptic();
+    onLifeChange(delta);
+  });
+
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      className="group flex h-full flex-1 items-center justify-center text-white/25 transition-colors active:bg-white/10 active:text-white/70"
+      {...holdHandlers}
+    >
+      <span className="text-2xl font-light leading-none">{label}</span>
+    </button>
+  );
+}
+
+function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
+  const [pulse, setPulse] = useState(false);
+  const previous = useRef(life);
+
+  useEffect(() => {
+    if (previous.current !== life) {
+      previous.current = life;
+      setPulse(true);
+    }
+  }, [life]);
+
+  return (
+    <span
+      onAnimationEnd={() => setPulse(false)}
+      className={`font-bold tabular-nums leading-none drop-shadow-lg ${getLifeColor(life)} ${
+        pulse ? 'cg-life-pulse' : ''
+      } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
+    >
+      {life}
+    </span>
+  );
+}
+
+function CounterStrip({
+  gamePlayer,
+  onOpenDetails,
+}: {
+  gamePlayer: GamePlayer;
+  onOpenDetails: () => void;
+}) {
+  const highestCommanderDamage = getHighestCommanderDamage(gamePlayer);
+  const showPoison = gamePlayer.poison > 0;
+  const showCommander = highestCommanderDamage > 0;
+
+  if (!showPoison && !showCommander) return null;
+
+  return (
+    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-1">
+      {showPoison && (
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
+        >
+          <Droplet className="h-3 w-3 text-success" />
+          <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
             {gamePlayer.poison}
           </span>
-        </Button>
+        </button>
+      )}
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggleCommanderDamage}
-          className="h-6 px-1.5 bg-background/50 text-xs"
+      {showCommander && (
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
         >
-          <Swords className="h-3 w-3 text-purple-500" />
-        </Button>
-      </div>
-
-      {/* Poison Modal */}
-      {showPoison && (
-        <PoisonModal
-          poison={gamePlayer.poison}
-          onPoisonChange={onPoisonChange}
-          onClose={onTogglePoison}
-          t={t}
-        />
-      )}
-
-      {/* Commander Damage Modal */}
-      {showCommanderDamage && (
-        <CommanderDamageModal
-          gamePlayer={gamePlayer}
-          allPlayers={allPlayers}
-          onCommanderDamageChange={onCommanderDamageChange}
-          onClose={onToggleCommanderDamage}
-          t={t}
-        />
-      )}
-    </>
-  );
-}
-
-interface PoisonModalProps {
-  poison: number;
-  onPoisonChange: (delta: number) => void;
-  onClose: () => void;
-  t: (key: string) => string;
-}
-
-function PoisonModal({ poison, onPoisonChange, onClose, t }: PoisonModalProps) {
-  return (
-    <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center p-4">
-      <div className="bg-card rounded-lg p-4 max-w-xs w-full">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-bold text-sm flex items-center gap-1">
-            <Droplet className="h-4 w-4 text-green-500" />
-            {t('currentGame.poisonCounters')}
-          </h3>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">
-            ×
-          </Button>
-        </div>
-        
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPoisonChange(-1)}
-            disabled={poison <= 0}
-            className="h-10 w-10"
+          <Swords className="h-3 w-3 text-accent" />
+          <span
+            className={`text-[11px] font-bold tabular-nums ${
+              highestCommanderDamage >= LETHAL_COMMANDER_DAMAGE
+                ? 'text-destructive'
+                : 'text-white'
+            }`}
           >
-            <Minus className="h-4 w-4" />
-          </Button>
-          
-          <div className={`text-4xl font-bold ${poison >= 10 ? 'text-red-500' : 'text-green-500'}`}>
-            {poison}
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPoisonChange(1)}
-            disabled={poison >= 10}
-            className="h-10 w-10"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+            {highestCommanderDamage}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
 
-interface CommanderDamageModalProps {
-  gamePlayer: GamePlayer;
-  allPlayers: GamePlayer[];
-  onCommanderDamageChange: (fromId: string, delta: number) => void;
-  onClose: () => void;
-  t: (key: string) => string;
+function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
+  if (deck.deckImage) {
+    return (
+      <>
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${deck.deckImage})` }}
+        />
+        {/* Deck art is arbitrary — it can be a pale full-art card or a busy
+            card face with readable rules text. The scrim plus a real blur is
+            what guarantees the life total stays legible on top of any of it. */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" />
+      </>
+    );
+  }
+
+  return <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />;
 }
 
-function CommanderDamageModal({
+function EliminatedPanel({
   gamePlayer,
-  allPlayers,
-  onCommanderDamageChange,
-  onClose,
+  onOpenDetails,
   t,
-}: CommanderDamageModalProps) {
-  const opponents = useMemo(() => 
-    allPlayers.filter(p => p.id !== gamePlayer.id && !p.isEliminated),
-    [allPlayers, gamePlayer.id]
-  );
-
+}: {
+  gamePlayer: GamePlayer;
+  onOpenDetails: () => void;
+  t: (key: string) => string;
+}) {
   return (
-    <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center p-2">
-      <div className="bg-card rounded-lg p-3 max-w-xs w-full max-h-full overflow-y-auto">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-bold text-sm flex items-center gap-1">
-            <Swords className="h-4 w-4 text-purple-500" />
-            {t('currentGame.commanderDamage')}
-          </h3>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">
-            ×
-          </Button>
-        </div>
-        
-        <div className="space-y-2">
-          {opponents.map(opponent => {
-            const damage = gamePlayer.commanderDamage[opponent.id] || 0;
-            return (
-              <div key={opponent.id} className="flex items-center justify-between gap-2 bg-background/50 p-2 rounded">
-                <div className="flex items-center gap-1 min-w-0 flex-1">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={opponent.deck.deckImage || opponent.player.profileImage} />
-                    <AvatarFallback className="text-xs">
-                      {opponent.player.name?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs truncate">{opponent.player.nickname || opponent.player.name}</span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onCommanderDamageChange(opponent.id, -1)}
-                    disabled={damage <= 0}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  
-                  <span className={`text-sm font-bold w-8 text-center ${damage >= 21 ? 'text-red-500' : damage >= 15 ? 'text-orange-500' : ''}`}>
-                    {damage}
-                  </span>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onCommanderDamageChange(opponent.id, 1)}
-                    disabled={damage >= 21}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onOpenDetails}
+      aria-label={t('currentGame.openDetails')}
+      className="relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-destructive/30 bg-card/40 grayscale"
+    >
+      <Skull className="h-6 w-6 text-destructive/60" />
+      <span className="max-w-full truncate px-2 text-[11px] font-semibold text-muted-foreground">
+        {getDisplayName(gamePlayer.player)}
+      </span>
+      <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">
+        {formatPlacement(gamePlayer.placement)}
+      </span>
+    </button>
   );
 }
