@@ -1,5 +1,5 @@
 // Service Worker for Guerreiros do Segundo Lugar PWA
-const CACHE_NAME = 'guerreiros-v1';
+const CACHE_NAME = 'guerreiros-v2';
 const RUNTIME_CACHE = 'guerreiros-runtime';
 
 // Assets to cache on install

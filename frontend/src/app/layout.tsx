@@ -29,9 +29,10 @@ export const metadata: Metadata = {
       { url: '/favicon.ico' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png' },
+      { url: '/apple-touch-icon.png', sizes: '180x180' },
     ],
   },
   manifest: '/site.webmanifest',
@@ -47,11 +48,20 @@ export const metadata: Metadata = {
     title: 'Guerreiros do Segundo Lugar',
     description: 'Track and visualize Commander (EDH) games among friends',
     siteName: 'Guerreiros do Segundo Lugar',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Guerreiros do Segundo Lugar',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Guerreiros do Segundo Lugar',
     description: 'Track and visualize Commander (EDH) games among friends',
+    images: ['/og-image.png'],
   },
 }
 
