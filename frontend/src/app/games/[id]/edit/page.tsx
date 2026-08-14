@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { gamesAPI, playersAPI, decksAPI } from '@/lib/api';
+import { ELIMINATION_CAUSES, ELIMINATION_CAUSE_KEYS } from '@/lib/eliminationCause';
+import type { EliminationCause } from '@/lib/eliminationCause';
 
 interface Player {
   _id: string;
@@ -46,6 +49,7 @@ interface GamePlayer {
   placement?: number;
   eliminatedBy?: string;
   borrowedFrom?: string;
+  eliminationCause?: EliminationCause;
 }
 
 interface Game {
@@ -86,6 +90,7 @@ interface Game {
 
 export default function EditGamePage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
@@ -135,7 +140,8 @@ export default function EditGamePage() {
           deck: p.deck._id,
           placement: p.placement,
           eliminatedBy: p.eliminatedBy?._id || undefined,
-          borrowedFrom: p.borrowedFrom?._id || undefined
+          borrowedFrom: p.borrowedFrom?._id || undefined,
+          eliminationCause: p.eliminationCause || undefined
         }));
 
         setFormData({
@@ -225,7 +231,14 @@ export default function EditGamePage() {
     setLoading(true);
     try {
       const gameData = {
-        players: formData.players,
+        // The winner survived, so any elimination data left over from an
+        // earlier placement must be dropped — the API rejects a 1st place
+        // participant that still carries a killer or a cause.
+        players: formData.players.map(participant =>
+          participant.placement === 1
+            ? { ...participant, eliminatedBy: undefined, eliminationCause: undefined }
+            : participant
+        ),
         durationMinutes: formData.durationMinutes ? Number(formData.durationMinutes) : undefined,
         notes: formData.notes || undefined,
       };
@@ -623,28 +636,48 @@ export default function EditGamePage() {
                     )
                   )}
 
-                  {/* Eliminated By - Only show for non-winners */}
+                  {/* Eliminated By and cause - Only show for non-winners */}
                   {gamePlayer.placement && gamePlayer.placement > 1 && (
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Eliminated By</label>
-                      <select
-                        value={gamePlayer.eliminatedBy || ''}
-                        onChange={(e) => updatePlayer(index, 'eliminatedBy', e.target.value || undefined)}
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="">Not specified</option>
-                        {formData.players
-                          .filter(p => p.player && p.player !== gamePlayer.player)
-                          .map((p, pIndex) => {
-                            const player = getPlayerById(p.player);
-                            return player ? (
-                              <option key={p.player} value={p.player}>
-                                {player.nickname || player.name}
-                              </option>
-                            ) : null;
-                          })
-                        }
-                      </select>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">{t('games.eliminatedByLabel')}</label>
+                        <select
+                          value={gamePlayer.eliminatedBy || ''}
+                          onChange={(e) => updatePlayer(index, 'eliminatedBy', e.target.value || undefined)}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="">{t('games.notSpecified')}</option>
+                          {formData.players
+                            .filter(p => p.player && p.player !== gamePlayer.player)
+                            .map((p, pIndex) => {
+                              const player = getPlayerById(p.player);
+                              return player ? (
+                                <option key={p.player} value={p.player}>
+                                  {player.nickname || player.name}
+                                </option>
+                              ) : null;
+                            })
+                          }
+                        </select>
+                      </div>
+
+                      {/* Lets older games be corrected/backfilled, so cause
+                          metrics are not limited to tracker-created games. */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">{t('games.eliminationCauseLabel')}</label>
+                        <select
+                          value={gamePlayer.eliminationCause || ''}
+                          onChange={(e) => updatePlayer(index, 'eliminationCause', e.target.value || undefined)}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="">{t('games.causeUnknown')}</option>
+                          {ELIMINATION_CAUSES.map(cause => (
+                            <option key={cause} value={cause}>
+                              {t(ELIMINATION_CAUSE_KEYS[cause])}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   )}
 

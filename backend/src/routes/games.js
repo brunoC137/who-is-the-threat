@@ -463,11 +463,21 @@ router.put('/:id', protect, [
 
     // Clean up players array - convert empty strings to null for optional refs
     if (fieldsToUpdate.players) {
-      fieldsToUpdate.players = fieldsToUpdate.players.map(player => ({
-        ...player,
-        eliminatedBy: player.eliminatedBy === '' || player.eliminatedBy === undefined ? null : player.eliminatedBy,
-        eliminationCause: player.eliminationCause === '' || player.eliminationCause === undefined ? null : player.eliminationCause
-      }));
+      fieldsToUpdate.players = fieldsToUpdate.players.map(player => {
+        const participant = {
+          ...player,
+          eliminatedBy: player.eliminatedBy === '' || player.eliminatedBy === undefined ? null : player.eliminatedBy
+        };
+
+        // An enum path rejects an explicit null, so an unset cause has to be
+        // omitted rather than nulled. The players array is replaced wholesale
+        // by this update, so omitting the key is what clears it.
+        if (!participant.eliminationCause) {
+          delete participant.eliminationCause;
+        }
+
+        return participant;
+      });
     }
 
     game = await Game.findByIdAndUpdate(req.params.id, fieldsToUpdate, {

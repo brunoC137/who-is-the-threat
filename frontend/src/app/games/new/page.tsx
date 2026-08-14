@@ -1,8 +1,11 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ELIMINATION_CAUSES, ELIMINATION_CAUSE_KEYS } from '@/lib/eliminationCause';
+import type { EliminationCause } from '@/lib/eliminationCause';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,22 +65,32 @@ interface GamePlayer {
   player: string;
   deck: string;
   borrowedFrom?: string; // Player ID who owns the deck
+  eliminatedBy?: string; // Player ID who knocked them out
+  eliminationCause?: EliminationCause;
 }
 
-function SortablePlayerCard({ 
-  gamePlayer, 
-  index, 
-  selectedPlayer, 
+function SortablePlayerCard({
+  gamePlayer,
+  index,
+  selectedPlayer,
   selectedDeck,
   borrowedFromPlayer,
-  onRemove 
-}: { 
+  opponents,
+  onRemove,
+  onEliminatedByChange,
+  onCauseChange,
+  t,
+}: {
   gamePlayer: GamePlayer;
   index: number;
   selectedPlayer?: Player;
   selectedDeck?: Deck;
   borrowedFromPlayer?: Player;
+  opponents: Array<{ id: string; label: string }>;
   onRemove: () => void;
+  onEliminatedByChange: (playerId: string | undefined) => void;
+  onCauseChange: (cause: EliminationCause | undefined) => void;
+  t: (key: string) => string;
 }) {
   const {
     attributes,
@@ -172,12 +185,58 @@ function SortablePlayerCard({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Kill credit and cause. Hidden for the winner, who by definition was
+          not eliminated. Both are optional: leaving them unset records
+          "not known", which is honest for a game logged after the fact. */}
+      {index > 0 && (
+        <div className="mt-3 grid gap-2 border-t border-border/60 pt-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              {t('games.eliminatedByLabel')}
+            </label>
+            <select
+              value={gamePlayer.eliminatedBy || ''}
+              onChange={event => onEliminatedByChange(event.target.value || undefined)}
+              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">{t('games.notSpecified')}</option>
+              {opponents.map(opponent => (
+                <option key={opponent.id} value={opponent.id}>
+                  {opponent.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              {t('games.eliminationCauseLabel')}
+            </label>
+            <select
+              value={gamePlayer.eliminationCause || ''}
+              onChange={event =>
+                onCauseChange((event.target.value || undefined) as EliminationCause | undefined)
+              }
+              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">{t('games.causeUnknown')}</option>
+              {ELIMINATION_CAUSES.map(cause => (
+                <option key={cause} value={cause}>
+                  {t(ELIMINATION_CAUSE_KEYS[cause])}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function NewGame2Page() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -282,6 +341,14 @@ export default function NewGame2Page() {
     setGamePlayers(gamePlayers.filter(p => p.id !== id));
   };
 
+  const updateParticipant = (id: string, patch: Partial<GamePlayer>) => {
+    setGamePlayers(current =>
+      current.map(participant =>
+        participant.id === id ? { ...participant, ...patch } : participant
+      )
+    );
+  };
+
   const getPlayerById = (playerId: string) => {
     return players.find(p => p._id === playerId);
   };
@@ -326,12 +393,17 @@ export default function NewGame2Page() {
         return;
       }
 
-      // Map gamePlayers to API format with placement based on order
+      // Map gamePlayers to API format with placement based on order.
+      // The first row is the winner, so it never carries elimination data —
+      // dragging someone into 1st must clear anything set while they were
+      // lower down, or the API rejects the game.
       const playersData = gamePlayers.map((gp, index) => ({
         player: gp.player,
         deck: gp.deck,
         placement: index + 1, // Position in array determines placement
         borrowedFrom: gp.borrowedFrom || undefined,
+        eliminatedBy: index === 0 ? undefined : gp.eliminatedBy || undefined,
+        eliminationCause: index === 0 ? undefined : gp.eliminationCause || undefined,
       }));
 
       const gameData = {
@@ -585,7 +657,19 @@ export default function NewGame2Page() {
                       selectedPlayer={getPlayerById(gp.player)}
                       selectedDeck={getDeckById(gp.deck)}
                       borrowedFromPlayer={gp.borrowedFrom ? getPlayerById(gp.borrowedFrom) : undefined}
+                      opponents={gamePlayers
+                        .filter(other => other.id !== gp.id && other.player)
+                        .map(other => {
+                          const player = getPlayerById(other.player);
+                          return {
+                            id: other.player,
+                            label: player ? player.nickname || player.name : other.player,
+                          };
+                        })}
                       onRemove={() => removePlayer(gp.id)}
+                      onEliminatedByChange={value => updateParticipant(gp.id, { eliminatedBy: value })}
+                      onCauseChange={value => updateParticipant(gp.id, { eliminationCause: value })}
+                      t={t}
                     />
                   ))}
                 </SortableContext>
