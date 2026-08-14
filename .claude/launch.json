@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "frontend/node_modules/next/dist/bin/next",
+        "dev",
+        "frontend",
+        "-p",
+        "3001"
+      ],
+      "port": 3001,
+      "autoPort": false
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "run", "dev"],
+      "port": 5001,
+      "autoPort": false
+    }
+  ]
+}

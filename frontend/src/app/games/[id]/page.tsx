@@ -21,10 +21,13 @@ import {
   Target,
   Crown,
   Skull,
-  BookOpen
+  BookOpen,
+  Droplet,
+  Swords
 } from 'lucide-react';
 import Link from 'next/link';
 import { gamesAPI } from '@/lib/api';
+import { getEliminationCauseKey, getEliminationCauseStyle } from '@/lib/eliminationCause';
 
 interface Game {
   _id: string;
@@ -63,6 +66,18 @@ interface Game {
       nickname?: string;
       profileImage?: string;
     } | null;
+    // Recorded by the Current Game tracker and the manual game forms.
+    // Absent on games logged before these fields existed.
+    eliminationCause?: string | null;
+    poison?: number;
+    commanderDamage?: Array<{
+      from: {
+        _id: string;
+        name: string;
+        nickname?: string;
+      } | null;
+      damage: number;
+    }>;
   }>;
   durationMinutes?: number;
   notes?: string;
@@ -355,12 +370,12 @@ export default function GameDetailsPage() {
                     <div className="space-y-2">
                       {/* Elimination Info */}
                       {participant.eliminatedBy && participant.placement && participant.placement > 1 && (
-                        <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/20">
+                        <div className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/20">
                           <Skull className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 shrink-0" />
                           <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">
                             {t('games.eliminatedByText')}{' '}
                             {participant.eliminatedBy?._id ? (
-                              <Link 
+                              <Link
                                 href={`/players/${participant.eliminatedBy._id}`}
                                 className="font-semibold hover:underline"
                               >
@@ -370,6 +385,54 @@ export default function GameDetailsPage() {
                               <span className="font-semibold italic">{t('common.deletedPlayer') || 'Deleted Player'}</span>
                             )}
                           </p>
+
+                          {/* Only shown when actually recorded — a missing cause
+                              means "not recorded", never a guessed default. */}
+                          {participant.eliminationCause && (
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getEliminationCauseStyle(participant.eliminationCause)}`}
+                            >
+                              {t(getEliminationCauseKey(participant.eliminationCause))}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Counters recorded by the live tracker */}
+                      {(participant.poison ? participant.poison > 0 : false) && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-success/10 border border-success/20">
+                          <Droplet className="h-3 w-3 sm:h-4 sm:w-4 text-success shrink-0" />
+                          <p className="text-xs sm:text-sm text-success">
+                            {t('games.poisonCountersLabel')}: <span className="font-semibold">{participant.poison}</span>
+                          </p>
+                        </div>
+                      )}
+
+                      {participant.commanderDamage && participant.commanderDamage.length > 0 && (
+                        <div className="p-2 rounded-md bg-accent/10 border border-accent/20">
+                          <div className="mb-1 flex items-center gap-2">
+                            <Swords className="h-3 w-3 sm:h-4 sm:w-4 text-accent shrink-0" />
+                            <p className="text-xs sm:text-sm font-medium text-accent">
+                              {t('games.commanderDamageTaken')}
+                            </p>
+                          </div>
+                          <ul className="space-y-0.5 pl-5">
+                            {participant.commanderDamage.map((entry, entryIndex) => (
+                              <li
+                                key={entry.from?._id || entryIndex}
+                                className="flex items-center justify-between gap-2 text-xs sm:text-sm"
+                              >
+                                <span className="min-w-0 truncate text-muted-foreground">
+                                  {entry.from
+                                    ? entry.from.nickname || entry.from.name
+                                    : t('common.deletedPlayer') || 'Deleted Player'}
+                                </span>
+                                <span className={`font-semibold tabular-nums ${entry.damage >= 21 ? 'text-destructive' : ''}`}>
+                                  {entry.damage}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
 

@@ -66,3 +66,14 @@ jspm_packages/
 # temporary folders
 tmp/
 temp/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Editor/AI scratch copies kept beside the file they duplicate
+*.backup
+
+# Local-only dev launcher: rewrites the Atlas URI into its non-SRV form for
+# environments where Node's DNS SRV lookup is blocked. Machine-specific, and
+# useless anywhere `mongodb+srv://` resolves normally.
+backend/dev-direct.js

@@ -35,8 +35,14 @@ export function Navigation({ children }: NavigationProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Don't show navigation on auth pages
-  if (pathname === '/login' || pathname === '/register' || !user) {
+  // Routes that own the whole viewport and render their own chrome.
+  // The Current Game board is a table-centric tracker: the sidebar and the
+  // mobile header would steal the space it needs, especially in landscape.
+  const immersiveRoutes = ['/login', '/register'];
+  const isImmersive =
+    immersiveRoutes.includes(pathname) || pathname.startsWith('/current-game');
+
+  if (isImmersive || !user) {
     return <>{children}</>;
   }
 
@@ -54,6 +60,11 @@ export function Navigation({ children }: NavigationProps) {
       name: t('nav.dashboard'),
       href: '/dashboard',
       icon: Home,
+    },
+    {
+      name: t('nav.currentGame'),
+      href: '/current-game',
+      icon: Swords,
     },
     {
       name: t('nav.players'),
@@ -74,11 +85,6 @@ export function Navigation({ children }: NavigationProps) {
       name: t('nav.eliminations'),
       href: '/eliminations',
       icon: Target,
-    },
-    {
-      name: t('nav.currentGame'),
-      href: '/current-game',
-      icon: Swords,
     },
     {
       name: t('nav.statistics'),
