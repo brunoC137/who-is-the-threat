@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@radix-ui/react-tooltip": "^1.2.8"
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "next": "^16.1.6"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

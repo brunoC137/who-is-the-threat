@@ -70,6 +70,20 @@ export const translations = {
       signInHere: 'Sign in here',
       newToBattlefield: 'New to the battlefield?',
       topdecksLegendary: 'May your topdecks be legendary ⚡',
+      forgotPasswordTitle: 'Forgot your password?',
+      forgotPasswordDescription: "Enter your email and we'll send you a reset link.",
+      sendResetLink: 'Send Reset Link',
+      sendingResetLink: 'Sending...',
+      backToLogin: 'Back to login',
+      resetLinkSent: 'Reset link sent! Check your email.',
+      resetPassword: 'Reset Password',
+      resetPasswordDescription: 'Enter your new password below.',
+      newPassword: 'New Password',
+      enterNewPassword: 'Enter your new password',
+      confirmNewPassword: 'Confirm New Password',
+      resettingPassword: 'Resetting...',
+      passwordResetSuccess: 'Password reset successfully! Signing you in...',
+      invalidResetToken: 'Invalid or expired reset link. Please request a new one.',
     },
     // Dashboard
     dashboard: {
@@ -579,6 +593,16 @@ export const translations = {
       errorLoading: 'Could not load players and decks',
       errorPlacements: 'Every player needs a final placement before saving',
     },
+    // PWA install prompt
+    pwa: {
+      bannerLabel: 'Install app banner',
+      title: 'Install Guerreiros',
+      description: 'Add to your home screen for a faster, app-like experience.',
+      descriptionIOS: 'Add to your home screen for a faster, app-like experience.',
+      iosInstructions: "Tap the Share button, then choose 'Add to Home Screen'.",
+      install: 'Install',
+      notNow: 'Not now',
+    },
   },
   'pt-BR': {
     // Navigation
@@ -651,6 +675,20 @@ export const translations = {
       signInHere: 'Entre aqui',
       newToBattlefield: 'Novo no campo de batalha?',
       topdecksLegendary: 'Que seus topdecks sejam lendários ⚡',
+      forgotPasswordTitle: 'Esqueceu sua senha?',
+      forgotPasswordDescription: 'Informe seu email e enviaremos um link de redefinição.',
+      sendResetLink: 'Enviar Link de Redefinição',
+      sendingResetLink: 'Enviando...',
+      backToLogin: 'Voltar ao login',
+      resetLinkSent: 'Link enviado! Verifique seu email.',
+      resetPassword: 'Redefinir Senha',
+      resetPasswordDescription: 'Digite sua nova senha abaixo.',
+      newPassword: 'Nova Senha',
+      enterNewPassword: 'Digite sua nova senha',
+      confirmNewPassword: 'Confirmar Nova Senha',
+      resettingPassword: 'Redefinindo...',
+      passwordResetSuccess: 'Senha redefinida com sucesso! Entrando...',
+      invalidResetToken: 'Link inválido ou expirado. Por favor, solicite um novo.',
     },
     // Dashboard
     dashboard: {
@@ -1159,6 +1197,16 @@ export const translations = {
       confirmExitUnsaved: 'Esta partida terminou mas ainda não foi salva. Sair mesmo assim? Você pode voltar e salvar.',
       errorLoading: 'Não foi possível carregar jogadores e decks',
       errorPlacements: 'Todos os jogadores precisam de uma colocação final antes de salvar',
+    },
+    // PWA install prompt
+    pwa: {
+      bannerLabel: 'Banner de instalação do aplicativo',
+      title: 'Instalar Guerreiros',
+      description: 'Adicione à sua tela inicial para uma experiência mais rápida.',
+      descriptionIOS: 'Adicione à sua tela inicial para uma experiência mais rápida.',
+      iosInstructions: "Toque em Compartilhar e escolha 'Adicionar à Tela de Início'.",
+      install: 'Instalar',
+      notNow: 'Agora não',
     },
   },
 };
