@@ -1,6 +1,19 @@
 'use client';
 
-import { Droplet, Minus, Plus, RotateCcw, Skull, Swords, X } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Droplet,
+  Minus,
+  Plus,
+  RotateCcw,
+  Skull,
+  Swords,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { GamePlayer } from './types';
@@ -21,12 +34,33 @@ interface PlayerDetailsSheetProps {
   /** Rotation of the seat that opened the sheet, so it faces that player. */
   rotation: SeatRotation;
   onPoisonChange: (delta: number) => void;
+  /** Damage this player received, from the given opponent. */
   onCommanderDamageChange: (fromSeatId: string, delta: number) => void;
+  /** Damage this player's commander dealt to the given opponent. */
+  onDealCommanderDamage: (toSeatId: string, delta: number) => void;
   onConcede: () => void;
   onRevive: () => void;
   onClose: () => void;
   t: (key: string) => string;
 }
+
+/**
+ * Which edge of the screen a reader is sitting at, and the turn that faces
+ * them. Same convention as the board: the rotation is set by the direction
+ * pointing AWAY from that seat, so a reader on the left needs 90deg, not 270.
+ * See layout.ts.
+ */
+const EDGE_ROTATIONS: Array<{
+  rotation: SeatRotation;
+  position: string;
+  Icon: typeof ChevronUp;
+  label: string;
+}> = [
+  { rotation: 180, position: 'left-1/2 top-1 -translate-x-1/2', Icon: ChevronUp, label: 'top' },
+  { rotation: 0, position: 'left-1/2 bottom-1 -translate-x-1/2', Icon: ChevronDown, label: 'bottom' },
+  { rotation: 90, position: 'left-1 top-1/2 -translate-y-1/2', Icon: ChevronLeft, label: 'left' },
+  { rotation: 270, position: 'right-1 top-1/2 -translate-y-1/2', Icon: ChevronRight, label: 'right' },
+];
 
 /**
  * Rendered at viewport root rather than inside the player's panel: a panel is
@@ -40,6 +74,7 @@ export function PlayerDetailsSheet({
   rotation,
   onPoisonChange,
   onCommanderDamageChange,
+  onDealCommanderDamage,
   onConcede,
   onRevive,
   onClose,
@@ -47,7 +82,15 @@ export function PlayerDetailsSheet({
 }: PlayerDetailsSheetProps) {
   const opponents = allPlayers.filter(p => p.id !== gamePlayer.id);
 
-  const quarterTurned = rotation === 90 || rotation === 270;
+  /**
+   * The sheet opens facing the seat it belongs to, but on a shared device the
+   * person reaching for it is often someone else. The edge tabs re-aim it in
+   * one tap. Reset on every open, since the panel's owner is the best guess.
+   */
+  const [viewRotation, setViewRotation] = useState<SeatRotation>(rotation);
+  const [damageView, setDamageView] = useState<'received' | 'dealt'>('received');
+
+  const quarterTurned = viewRotation === 90 || viewRotation === 270;
   const viewport = useViewportSize();
 
   // The frame is what the sheet actually lives in, and a quarter turn swaps
@@ -59,15 +102,44 @@ export function PlayerDetailsSheet({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      {/* Edge tabs live outside the rotating frame and stay pinned to the
+          screen, so "the tab nearest me" means the same thing no matter which
+          way the sheet is currently facing. */}
+      {EDGE_ROTATIONS.map(({ rotation: edgeRotation, position, Icon, label }) => {
+        const active = viewRotation === edgeRotation;
+
+        return (
+          <button
+            key={label}
+            type="button"
+            aria-label={t('currentGame.faceThisSide')}
+            aria-pressed={active}
+            onClick={event => {
+              event.stopPropagation();
+              haptic();
+              setViewRotation(edgeRotation);
+            }}
+            className={`cg-edge-tab absolute z-[55] flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${position} ${
+              active
+                ? 'border-primary/80 bg-primary text-primary-foreground'
+                : 'border-border bg-card text-foreground'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+
       {/* A quarter-turned sheet reads along the viewport's other axis, so the
           rotating frame swaps its dimensions too. Without this, max-width is
           measured against the short edge and the sheet clips. */}
       <div
-        className="absolute left-1/2 top-1/2 flex items-center justify-center p-3"
+        // px leaves room for the left/right edge tabs to sit clear of the sheet
+        className="absolute left-1/2 top-1/2 flex items-center justify-center px-12 py-3"
         style={{
           width: quarterTurned ? '100dvh' : '100dvw',
           height: quarterTurned ? '100dvw' : '100dvh',
-          transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+          transform: `translate(-50%, -50%) rotate(${viewRotation}deg)`,
         }}
       >
         <div
@@ -153,13 +225,53 @@ export function PlayerDetailsSheet({
                 <Swords className="h-4 w-4 text-accent" />
                 {t('currentGame.commanderDamage')}
               </h3>
+
+              {/* Received is the canonical view — players think in "I've taken
+                  14 from Atraxa". Dealt exists so the attacker can record a hit
+                  from their own panel, which already faces them. */}
+              <div className="mb-2 flex rounded-lg bg-background/60 p-0.5">
+                {(['received', 'dealt'] as const).map(view => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => setDamageView(view)}
+                    aria-pressed={damageView === view}
+                    className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                      damageView === view
+                        ? 'bg-accent/25 text-accent'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    {t(view === 'received' ? 'currentGame.damageReceived' : 'currentGame.damageDealt')}
+                  </button>
+                ))}
+              </div>
+
               <p className="mb-2 text-xs text-muted-foreground">
-                {t('currentGame.commanderDamageHint')}
+                {t(
+                  damageView === 'received'
+                    ? 'currentGame.commanderDamageHint'
+                    : 'currentGame.commanderDamageDealtHint'
+                )}
               </p>
 
               <div className="space-y-1.5">
                 {opponents.map(opponent => {
-                  const damage = gamePlayer.commanderDamage[opponent.id] || 0;
+                  const damage =
+                    damageView === 'received'
+                      ? gamePlayer.commanderDamage[opponent.id] || 0
+                      : opponent.commanderDamage[gamePlayer.id] || 0;
+
+                  const applyDelta = (delta: number) =>
+                    damageView === 'received'
+                      ? onCommanderDamageChange(opponent.id, delta)
+                      : onDealCommanderDamage(opponent.id, delta);
+
+                  // Only the dealt direction writes to the opponent, and the
+                  // reducer ignores changes to an eliminated player. Received
+                  // stays editable: a player who is now dead may still have
+                  // dealt damage earlier that needs correcting.
+                  const locked = damageView === 'dealt' && opponent.isEliminated;
 
                   return (
                     <div
@@ -181,8 +293,8 @@ export function PlayerDetailsSheet({
 
                       <CounterButton
                         ariaLabel={t('currentGame.decreaseCommanderDamage')}
-                        disabled={damage <= 0}
-                        onClick={() => onCommanderDamageChange(opponent.id, -1)}
+                        disabled={damage <= 0 || locked}
+                        onClick={() => applyDelta(-1)}
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </CounterButton>
@@ -195,8 +307,8 @@ export function PlayerDetailsSheet({
 
                       <CounterButton
                         ariaLabel={t('currentGame.increaseCommanderDamage')}
-                        disabled={damage >= LETHAL_COMMANDER_DAMAGE}
-                        onClick={() => onCommanderDamageChange(opponent.id, 1)}
+                        disabled={damage >= LETHAL_COMMANDER_DAMAGE || locked}
+                        onClick={() => applyDelta(1)}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </CounterButton>

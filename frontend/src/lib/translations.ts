@@ -555,6 +555,10 @@ export const translations = {
       decreaseCommanderDamage: 'Remove commander damage',
       increaseCommanderDamage: 'Add commander damage',
       commanderDamageHint: 'Adding commander damage also lowers this life total.',
+      commanderDamageDealtHint: "Adding damage here lowers that opponent's life total.",
+      damageReceived: 'Taken',
+      damageDealt: 'Dealt',
+      faceThisSide: 'Turn this panel to face this side of the table',
       // Elimination
       wasEliminated: 'is out',
       confirmElimination: 'Confirm elimination',
@@ -1132,6 +1136,10 @@ export const translations = {
       decreaseCommanderDamage: 'Remover dano de comandante',
       increaseCommanderDamage: 'Adicionar dano de comandante',
       commanderDamageHint: 'Adicionar dano de comandante também reduz esta vida.',
+      commanderDamageDealtHint: 'Adicionar dano aqui reduz a vida daquele oponente.',
+      damageReceived: 'Recebido',
+      damageDealt: 'Causado',
+      faceThisSide: 'Virar este painel para este lado da mesa',
       // Eliminação
       wasEliminated: 'está fora',
       confirmElimination: 'Confirmar eliminação',

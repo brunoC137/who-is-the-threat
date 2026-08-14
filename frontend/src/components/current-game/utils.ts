@@ -4,14 +4,19 @@ import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON, STARTING_LIFE } from './gameRed
 /**
  * Life total colour. Thresholds are relative to the starting total so they
  * still read correctly if the format ever changes from 40.
+ *
+ * These are deliberately explicit high-luminance colours rather than the
+ * semantic tokens used elsewhere. The number is painted over arbitrary deck
+ * artwork, not over a themed surface, so it needs guaranteed luminance —
+ * `--destructive` in the dark theme is a deep red (0 63% 31%) that reads as
+ * a smudge on top of a busy card image.
  */
 export function getLifeColor(life: number): string {
   const ratio = life / STARTING_LIFE;
 
-  if (life <= 0) return 'text-destructive';
-  if (ratio <= 0.25) return 'text-destructive';
-  if (ratio <= 0.5) return 'text-warning';
-  return 'text-foreground';
+  if (ratio <= 0.25) return 'text-red-400';
+  if (ratio <= 0.5) return 'text-amber-300';
+  return 'text-white';
 }
 
 /** Poison is only interesting as it approaches lethal. */

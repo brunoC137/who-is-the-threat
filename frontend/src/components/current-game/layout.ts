@@ -13,11 +13,20 @@
  *    (see .cg-seat-content-rotated in globals.css), so no JS measurement or
  *    ResizeObserver is involved.
  *
- * Rotation convention (device flat, screen +x right / +y down):
- *   bottom seat = 0deg    (reads upright for the player nearest you)
- *   right seat  = 90deg   (up-vector points to screen right)
- *   top seat    = 180deg  (upside down relative to the bottom seat)
- *   left seat   = 270deg  (up-vector points to screen left)
+ * Rotation convention (device flat, screen +x right / +y down).
+ *
+ * Text reads upright to you when its top points AWAY from you, across the
+ * device. So the rotation a seat needs is set by which screen direction points
+ * away from that seat — not by which side the seat is on:
+ *
+ *   bottom seat (south) -> away is screen up    (0,-1) -> 0deg
+ *   left seat   (west)  -> away is screen right (1, 0) -> 90deg
+ *   top seat    (north) -> away is screen down  (0, 1) -> 180deg
+ *   right seat  (east)  -> away is screen left  (-1,0) -> 270deg
+ *
+ * Note left/right are the mirror of the naive reading: a player sitting on the
+ * LEFT reads text whose top points RIGHT. Getting this backwards renders the
+ * side panels 180deg out for the very players they are meant to face.
  */
 
 export type SeatEdge = 'top' | 'bottom' | 'left' | 'right';
@@ -42,9 +51,9 @@ export type Orientation = 'landscape' | 'portrait';
 
 const EDGE_ROTATION: Record<SeatEdge, SeatRotation> = {
   bottom: 0,
-  right: 90,
+  left: 90,
   top: 180,
-  left: 270,
+  right: 270,
 };
 
 const seat = (area: string, edge: SeatEdge): Seat => ({

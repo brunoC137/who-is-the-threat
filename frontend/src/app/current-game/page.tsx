@@ -378,6 +378,16 @@ export default function CurrentGamePage() {
               delta,
             })
           }
+          // Same field, entered from the attacker's side: this player's
+          // commander damaging an opponent writes to that opponent's record.
+          onDealCommanderDamage={(toSeatId, delta) =>
+            dispatch({
+              type: 'CHANGE_COMMANDER_DAMAGE',
+              seatId: toSeatId,
+              fromSeatId: openSeat.id,
+              delta,
+            })
+          }
           onConcede={() => {
             dispatch({ type: 'CONCEDE', seatId: openSeat.id });
             setOpenSeatId(null);

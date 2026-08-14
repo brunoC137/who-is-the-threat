@@ -311,6 +311,52 @@
   }
 }
 
+/* Deck art is arbitrary — it can be pale full-art, a busy card face, or an
+   animated gif. Rather than blurring it into mush, contrast is bought only
+   where text actually sits:
+     - a radial vignette darkest at the centre, where the life total is
+     - a per-glyph halo (and a stroke where paint-order is supported)
+   That keeps the artwork sharp and recognisable at the panel edges. */
+.cg-panel-focus {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.74) 0%,
+    rgba(0, 0, 0, 0.58) 40%,
+    rgba(0, 0, 0, 0.34) 75%,
+    rgba(0, 0, 0, 0.24) 100%
+  );
+}
+
+/* Small text cannot be rescued by a halo, so the identity strip gets its own
+   gradient anchored to the edge it sits on. */
+.cg-panel-label-scrim {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.cg-life-number {
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.95),
+    0 0 7px rgba(0, 0, 0, 0.85),
+    0 2px 5px rgba(0, 0, 0, 0.9),
+    0 -1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* paint-order keeps the stroke behind the glyph so the letterform stays
+   crisp. Without it the stroke would eat into the number, so it is opt-in. */
+@supports (paint-order: stroke) {
+  .cg-life-number {
+    -webkit-text-stroke: 2.5px rgba(0, 0, 0, 0.6);
+    paint-order: stroke fill;
+  }
+}
+
+/* Edge tabs sit on top of a dim backdrop and were washing into it. */
+.cg-edge-tab {
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
 /* Life total nudge feedback. Applied on change and cleared on animation end. */
 @keyframes cgLifePulse {
   0%   { transform: scale(1); }

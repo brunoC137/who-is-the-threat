@@ -99,8 +99,10 @@ function LivePanel({
         />
       </div>
 
-      {/* Identity strip. Kept out of the tap zones so it never eats a press. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 p-1.5">
+      {/* Identity strip. Kept out of the tap zones so it never eats a press.
+          Carries its own gradient: 11px text cannot rely on a glyph halo the
+          way the large life total can. */}
+      <div className="cg-panel-label-scrim pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 p-1.5 pb-3">
         {gamePlayer.isFirstPlayer && (
           <Crown className="h-3.5 w-3.5 shrink-0 text-warning drop-shadow" />
         )}
@@ -160,7 +162,7 @@ function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   return (
     <span
       onAnimationEnd={() => setPulse(false)}
-      className={`font-bold tabular-nums leading-none drop-shadow-lg ${getLifeColor(life)} ${
+      className={`cg-life-number font-bold tabular-nums leading-none ${getLifeColor(life)} ${
         pulse ? 'cg-life-pulse' : ''
       } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
     >
@@ -227,10 +229,9 @@ function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${deck.deckImage})` }}
         />
-        {/* Deck art is arbitrary — it can be a pale full-art card or a busy
-            card face with readable rules text. The scrim plus a real blur is
-            what guarantees the life total stays legible on top of any of it. */}
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" />
+        {/* No blur: the art stays sharp and the radial vignette buys contrast
+            only where the life total actually sits. See .cg-panel-focus. */}
+        <div className="cg-panel-focus absolute inset-0" />
       </>
     );
   }
