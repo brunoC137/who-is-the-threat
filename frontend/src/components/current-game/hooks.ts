@@ -102,6 +102,53 @@ export function useWakeLock(active: boolean): void {
   }, [active]);
 }
 
+const HEADER_COLLAPSED_KEY = 'currentGame:headerCollapsed';
+
+/**
+ * Whether the control bar is collapsed, remembered across games. A group that
+ * prefers the extra board height should not have to re-collapse every session.
+ *
+ * Starts expanded on the server and on first paint so the controls are never
+ * hidden from someone who has not chosen to hide them; the stored preference
+ * is applied on mount.
+ */
+export function useCollapsedHeader(): {
+  collapsed: boolean;
+  toggle: () => void;
+  expandWithoutSaving: () => void;
+} {
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(HEADER_COLLAPSED_KEY) === 'true');
+    } catch {
+      // Preference is cosmetic; the default stands.
+    }
+  }, []);
+
+  const toggle = useCallback(() => {
+    setCollapsed(current => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(HEADER_COLLAPSED_KEY, String(next));
+      } catch {
+        // Ignore; the toggle still works for this session.
+      }
+      return next;
+    });
+  }, []);
+
+  /**
+   * Reveal the controls without overwriting the stored preference. Used when
+   * the game ends: Save Game lives in the bar, so a collapsed bar would leave
+   * a finished game with no visible way to record it.
+   */
+  const expandWithoutSaving = useCallback(() => setCollapsed(false), []);
+
+  return { collapsed, toggle, expandWithoutSaving };
+}
+
 const STORAGE_KEY = 'currentGame:v1';
 
 interface PersistedGame {

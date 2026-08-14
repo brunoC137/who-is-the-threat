@@ -26,6 +26,7 @@ export {
 export type { BoardLayout, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
 
 export {
+  useCollapsedHeader,
   useHoldRepeat,
   useOrientation,
   usePersistedGame,

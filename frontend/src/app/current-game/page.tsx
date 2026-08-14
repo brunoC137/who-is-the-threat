@@ -25,6 +25,7 @@ import {
   getDisplayName,
   getPlacementError,
   loadPersistedGame,
+  useCollapsedHeader,
   usePersistedGame,
   useOrientation,
   useWakeLock,
@@ -60,6 +61,11 @@ export default function CurrentGamePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const rollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const {
+    collapsed: headerCollapsed,
+    toggle: toggleHeaderCollapsed,
+    expandWithoutSaving,
+  } = useCollapsedHeader();
 
   usePersistedGame(state, phase === 'playing');
   useWakeLock(phase === 'playing' && state.status === 'playing');
@@ -118,6 +124,12 @@ export default function CurrentGamePage() {
   useEffect(() => () => {
     if (rollTimer.current) clearInterval(rollTimer.current);
   }, []);
+
+  // Save Game lives in the control bar, so a finished game must never be left
+  // with the bar collapsed and no visible way to record it.
+  useEffect(() => {
+    if (state.status === 'ended') expandWithoutSaving();
+  }, [state.status, expandWithoutSaving]);
 
   const openSeat = useMemo(
     () => state.players.find(p => p.id === openSeatId) || null,
@@ -307,7 +319,9 @@ export default function CurrentGamePage() {
   const winner = state.players.find(p => p.placement === 1);
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
+    // relative: anchors the collapsed control overlay, which sits on top of
+    // the board rather than taking layout height from it
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
       <GameTopBar
         elapsedSeconds={state.elapsedSeconds}
         isTimerRunning={state.isTimerRunning}
@@ -316,6 +330,8 @@ export default function CurrentGamePage() {
         commentaryCount={state.commentary.length}
         isRolling={rollingSeatId !== null}
         isSaving={saving}
+        collapsed={headerCollapsed}
+        onToggleCollapsed={toggleHeaderCollapsed}
         onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
         onUndo={() => dispatch({ type: 'UNDO' })}
         onRollFirstPlayer={handleRollFirstPlayer}

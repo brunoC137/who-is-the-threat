@@ -1,6 +1,18 @@
 'use client';
 
-import { Dices, Flag, Loader2, MessageSquare, Pause, Play, RotateCcw, Save, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Dices,
+  Flag,
+  Loader2,
+  MessageSquare,
+  Pause,
+  Play,
+  RotateCcw,
+  Save,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatTime } from './utils';
 
@@ -12,6 +24,8 @@ interface GameTopBarProps {
   commentaryCount: number;
   isRolling: boolean;
   isSaving: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
   onToggleTimer: () => void;
   onUndo: () => void;
   onRollFirstPlayer: () => void;
@@ -35,6 +49,8 @@ export function GameTopBar({
   commentaryCount,
   isRolling,
   isSaving,
+  collapsed,
+  onToggleCollapsed,
   onToggleTimer,
   onUndo,
   onRollFirstPlayer,
@@ -44,6 +60,45 @@ export function GameTopBar({
   onExit,
   t,
 }: GameTopBarProps) {
+  /**
+   * Collapsed, the bar leaves the layout entirely so the board gets the whole
+   * viewport, and only the two controls worth interrupting a game for float
+   * on top: the elapsed time, and undo.
+   *
+   * Undo stays out because it is the one control people reach for in a hurry —
+   * right after a mis-tap, usually while the table is arguing about what just
+   * happened. Everything else (dice, notes, exit, end game) is deliberate
+   * enough to cost an extra tap.
+   */
+  if (collapsed) {
+    return (
+      <div className="pointer-events-none absolute left-1.5 top-1.5 z-30 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={t('currentGame.showControls')}
+          aria-expanded={false}
+          className="pointer-events-auto flex h-8 items-center gap-1 rounded-full border border-border/60 bg-card/80 px-2 backdrop-blur-md"
+        >
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-mono text-xs font-bold tabular-nums">
+            {formatTime(elapsedSeconds)}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          aria-label={t('currentGame.undo')}
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur-md disabled:opacity-40"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border/50 bg-card/80 px-1.5 backdrop-blur-xl">
       <Button
@@ -103,6 +158,17 @@ export function GameTopBar({
               {commentaryCount}
             </span>
           )}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onToggleCollapsed}
+          aria-label={t('currentGame.hideControls')}
+          aria-expanded
+        >
+          <ChevronUp className="h-4 w-4" />
         </Button>
       </div>
 
