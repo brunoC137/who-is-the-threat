@@ -142,7 +142,7 @@ export function GameSetup({
                   value={selection.playerId}
                   onChange={event => onSelectPlayer(index, event.target.value)}
                   aria-label={t('currentGame.selectPlayer')}
-                  className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm"
                 >
                   <option value="">{t('currentGame.choosePlayers')}</option>
                   {availablePlayers
@@ -163,7 +163,7 @@ export function GameSetup({
                   onChange={event => onSelectDeck(index, event.target.value)}
                   disabled={!selection.playerId}
                   aria-label={t('currentGame.selectDeck')}
-                  className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
+                  className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
                 >
                   <option value="">
                     {decksForPlayer.length === 0 && selection.playerId

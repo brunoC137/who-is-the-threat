@@ -39,19 +39,21 @@ export function EliminationDialog({
   const candidates = players.filter(p => p.id !== victim.id);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-full w-full max-w-sm overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl">
-        <header className="mb-3 text-center">
-          <Skull className="mx-auto mb-2 h-7 w-7 text-destructive" />
-          <h2 className="text-lg font-bold">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm">
+      {/* Pinned header/actions with only the candidate list scrolling, so the
+          confirm button stays reachable on a short landscape viewport. */}
+      <div className="flex max-h-full w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <header className="shrink-0 px-4 pb-1 pt-3 text-center">
+          <Skull className="mx-auto mb-1 h-6 w-6 text-destructive" />
+          <h2 className="text-base font-bold">
             {getDisplayName(victim.player)} {t('currentGame.wasEliminated')}
           </h2>
           <p className="text-xs text-muted-foreground">{t(REASON_KEY[prompt.reason])}</p>
         </header>
 
-        <p className="mb-2 text-sm font-medium">{t('currentGame.whoKilledThem')}</p>
+        <p className="shrink-0 px-4 pt-2 text-sm font-medium">{t('currentGame.whoKilledThem')}</p>
 
-        <div className="mb-3 space-y-1.5">
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-2">
           {candidates.map(candidate => {
             const selected = killerId === candidate.id;
 
@@ -85,7 +87,7 @@ export function EliminationDialog({
           })}
         </div>
 
-        <div className="space-y-2">
+        <div className="shrink-0 space-y-1.5 border-t border-border/60 p-3">
           <Button variant="destructive" className="w-full" onClick={() => onConfirm(killerId)}>
             {t('currentGame.confirmElimination')}
           </Button>

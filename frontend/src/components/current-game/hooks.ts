@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react';
 import { Orientation } from './layout';
 import { GameState } from './types';
 
@@ -23,6 +26,30 @@ export function useOrientation(): Orientation {
   }, []);
 
   return orientation;
+}
+
+/**
+ * Live viewport size. Needed because the board's dialogs rotate, so whether a
+ * dialog is "short" depends on its own rotation rather than on a plain CSS
+ * media query against the viewport.
+ */
+export function useViewportSize(): { width: number; height: number } {
+  const [size, setSize] = useState({ width: 1024, height: 768 });
+
+  useEffect(() => {
+    const apply = () => setSize({ width: window.innerWidth, height: window.innerHeight });
+
+    apply();
+    window.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+
+    return () => {
+      window.removeEventListener('resize', apply);
+      window.removeEventListener('orientationchange', apply);
+    };
+  }, []);
+
+  return size;
 }
 
 /**
@@ -130,11 +157,29 @@ export function usePersistedGame(state: GameState, enabled: boolean): void {
 
 /**
  * Press-and-hold to repeat, for dragging a life total down quickly without
- * twenty separate taps. Falls back to a single fire on a normal tap.
+ * twenty separate taps. A normal tap fires exactly once.
+ *
+ * Two things this has to get right, both learned the hard way:
+ *
+ * 1. A repeat that never receives its matching pointerup runs away. Losing the
+ *    pointer (leave/cancel), backgrounding the tab, or the window losing focus
+ *    all stop it, and the total number of repeats is capped regardless.
+ * 2. Pointer handlers alone leave the control unusable by keyboard, so Enter
+ *    and Space fire a single step. preventDefault is deliberately NOT called
+ *    on pointerdown — it suppresses focus and click synthesis, and the
+ *    unwanted touch behaviours are already handled in CSS by .cg-board
+ *    (touch-action, user-select, touch-callout).
  */
 export function useHoldRepeat(
   onFire: () => void,
-  { delay = 400, interval = 90 }: { delay?: number; interval?: number } = {}
+  {
+    delay = 400,
+    interval = 130,
+    // ~8s of continuous holding. A 40-life swing takes about 5s, so this
+    // clears any real intent while capping the damage from a pointerup that
+    // never arrives (OS gesture, app switch, dead touch digitizer).
+    maxRepeats = 60,
+  }: { delay?: number; interval?: number; maxRepeats?: number } = {}
 ) {
   const timers = useRef<{ timeout?: ReturnType<typeof setTimeout>; interval?: ReturnType<typeof setInterval> }>({});
   const callback = useRef(onFire);
@@ -153,23 +198,65 @@ export function useHoldRepeat(
     stop();
     callback.current();
 
+    let repeats = 0;
     timers.current.timeout = setTimeout(() => {
-      timers.current.interval = setInterval(() => callback.current(), interval);
+      timers.current.interval = setInterval(() => {
+        repeats += 1;
+        if (repeats > maxRepeats) {
+          stop();
+          return;
+        }
+        callback.current();
+      }, interval);
     }, delay);
-  }, [delay, interval, stop]);
+  }, [delay, interval, maxRepeats, stop]);
 
-  useEffect(() => stop, [stop]);
+  // A hold interrupted by the tab going away must not keep counting.
+  useEffect(() => {
+    const handleAbort = () => stop();
+
+    window.addEventListener('blur', handleAbort);
+    window.addEventListener('contextmenu', handleAbort);
+    document.addEventListener('visibilitychange', handleAbort);
+
+    return () => {
+      window.removeEventListener('blur', handleAbort);
+      window.removeEventListener('contextmenu', handleAbort);
+      document.removeEventListener('visibilitychange', handleAbort);
+      stop();
+    };
+  }, [stop]);
 
   return {
     onPointerDown: (event: ReactPointerEvent) => {
       // Ignore secondary buttons so a right-click does not start a repeat that
       // never receives its matching pointerup.
       if (event.button !== 0) return;
-      event.preventDefault();
+
+      // Capture the pointer so a finger that drifts off the zone mid-hold
+      // keeps counting and, more importantly, still delivers its pointerup
+      // here on release instead of stranding the repeat.
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Capture is an optimisation; pointerup/leave below still stop it.
+      }
+
       start();
     },
     onPointerUp: stop,
-    onPointerLeave: stop,
+    onPointerLeave: (event: ReactPointerEvent) => {
+      // With capture held this does not fire; it is the fallback for when
+      // capture was refused.
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) return;
+      stop();
+    },
     onPointerCancel: stop,
+    onKeyDown: (event: ReactKeyboardEvent) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      if (event.repeat) return;
+      callback.current();
+    },
   };
 }

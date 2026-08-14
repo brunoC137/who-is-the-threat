@@ -13,6 +13,7 @@ import {
   getPoisonColor,
   haptic,
 } from './utils';
+import { useViewportSize } from './hooks';
 
 interface PlayerDetailsSheetProps {
   gamePlayer: GamePlayer;
@@ -47,6 +48,14 @@ export function PlayerDetailsSheet({
   const opponents = allPlayers.filter(p => p.id !== gamePlayer.id);
 
   const quarterTurned = rotation === 90 || rotation === 270;
+  const viewport = useViewportSize();
+
+  // The frame is what the sheet actually lives in, and a quarter turn swaps
+  // its axes. Two columns only pay off when that frame is wide and short —
+  // i.e. an upright seat on a landscape phone.
+  const frameWidth = quarterTurned ? viewport.height : viewport.width;
+  const frameHeight = quarterTurned ? viewport.width : viewport.height;
+  const compact = frameHeight < 430 && frameWidth >= 620;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -62,10 +71,12 @@ export function PlayerDetailsSheet({
         }}
       >
         <div
-          className="max-h-full w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl"
+          className={`flex max-h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ${
+            compact ? 'max-w-2xl' : 'max-w-md'
+          }`}
           onClick={event => event.stopPropagation()}
         >
-        <header className="mb-4 flex items-center gap-3">
+        <header className="flex shrink-0 items-center gap-3 p-3 pb-2">
           <Avatar className="h-10 w-10 ring-1 ring-border">
             <AvatarImage src={gamePlayer.deck.deckImage || gamePlayer.player.profileImage} />
             <AvatarFallback>{gamePlayer.player.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
@@ -86,7 +97,7 @@ export function PlayerDetailsSheet({
         </header>
 
         {gamePlayer.isEliminated ? (
-          <div className="space-y-3">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 pt-1">
             <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-center">
               <Skull className="mx-auto mb-1 h-5 w-5 text-destructive" />
               <p className="text-sm font-semibold">
@@ -100,7 +111,12 @@ export function PlayerDetailsSheet({
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <>
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto px-3 pb-2 ${
+              compact ? 'grid grid-cols-2 items-start gap-4' : 'space-y-4'
+            }`}
+          >
             <section>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
                 <Droplet className="h-4 w-4 text-success" />
@@ -190,11 +206,16 @@ export function PlayerDetailsSheet({
               </div>
             </section>
 
+          </div>
+
+          {/* Pinned so conceding never sits below the fold on a short viewport */}
+          <div className="shrink-0 border-t border-border/60 p-3">
             <Button variant="outline" className="w-full border-destructive/40 text-destructive" onClick={onConcede}>
               <Skull className="mr-2 h-4 w-4" />
               {t('currentGame.concede')}
             </Button>
           </div>
+          </>
           )}
         </div>
       </div>

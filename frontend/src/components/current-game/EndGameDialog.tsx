@@ -37,11 +37,14 @@ export function EndGameDialog({ players, onConfirm, onCancel, t }: EndGameDialog
   const isComplete = order.length === survivors.length;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-full w-full max-w-sm overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl">
-        <header className="mb-3 text-center">
-          <Flag className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-          <h2 className="text-lg font-bold">{t('currentGame.endGame')}</h2>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm">
+      {/* Header and actions are pinned, only the list scrolls. On a landscape
+          phone the viewport is ~360px tall, and a dialog that scrolls as one
+          block puts its primary button below the fold. */}
+      <div className="flex max-h-full w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <header className="shrink-0 px-4 pb-2 pt-3 text-center">
+          <Flag className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />
+          <h2 className="text-base font-bold">{t('currentGame.endGame')}</h2>
           <p className="text-xs text-muted-foreground">
             {survivors.length > 1
               ? t('currentGame.rankSurvivors')
@@ -49,7 +52,7 @@ export function EndGameDialog({ players, onConfirm, onCancel, t }: EndGameDialog
           </p>
         </header>
 
-        <div className="mb-4 space-y-1.5">
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-2">
           {survivors.map(survivor => {
             const rank = order.indexOf(survivor.id);
             const isRanked = rank >= 0;
@@ -90,7 +93,7 @@ export function EndGameDialog({ players, onConfirm, onCancel, t }: EndGameDialog
           })}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2 border-t border-border/60 p-3">
           <Button variant="outline" className="flex-1" onClick={onCancel}>
             {t('actions.cancel')}
           </Button>

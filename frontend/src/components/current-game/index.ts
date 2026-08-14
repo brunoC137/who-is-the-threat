@@ -29,6 +29,7 @@ export {
   useHoldRepeat,
   useOrientation,
   usePersistedGame,
+  useViewportSize,
   useWakeLock,
   loadPersistedGame,
   clearPersistedGame,
