@@ -7,6 +7,22 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Priors for the Bayesian True Win Rate: a deck starts out as if it had already
+// gone 1-for-4, so a 1-game deck cannot top the ranking on a single win.
+const BTWR_PRIOR_WINS = 1;
+const BTWR_PRIOR_GAMES = 4;
+
+// The advanced metrics are computed in the aggregation as full floats; round
+// them on the way out so the API keeps returning 2-decimal numbers.
+const roundDeckMetrics = (deck) => ({
+  ...deck,
+  winRate: parseFloat(deck.winRate.toFixed(2)),
+  averagePlacement: parseFloat(deck.averagePlacement.toFixed(2)),
+  weightedWinScore: parseFloat(deck.weightedWinScore.toFixed(2)),
+  bayesianTrueWinRate: parseFloat(deck.bayesianTrueWinRate.toFixed(2)),
+  dominanceIndex: parseFloat(deck.dominanceIndex.toFixed(2))
+});
+
 // @desc    Get player statistics
 // @route   GET /stats/player/:id
 // @access  Private
@@ -592,7 +608,7 @@ router.get('/dashboard', protect, async (req, res, next) => {
           wins: userGameStats.length > 0 ? userGameStats[0].wins : 0,
           winRate: userWinRate
         },
-        topUserDecks: userDeckStats.map(stat => ({
+        topUserDecks: userDeckStats.filter(stat => stat._id).map(stat => ({
           _id: stat._id._id,
           name: stat._id.name,
           commander: stat._id.commander,
@@ -900,12 +916,17 @@ router.get('/global', protect, async (req, res, next) => {
       .sort({ date: -1 })
       .limit(10);
 
-    // Create recent activity feed
+    // Create recent activity feed. A historical game can reference a player or
+    // deck that no longer resolves, so every hop has to be guarded — an
+    // unguarded access here fails the whole endpoint and blanks the dashboard.
     const recentActivity = recentGames.map(game => {
       const winner = game.players.find(p => p.placement === 1);
+      const winnerName = winner?.player?.nickname || winner?.player?.name || 'Someone';
+      const winnerCommander = winner?.deck?.commander || 'their deck';
+
       return {
         type: 'game',
-        description: `${winner?.player.nickname || winner?.player.name || 'Someone'} won with ${winner?.deck.commander || 'their deck'}`,
+        description: `${winnerName} won with ${winnerCommander}`,
         date: game.date
       };
     });
@@ -917,7 +938,9 @@ router.get('/global', protect, async (req, res, next) => {
         totalPlayers,
         totalDecks,
         averageGameLength,
-        topPlayers: playerStats.map(stat => ({
+        // `populate` leaves `_id` as null when the referenced player or deck no
+        // longer exists, so drop those rows rather than dereferencing null.
+        topPlayers: playerStats.filter(stat => stat._id).map(stat => ({
           _id: stat._id._id,
           name: stat._id.name,
           nickname: stat._id.nickname,
@@ -927,7 +950,7 @@ router.get('/global', protect, async (req, res, next) => {
           winRate: Math.round(stat.winRate * 100) / 100,
           averagePlacement: Math.round(stat.averagePlacement * 100) / 100
         })),
-        topDecks: deckStats.map(stat => ({
+        topDecks: deckStats.filter(stat => stat._id).map(stat => ({
           _id: stat._id._id,
           name: stat._id.name,
           commander: stat._id.commander,
@@ -1017,87 +1040,118 @@ router.get('/borrowed-decks', protect, async (req, res, next) => {
 // @access  Private
 router.get('/advanced-metrics', protect, async (req, res, next) => {
   try {
-    // Get all decks with their game data
-    const allDecks = await Deck.find().populate('owner', 'name nickname');
-    
-    const deckMetrics = [];
-
-    for (const deck of allDecks) {
-      // Get all games for this deck
-      const games = await Game.find({ 'players.deck': deck._id });
-      
-      const totalGames = games.length;
-      
-      if (totalGames === 0) continue; // Skip decks with no games
-      
-      const wins = games.filter(game => 
-        game.players.find(p => p.deck.toString() === deck._id.toString() && p.placement === 1)
-      ).length;
-      
-      const placements = games.map(game => 
-        game.players.find(p => p.deck.toString() === deck._id.toString()).placement
-      );
-      
-      const averagePlacement = placements.reduce((sum, placement) => sum + placement, 0) / totalGames;
-      const winRate = (wins / totalGames) * 100;
-      
-      // 1. Weighted Win Score (WWS)
-      const wws = totalGames > 0
-        ? (wins * Math.log(totalGames + 1))
-        : 0;
-      
-      // 2. Bayesian True Win Rate (BTWR)
-      const priorWins = 1;
-      const priorGames = 4;
-
-      const btwr = totalGames > 0 
-        ? (((wins + priorWins) / (totalGames + priorGames)) * 100)
-        : 0;
-      
-      // 3. Dominance Index (DI)
-      let firstPlaces = placements.filter(p => p === 1).length;
-      let secondPlaces = placements.filter(p => p === 2).length;
-
-      const di = totalGames > 0
-        ? ((firstPlaces + secondPlaces * 0.5) / totalGames)
-        : 0;
-      
-      deckMetrics.push({
-        _id: deck._id,
-        name: deck.name,
-        commander: deck.commander,
-        deckImage: deck.deckImage,
-        colorIdentity: deck.colorIdentity,
-        owner: deck.owner,
-        gamesPlayed: totalGames,
-        wins,
-        winRate: parseFloat(winRate.toFixed(2)),
-        averagePlacement: parseFloat(averagePlacement.toFixed(2)),
-        weightedWinScore: parseFloat(wws.toFixed(2)),
-        bayesianTrueWinRate: parseFloat(btwr.toFixed(2)),
-        dominanceIndex: parseFloat(di.toFixed(2))
-      });
-    }
-    
-    // Sort by each metric to get top 6
-    const topByWWS = [...deckMetrics]
-      .sort((a, b) => b.weightedWinScore - a.weightedWinScore)
-      .slice(0, 6);
-    
-    const topByBTWR = [...deckMetrics]
-      .sort((a, b) => b.bayesianTrueWinRate - a.bayesianTrueWinRate)
-      .slice(0, 6);
-    
-    const topByDI = [...deckMetrics]
-      .sort((a, b) => b.dominanceIndex - a.dominanceIndex)
-      .slice(0, 6);
+    // One aggregation for every deck. This used to loop over all decks and run
+    // a Game.find() per deck, which cost one round trip per deck and pulled
+    // whole game documents just to count placements.
+    const [facets] = await Game.aggregate([
+      { $unwind: '$players' },
+      { $match: { 'players.deck': { $ne: null } } },
+      {
+        $group: {
+          _id: '$players.deck',
+          gamesPlayed: { $sum: 1 },
+          wins: {
+            $sum: { $cond: [{ $eq: ['$players.placement', 1] }, 1, 0] }
+          },
+          secondPlaces: {
+            $sum: { $cond: [{ $eq: ['$players.placement', 2] }, 1, 0] }
+          },
+          totalPlacement: { $sum: '$players.placement' }
+        }
+      },
+      {
+        // gamesPlayed is always >= 1 here, so these divisions are safe
+        $addFields: {
+          winRate: {
+            $multiply: [{ $divide: ['$wins', '$gamesPlayed'] }, 100]
+          },
+          averagePlacement: { $divide: ['$totalPlacement', '$gamesPlayed'] },
+          // Weighted Win Score — rewards winning often *and* playing often
+          weightedWinScore: {
+            $multiply: ['$wins', { $ln: { $add: ['$gamesPlayed', 1] } }]
+          },
+          // Bayesian True Win Rate — pulls small samples toward the prior
+          bayesianTrueWinRate: {
+            $multiply: [
+              {
+                $divide: [
+                  { $add: ['$wins', BTWR_PRIOR_WINS] },
+                  { $add: ['$gamesPlayed', BTWR_PRIOR_GAMES] }
+                ]
+              },
+              100
+            ]
+          },
+          // Dominance Index — a 2nd place is worth half a win
+          dominanceIndex: {
+            $divide: [
+              { $add: ['$wins', { $multiply: ['$secondPlaces', 0.5] }] },
+              '$gamesPlayed'
+            ]
+          }
+        }
+      },
+      // Attach deck details. A game referencing a deck that no longer exists
+      // is dropped, which is what the old per-deck loop did implicitly.
+      {
+        $lookup: {
+          from: 'decks',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'deck'
+        }
+      },
+      { $unwind: '$deck' },
+      // The owner may be missing if the player was deleted; keep the deck and
+      // let the client render it without an owner.
+      {
+        $lookup: {
+          from: 'players',
+          localField: 'deck.owner',
+          foreignField: '_id',
+          as: 'owner'
+        }
+      },
+      { $unwind: { path: '$owner', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          name: '$deck.name',
+          commander: '$deck.commander',
+          deckImage: '$deck.deckImage',
+          colorIdentity: '$deck.colorIdentity',
+          owner: {
+            $cond: [
+              { $ifNull: ['$owner', false] },
+              { _id: '$owner._id', name: '$owner.name', nickname: '$owner.nickname' },
+              null
+            ]
+          },
+          gamesPlayed: 1,
+          wins: 1,
+          winRate: 1,
+          averagePlacement: 1,
+          weightedWinScore: 1,
+          bayesianTrueWinRate: 1,
+          dominanceIndex: 1
+        }
+      },
+      // Rank once per metric inside the database so only 18 documents come back
+      {
+        $facet: {
+          topByWeightedWinScore: [{ $sort: { weightedWinScore: -1 } }, { $limit: 6 }],
+          topByBayesianTrueWinRate: [{ $sort: { bayesianTrueWinRate: -1 } }, { $limit: 6 }],
+          topByDominanceIndex: [{ $sort: { dominanceIndex: -1 } }, { $limit: 6 }]
+        }
+      }
+    ]);
 
     res.status(200).json({
       success: true,
       data: {
-        topByWeightedWinScore: topByWWS,
-        topByBayesianTrueWinRate: topByBTWR,
-        topByDominanceIndex: topByDI
+        topByWeightedWinScore: (facets?.topByWeightedWinScore || []).map(roundDeckMetrics),
+        topByBayesianTrueWinRate: (facets?.topByBayesianTrueWinRate || []).map(roundDeckMetrics),
+        topByDominanceIndex: (facets?.topByDominanceIndex || []).map(roundDeckMetrics)
       }
     });
   } catch (error) {

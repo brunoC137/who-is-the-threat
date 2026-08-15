@@ -379,9 +379,13 @@ All stats are computed on the fly from `Game` documents via Mongoose aggregation
 
 Advanced deck metrics (documented in `ADVANCED_METRICS_IMPLEMENTATION.md`, surfaced on the dashboard and deck pages, explained in the UI by `components/MetricInfo.tsx`):
 
-- **Weighted Win Score (WWS)** = `winRate × gamesPlayed × 1.5`
-- **Bayesian True Win Rate (BTWR)** = `(wins + 5) / (games + 10) × 100`
-- **Dominance Index (DI)** = `(maxPlacement + 1 − avgPlacement) × (1 / (1 + stdDev)) × 10`
+- **Weighted Win Score (WWS)** = `wins × ln(gamesPlayed + 1)`
+- **Bayesian True Win Rate (BTWR)** = `(wins + 1) / (games + 4) × 100`
+- **Dominance Index (DI)** = `(firstPlaces + secondPlaces × 0.5) / games`
+
+> These are the formulas the code actually computes. `ADVANCED_METRICS_IMPLEMENTATION.md` and the `MetricInfo` tooltips on the dashboard still describe an earlier set (`winRate × games × 1.5`, a `+5/+10` prior, a std-dev term) that the implementation no longer uses — trust the route, not those.
+
+`/stats/advanced-metrics` computes all three for every deck in a single `Game.aggregate` with a `$facet` that ranks each metric in the database and returns only the top 6 per list. It previously looped over every deck issuing one `Game.find` each; do not reintroduce a per-deck query here.
 
 ## 23. Frontend conventions
 
