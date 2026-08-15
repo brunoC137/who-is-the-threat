@@ -65,6 +65,11 @@ export const decksAPI = {
   create: (data: any) => api.post('/api/decks', data),
   update: (id: string, data: any) => api.put(`/api/decks/${id}`, data),
   delete: (id: string) => api.delete(`/api/decks/${id}`),
+  // Archived decks are excluded from getAll by default. Pass
+  // { archived: true } for the archive listing, or { includeArchived: true }
+  // when an existing selection may point at an archived deck.
+  archive: (id: string) => api.put(`/api/decks/${id}/archive`),
+  unarchive: (id: string) => api.put(`/api/decks/${id}/unarchive`),
 };
 
 export const gamesAPI = {

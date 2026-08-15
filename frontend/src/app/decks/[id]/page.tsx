@@ -25,7 +25,10 @@ import {
   Shield,
   Eye,
   Award,
-  BarChart
+  BarChart,
+  Archive,
+  ArchiveRestore,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI, statsAPI, gamesAPI } from '@/lib/api';
@@ -46,6 +49,8 @@ interface Deck {
   deckImage?: string;
   colorIdentity?: string[];
   tags?: string[];
+  archived?: boolean;
+  archivedAt?: string;
   owner: {
     _id: string;
     name: string;
@@ -140,6 +145,8 @@ export default function DeckPage() {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [stats, setStats] = useState<DeckStats | null>(null);
   const [error, setError] = useState<string>('');
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string>('');
 
   useEffect(() => {
     const fetchDeckAndStats = async () => {
@@ -189,6 +196,26 @@ export default function DeckPage() {
 
   // Check permissions
   const canEdit = user && deck && (user.isAdmin || user.id === deck.owner?._id);
+
+  const handleToggleArchive = async () => {
+    if (!deck) return;
+
+    setArchiving(true);
+    setArchiveError('');
+    try {
+      const response = deck.archived
+        ? await decksAPI.unarchive(deck._id)
+        : await decksAPI.archive(deck._id);
+      setDeck(response.data.data || response.data);
+    } catch (err: any) {
+      setArchiveError(
+        err.response?.data?.message ||
+          (deck.archived ? t('decks.unarchiveFailed') : t('decks.archiveFailed'))
+      );
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -248,7 +275,9 @@ export default function DeckPage() {
           </Button>
         </Link>
         
-        <div className="flex-1">
+        {/* min-w-0 lets this column shrink below its content on narrow screens;
+            without it the deck art forces the whole page to scroll sideways. */}
+        <div className="flex-1 min-w-0">
           {deck.deckImage ? (
             <div className="w-full max-w-sm h-64 rounded-lg mb-4 bg-cover bg-center mx-auto md:mx-0 md:float-right md:ml-8 md:mb-0" 
                  style={{ backgroundImage: `url(${deck.deckImage})` }} />
@@ -259,9 +288,24 @@ export default function DeckPage() {
           )}
           
           <div>
-            <h1 className="text-4xl font-bold mb-2">{deck.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold">{deck.name}</h1>
+              {deck.archived && (
+                <Badge variant="secondary" className="gap-1 bg-muted/60">
+                  <Archive className="h-3 w-3" />
+                  {t('decks.archived')}
+                </Badge>
+              )}
+            </div>
             <p className="text-xl text-muted-foreground mb-4">{deck.commander}</p>
-            
+
+            {deck.archived && (
+              <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-foreground/90 flex items-start gap-2">
+                <Archive className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                {t('decks.archivedDeckNotice')}
+              </div>
+            )}
+
             {/* Owner */}
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="w-8 h-8">
@@ -302,7 +346,7 @@ export default function DeckPage() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-6">
               {deck.decklistLink && (
                 <Button variant="outline" asChild>
                   <a href={deck.decklistLink} target="_blank" rel="noopener noreferrer">
@@ -319,10 +363,29 @@ export default function DeckPage() {
                   </Link>
                 </Button>
               )}
+              {canEdit && (
+                <Button variant="outline" onClick={handleToggleArchive} disabled={archiving}>
+                  {archiving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : deck.archived ? (
+                    <ArchiveRestore className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Archive className="h-4 w-4 mr-2" />
+                  )}
+                  {deck.archived ? t('decks.unarchive') : t('decks.archive')}
+                </Button>
+              )}
             </div>
+
+            {archiveError && (
+              <p className="text-sm text-destructive mb-4">{archiveError}</p>
+            )}
 
             <p className="text-sm text-muted-foreground">
               {t('decks.createdOn')} {formatDate(deck.createdAt)}
+              {deck.archived && deck.archivedAt && (
+                <> · {t('decks.archivedOn')} {formatDate(deck.archivedAt)}</>
+              )}
             </p>
           </div>
         </div>

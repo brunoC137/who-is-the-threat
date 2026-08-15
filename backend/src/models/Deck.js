@@ -40,13 +40,26 @@ const DeckSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [30, 'Tag cannot be more than 30 characters']
-  }]
+  }],
+  // Decks are archived instead of deleted so historical games keep a valid
+  // deck reference. Archived decks stay visible in stats and game history but
+  // are hidden from deck browsing and cannot be picked for a new game.
+  archived: {
+    type: Boolean,
+    default: false
+  },
+  archivedAt: {
+    type: Date,
+    default: null
+  }
 }, {
   timestamps: true
 });
 
 // Index for efficient queries
 DeckSchema.index({ owner: 1 });
+DeckSchema.index({ owner: 1, archived: 1 });
+DeckSchema.index({ archived: 1 });
 DeckSchema.index({ name: 1, owner: 1 });
 DeckSchema.index({ commander: 1 });
 DeckSchema.index({ colorIdentity: 1 });

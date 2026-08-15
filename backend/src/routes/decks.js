@@ -1,10 +1,18 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Deck = require('../models/Deck');
+const Game = require('../models/Game');
 const Player = require('../models/Player');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Query flags arrive as strings ('true', '1'); treat anything else as unset.
+const isTruthyFlag = (value) => value === 'true' || value === '1' || value === true;
+
+// Archive state is toggled through the dedicated archive/unarchive routes so
+// the timestamp stays consistent — it must never be set through a plain update.
+const ARCHIVE_FIELDS = ['archived', 'archivedAt'];
 
 // @desc    Get all decks
 // @route   GET /decks
@@ -17,12 +25,22 @@ router.get('/', protect, async (req, res, next) => {
 
     // Build query object
     let query = {};
-    
+
+    // Archived decks are hidden by default so deck browsing and game creation
+    // never surface decks that were taken apart. `archived=true` returns only
+    // the archived ones, `includeArchived=true` returns both (used when
+    // rendering an existing game that references an archived deck).
+    if (isTruthyFlag(req.query.archived)) {
+      query.archived = true;
+    } else if (!isTruthyFlag(req.query.includeArchived)) {
+      query.archived = { $ne: true };
+    }
+
     // Filter by owner if specified
     if (req.query.owner) {
       query.owner = req.query.owner;
     }
-    
+
     // Filter by color identity if specified
     if (req.query.colors) {
       const colors = req.query.colors.split(',').map(c => c.toUpperCase());
@@ -252,6 +270,9 @@ router.put('/:id', protect, [
       delete fieldsToUpdate.owner;
     }
 
+    // Archive state only changes through /archive and /unarchive
+    ARCHIVE_FIELDS.forEach(field => delete fieldsToUpdate[field]);
+
     deck = await Deck.findByIdAndUpdate(req.params.id, fieldsToUpdate, {
       new: true,
       runValidators: true
@@ -266,9 +287,53 @@ router.put('/:id', protect, [
   }
 });
 
+// @desc    Archive / unarchive deck
+// @route   PUT /decks/:id/archive
+// @route   PUT /decks/:id/unarchive
+// @access  Private (owner or admin)
+const setArchived = (archived) => async (req, res, next) => {
+  try {
+    const deck = await Deck.findById(req.params.id);
+
+    if (!deck) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deck not found'
+      });
+    }
+
+    if (deck.owner.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: `Not authorized to ${archived ? 'archive' : 'unarchive'} this deck`
+      });
+    }
+
+    deck.archived = archived;
+    deck.archivedAt = archived ? new Date() : null;
+    await deck.save();
+
+    const populatedDeck = await Deck.findById(deck._id)
+      .populate('owner', 'name nickname profileImage');
+
+    res.status(200).json({
+      success: true,
+      data: populatedDeck
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+router.put('/:id/archive', protect, setArchived(true));
+router.put('/:id/unarchive', protect, setArchived(false));
+
 // @desc    Delete deck
 // @route   DELETE /decks/:id
 // @access  Private (owner or admin)
+// @note    Decks that were played are never deletable — deleting them would
+//          orphan the participants of every game they appear in. Archive
+//          instead. Only decks with no game history can still be removed.
 router.delete('/:id', protect, async (req, res, next) => {
   try {
     const deck = await Deck.findById(req.params.id);
@@ -285,6 +350,14 @@ router.delete('/:id', protect, async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this deck'
+      });
+    }
+
+    const gamesWithDeck = await Game.countDocuments({ 'players.deck': deck._id });
+    if (gamesWithDeck > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This deck has been played and cannot be deleted. Archive it instead to keep its game history.'
       });
     }
 

@@ -1,9 +1,30 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Game = require('../models/Game');
+const Deck = require('../models/Deck');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
+
+/**
+ * Archived decks are out of rotation, so a *new* game must not be recorded with
+ * one. Editing an existing game is deliberately exempt: a historical game may
+ * legitimately reference a deck that has since been archived.
+ *
+ * Returns an error message, or null when every deck is still active.
+ */
+const findArchivedDecks = async (players) => {
+  const deckIds = players.map(p => p.deck).filter(Boolean);
+  if (deckIds.length === 0) return null;
+
+  const archivedDecks = await Deck.find({ _id: { $in: deckIds }, archived: true })
+    .select('name');
+
+  if (archivedDecks.length === 0) return null;
+
+  const names = archivedDecks.map(deck => deck.name).join(', ');
+  return `Archived decks cannot be used in a new game: ${names}. Unarchive them first.`;
+};
 
 /**
  * Referential checks that express-validator cannot express on its own, because
@@ -273,6 +294,14 @@ router.post('/', protect, [
       return res.status(400).json({
         success: false,
         message: referenceError
+      });
+    }
+
+    const archivedDeckError = await findArchivedDecks(req.body.players);
+    if (archivedDeckError) {
+      return res.status(400).json({
+        success: false,
+        message: archivedDeckError
       });
     }
 

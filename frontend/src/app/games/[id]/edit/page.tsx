@@ -36,6 +36,7 @@ interface Deck {
   _id: string;
   name: string;
   commander: string;
+  archived?: boolean;
   owner: {
     _id: string;
     name: string;
@@ -123,7 +124,9 @@ export default function EditGamePage() {
         const [gameResponse, playersResponse, decksResponse] = await Promise.all([
           gamesAPI.getById(gameId),
           playersAPI.getAll(),
-          decksAPI.getAll()
+          // A historical game may reference a deck that has since been
+          // archived, so the edit form must still be able to render it
+          decksAPI.getAll({ includeArchived: true })
         ]);
 
         const gameData = gameResponse.data.data || gameResponse.data;
@@ -324,13 +327,21 @@ export default function EditGamePage() {
     }));
   };
 
-  const getPlayerDecks = (playerId: string) => {
-    return decks.filter(deck => deck.owner._id === playerId);
-  };
+  // Archived decks are not offered as new choices, but one that is already on
+  // this game stays in the list so the existing selection is never dropped.
+  const selectableDecks = (ownerId: string, selectedDeckId?: string) =>
+    decks.filter(deck =>
+      deck.owner._id === ownerId && (!deck.archived || deck._id === selectedDeckId)
+    );
 
-  const getDecksForBorrowing = (ownerId: string) => {
-    return decks.filter(deck => deck.owner._id === ownerId);
-  };
+  const getPlayerDecks = (playerId: string, selectedDeckId?: string) =>
+    selectableDecks(playerId, selectedDeckId);
+
+  const getDecksForBorrowing = (ownerId: string, selectedDeckId?: string) =>
+    selectableDecks(ownerId, selectedDeckId);
+
+  const deckOptionLabel = (deck: Deck) =>
+    `${deck.name} (${deck.commander})${deck.archived ? ` — ${t('decks.archived')}` : ''}`;
 
   const getPlayerById = (playerId: string) => {
     return players.find(p => p._id === playerId);
@@ -481,7 +492,7 @@ export default function EditGamePage() {
             {formData.players.map((gamePlayer, index) => {
               const selectedPlayer = getPlayerById(gamePlayer.player);
               const selectedDeck = getDeckById(gamePlayer.deck);
-              const playerDecks = gamePlayer.player ? getPlayerDecks(gamePlayer.player) : [];
+              const playerDecks = gamePlayer.player ? getPlayerDecks(gamePlayer.player, gamePlayer.deck) : [];
 
               return (
                 <div key={index} className="p-4 border rounded-lg space-y-3">
@@ -604,9 +615,9 @@ export default function EditGamePage() {
                             disabled={!deckOwners[index]}
                           >
                             <option value="">Select Deck</option>
-                            {deckOwners[index] && getDecksForBorrowing(deckOwners[index]).map(deck => (
+                            {deckOwners[index] && getDecksForBorrowing(deckOwners[index], gamePlayer.deck).map(deck => (
                               <option key={deck._id} value={deck._id}>
-                                {deck.name} ({deck.commander})
+                                {deckOptionLabel(deck)}
                               </option>
                             ))}
                           </select>
@@ -628,7 +639,7 @@ export default function EditGamePage() {
                           <option value="">Select Deck</option>
                           {playerDecks.map(deck => (
                             <option key={deck._id} value={deck._id}>
-                              {deck.name} ({deck.commander})
+                              {deckOptionLabel(deck)}
                             </option>
                           ))}
                         </select>
