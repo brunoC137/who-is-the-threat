@@ -89,20 +89,19 @@ export default function DashboardPage() {
     topByDominanceIndex: Array<any>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!token) return;
+    if (!user) return;
 
-        // Fetch global stats, user-specific stats, and advanced metrics
-        const [globalResponse, userResponse, advancedResponse] = await Promise.all([
+    // The advanced metrics are the slowest call and they render at the very
+    // bottom of the page, so they load on their own track — the header and the
+    // stat cards must not wait on them.
+    const fetchCoreData = async () => {
+      try {
+        const [globalResponse, userResponse] = await Promise.all([
           statsAPI.getGlobalStats(),
           statsAPI.getDashboardStats(),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/advanced-metrics`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
         ]);
 
         const globalResult = globalResponse.data;
@@ -110,11 +109,6 @@ export default function DashboardPage() {
 
         const userResult = userResponse.data;
         setUserStats(userResult.data || userResult);
-
-        if (advancedResponse.ok) {
-          const advancedResult = await advancedResponse.json();
-          setAdvancedMetrics(advancedResult.data || advancedResult);
-        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -122,9 +116,19 @@ export default function DashboardPage() {
       }
     };
 
-    if (user) {
-      fetchDashboardData();
-    }
+    const fetchAdvancedMetrics = async () => {
+      try {
+        const response = await statsAPI.getAdvancedMetrics();
+        setAdvancedMetrics(response.data.data || response.data);
+      } catch (error) {
+        console.error('Error fetching advanced metrics:', error);
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+
+    fetchCoreData();
+    fetchAdvancedMetrics();
   }, [user]);
 
   if (!user) {
@@ -491,13 +495,21 @@ export default function DashboardPage() {
       </div>
 
       {/* Advanced Deck Metrics */}
-      {advancedMetrics && (
+      {(metricsLoading || advancedMetrics) && (
         <div className="space-y-6 mt-8">
           <div className="mb-6">
             <h2 className="text-3xl font-bold text-foreground mb-2">Advanced Deck Metrics</h2>
             <p className="text-muted-foreground">Data-driven insights into deck performance beyond simple win rates</p>
           </div>
 
+          {metricsLoading ? (
+            <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+              </CardContent>
+            </Card>
+          ) : advancedMetrics ? (
+            <>
           {/* Weighted Win Score */}
           <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader>
@@ -761,6 +773,8 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+            </>
+          ) : null}
         </div>
       )}
     </div>

@@ -85,4 +85,5 @@ export const statsAPI = {
   getDeckStats: (id: string) => api.get(`/api/stats/deck/${id}`),
   getGlobalStats: () => api.get('/api/stats/global'),
   getDashboardStats: () => api.get('/api/stats/dashboard'),
+  getAdvancedMetrics: () => api.get('/api/stats/advanced-metrics'),
 };
