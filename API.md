@@ -57,6 +57,9 @@ Include the JWT token in the Authorization header: `Bearer <token>`
 ### Get All Decks
 **GET** `/decks?page=1&limit=25&search=dragon&colors=R,G`
 
+Archived decks are excluded by default. Add `archived=true` to list only archived
+decks, or `includeArchived=true` to list both.
+
 ### Create Deck
 **POST** `/decks`
 
@@ -74,8 +77,22 @@ Include the JWT token in the Authorization header: `Bearer <token>`
 ### Update Deck
 **PUT** `/decks/:id`
 
+`archived` / `archivedAt` are ignored here — use the archive routes below.
+
+### Archive Deck
+**PUT** `/decks/:id/archive`
+
+Hides the deck from deck browsing and from new-game deck selection. Game history
+and statistics are unaffected.
+
+### Unarchive Deck
+**PUT** `/decks/:id/unarchive`
+
 ### Delete Deck
 **DELETE** `/decks/:id`
+
+Returns `409` if the deck appears in any game — archive it instead. Only decks
+that were never played can be deleted.
 
 ## Games
 

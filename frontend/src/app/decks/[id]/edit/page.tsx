@@ -16,7 +16,8 @@ import {
   X,
   Link as LinkIcon,
   Image as ImageIcon,
-  Trash2
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI } from '@/lib/api';
@@ -43,6 +44,8 @@ interface Deck {
   deckImage?: string;
   colorIdentity?: string[];
   tags?: string[];
+  archived?: boolean;
+  archivedAt?: string;
   owner: {
     _id: string;
     name: string;
@@ -62,7 +65,8 @@ export default function EditDeckPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [newTag, setNewTag] = useState('');
   const [deck, setDeck] = useState<Deck | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -105,9 +109,10 @@ export default function EditDeckPage() {
     }
   }, [deckId]);
 
-  // Check permissions
+  // Check permissions. Decks are never deleted — archiving keeps the deck
+  // attached to every game it was played in.
   const canEdit = user && deck && (user.isAdmin || user.id === deck.owner._id);
-  const canDelete = user && deck && (user.isAdmin || user.id === deck.owner._id);
+  const canArchive = canEdit;
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -155,21 +160,33 @@ export default function EditDeckPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true);
+  const handleArchive = async () => {
+    if (!deck) return;
+
+    // Unarchiving is harmless, so only archiving asks for confirmation
+    if (!deck.archived && !showArchiveConfirm) {
+      setShowArchiveConfirm(true);
       return;
     }
 
-    setLoading(true);
+    setArchiving(true);
     try {
-      await decksAPI.delete(deckId);
-      router.push('/decks');
+      if (deck.archived) {
+        const response = await decksAPI.unarchive(deckId);
+        setDeck(response.data.data || response.data);
+        setShowArchiveConfirm(false);
+      } else {
+        await decksAPI.archive(deckId);
+        router.push('/decks');
+      }
     } catch (error: any) {
-      setErrors({ submit: error.response?.data?.message || 'Failed to delete deck' });
-      setShowDeleteConfirm(false);
+      setErrors({
+        submit: error.response?.data?.message ||
+          (deck.archived ? t('decks.unarchiveFailed') : t('decks.archiveFailed'))
+      });
+      setShowArchiveConfirm(false);
     } finally {
-      setLoading(false);
+      setArchiving(false);
     }
   };
 
@@ -261,58 +278,73 @@ export default function EditDeckPage() {
           <h1 className="text-3xl font-bold">{t('decks.editDeck')}</h1>
           <p className="text-muted-foreground">{t('decks.editYourDeck')}</p>
         </div>
-        {canDelete && (
-          <Button 
-            variant={showDeleteConfirm ? "destructive" : "outline"}
-            onClick={handleDelete}
-            disabled={loading}
+        {canArchive && (
+          <Button
+            variant="outline"
+            onClick={handleArchive}
+            disabled={archiving || loading}
           >
-            {showDeleteConfirm ? (
-              loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t('actions.delete')}...
-                </>
-              ) : (
-                t('actions.confirm')
-              )
+            {archiving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {deck.archived ? t('decks.unarchiving') : t('decks.archiving')}
+              </>
+            ) : deck.archived ? (
+              <>
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+                {t('decks.unarchive')}
+              </>
             ) : (
               <>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                <Archive className="h-4 w-4 mr-2" />
+                {t('decks.archive')}
               </>
             )}
           </Button>
         )}
       </div>
 
-      {showDeleteConfirm && (
-        <Card className="mb-6 border-red-200 bg-red-50">
+      {deck.archived && (
+        <Card className="mb-6 border-warning/40 bg-warning/10">
           <CardContent className="pt-6">
-            <p className="text-sm text-red-800 mb-4">
-              Are you sure you want to delete this deck? This action cannot be undone.
+            <p className="text-sm text-foreground/90 flex items-start gap-2">
+              <Archive className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+              {t('decks.archivedDeckNotice')}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {showArchiveConfirm && !deck.archived && (
+        <Card className="mb-6 border-warning/40 bg-warning/10">
+          <CardContent className="pt-6">
+            <p className="font-medium mb-2">{t('decks.archiveConfirmTitle')}</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t('decks.archiveConfirmDescription')}
             </p>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowDeleteConfirm(false)}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowArchiveConfirm(false)}
               >
-                Cancel
+                {t('actions.cancel')}
               </Button>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleDelete}
-                disabled={loading}
+              <Button
+                size="sm"
+                onClick={handleArchive}
+                disabled={archiving}
               >
-                {loading ? (
+                {archiving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
+                    {t('decks.archiving')}
                   </>
                 ) : (
-                  'Delete Deck'
+                  <>
+                    <Archive className="h-4 w-4 mr-2" />
+                    {t('decks.archiveDeck')}
+                  </>
                 )}
               </Button>
             </div>

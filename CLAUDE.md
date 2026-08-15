@@ -307,7 +307,9 @@ Frontend routes: `(auth)/login`, `register`, `forgot-password`, `reset-password/
 
 **Player** — `name` (≤50, required), `nickname` (≤30), `email` (required, unique, lowercased), `password` (required, min 6, bcrypt-hashed in a `pre('save')` hook with salt rounds 12), `profileImage` (URL ending in an image extension), `isAdmin`, `decks: [ObjectId→Deck]`, `resetPasswordToken`/`resetPasswordExpire` (both `select: false`, 10-minute expiry). `toJSON()` strips `password`. Methods: `comparePassword`, `getResetPasswordToken`.
 
-**Deck** — `owner` (required, →Player), `name` (≤100, required), `commander` (≤100, required), `decklistLink` (URL), `deckImage`, `colorIdentity: ['W','U','B','R','G','C']`, `tags` (each ≤30). Indexed on owner, name+owner, commander, colorIdentity, tags. Virtual `gamesCount` counts games via `players.deck`.
+**Deck** — `owner` (required, →Player), `name` (≤100, required), `commander` (≤100, required), `decklistLink` (URL), `deckImage`, `colorIdentity: ['W','U','B','R','G','C']`, `tags` (each ≤30), `archived` (default `false`), `archivedAt`. Indexed on owner, owner+archived, archived, name+owner, commander, colorIdentity, tags. Virtual `gamesCount` counts games via `players.deck`.
+
+> **Archiving replaces deletion.** A deck that was taken apart is archived, never deleted, so every game it appears in keeps a valid deck reference. Archived decks stay in game history and all statistics but are hidden from deck browsing and cannot be chosen for a new game. Legacy decks have no `archived` field at all, which is why the "active" filter is `{ archived: { $ne: true } }` rather than `{ archived: false }`.
 
 **Game** — `createdBy` (required, →Player), `date` (defaults to now), `players[]`, `durationMinutes` (1–600), `notes` (≤500). Each participant: `player` (required), `deck` (required), `placement` (1–6, required), `eliminatedBy` (optional →Player), `borrowedFrom` (optional →Player). Indexed on date, createdBy, players.player, players.deck.
 
@@ -334,11 +336,15 @@ GET    /api/players/:id
 PUT    /api/players/:id                      self or admin; only admins may set isAdmin
 DELETE /api/players/:id                      admin only
 
-GET    /api/decks                            supports query filters
+GET    /api/decks                            supports query filters; hides archived unless
+                                             `archived=true` (only archived) or
+                                             `includeArchived=true` (both)
 POST   /api/decks                            owner = current user (admins may pass `owner`)
 GET    /api/decks/:id
-PUT    /api/decks/:id                        owner or admin
-DELETE /api/decks/:id                        owner or admin
+PUT    /api/decks/:id                        owner or admin; ignores archived/archivedAt
+PUT    /api/decks/:id/archive                owner or admin
+PUT    /api/decks/:id/unarchive              owner or admin
+DELETE /api/decks/:id                        owner or admin; 409 if the deck has any games
 
 GET    /api/games                            page, limit (default 25), startDate, endDate, player, deck
 POST   /api/games
@@ -362,6 +368,8 @@ Responses follow `{ success, data, ... }`; list endpoints add `count`, `total`, 
 **There is no `POST /api/players`.** The "create player" screen posts to `/api/auth/register`, so every player is a full account — this is the mechanical reason guest players (§6) do not exist yet.
 
 Game write validation (`routes/games.js`) uses express-validator plus manual checks for unique placements, consecutive placements from 1, and no duplicate players. `PUT` additionally validates that `eliminatedBy` references a participant in the same game and that the winner has none; **`POST` does not run those `eliminatedBy` checks**, and neither verb verifies that the chosen deck belongs to the chosen player. Keep that in mind before assuming stored data is fully constrained.
+
+`POST /api/games` also rejects archived decks. `PUT` deliberately does not: a historical game may legitimately reference a deck archived since it was played, and the edit form loads decks with `includeArchived=true` so that selection still renders.
 
 `Guerreiros-API.postman_collection.json` and `API.md` at the root document the API; both can lag behind the code.
 
