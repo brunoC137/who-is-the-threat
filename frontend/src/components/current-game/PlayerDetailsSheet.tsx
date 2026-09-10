@@ -57,10 +57,10 @@ const EDGE_ROTATIONS: Array<{
   Icon: typeof ChevronUp;
   label: string;
 }> = [
-  { rotation: 180, position: 'left-1/2 top-1 -translate-x-1/2', Icon: ChevronUp, label: 'top' },
-  { rotation: 0, position: 'left-1/2 bottom-1 -translate-x-1/2', Icon: ChevronDown, label: 'bottom' },
-  { rotation: 90, position: 'left-1 top-1/2 -translate-y-1/2', Icon: ChevronLeft, label: 'left' },
-  { rotation: 270, position: 'right-1 top-1/2 -translate-y-1/2', Icon: ChevronRight, label: 'right' },
+  { rotation: 180, position: 'left-1/2 top-0.5 -translate-x-1/2', Icon: ChevronUp, label: 'top' },
+  { rotation: 0, position: 'left-1/2 bottom-0.5 -translate-x-1/2', Icon: ChevronDown, label: 'bottom' },
+  { rotation: 90, position: 'left-0.5 top-1/2 -translate-y-1/2', Icon: ChevronLeft, label: 'left' },
+  { rotation: 270, position: 'right-0.5 top-1/2 -translate-y-1/2', Icon: ChevronRight, label: 'right' },
 ];
 
 /**
@@ -126,7 +126,7 @@ export function PlayerDetailsSheet({
               haptic();
               setViewRotation(edgeRotation);
             }}
-            className={`cg-edge-tab absolute z-[55] flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${position} ${
+            className={`cg-edge-tab absolute z-[55] flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${position} ${
               active
                 ? 'border-primary/80 bg-primary text-primary-foreground'
                 : 'border-border bg-card text-foreground'
@@ -141,8 +141,10 @@ export function PlayerDetailsSheet({
           rotating frame swaps its dimensions too. Without this, max-width is
           measured against the short edge and the sheet clips. */}
       <div
-        // px leaves room for the left/right edge tabs to sit clear of the sheet
-        className="absolute left-1/2 top-1/2 flex items-center justify-center px-12 py-3"
+        // p-12 on every side: the edge tabs (2px inset + 44px) are pinned to all
+        // four screen edges, and turning the sheet swaps which of its sides
+        // faces which edge, so any side can end up under a tab.
+        className="absolute left-1/2 top-1/2 flex items-center justify-center p-12"
         style={{
           width: quarterTurned ? '100cqh' : '100cqw',
           height: quarterTurned ? '100cqw' : '100cqh',
@@ -170,7 +172,13 @@ export function PlayerDetailsSheet({
             </p>
           </div>
 
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('actions.close')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            onClick={onClose}
+            aria-label={t('actions.close')}
+          >
             <X className="h-4 w-4" />
           </Button>
         </header>
@@ -365,7 +373,7 @@ function CounterButton({
       size="icon"
       aria-label={ariaLabel}
       disabled={disabled}
-      className="h-9 w-9 shrink-0"
+      className="h-11 w-11 shrink-0"
       {...holdHandlers}
     >
       {children}
