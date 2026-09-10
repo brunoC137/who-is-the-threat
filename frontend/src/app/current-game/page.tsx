@@ -164,6 +164,10 @@ export default function CurrentGamePage() {
 
     dispatch({ type: 'START', players });
     setPhase('playing');
+    // Setup order is pick order, not where people sit. Opening straight into
+    // arrange mode lets the table fix that before the first life change; if
+    // the order already matches, it costs a single tap on Done.
+    setArranging(true);
   };
 
   const handleResume = () => {
