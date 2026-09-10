@@ -221,7 +221,7 @@ function CounterStrip({
   );
 }
 
-function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
+export function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
   if (deck.deckImage) {
     return (
       <>

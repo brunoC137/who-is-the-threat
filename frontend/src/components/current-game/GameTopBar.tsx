@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  ArrowLeftRight,
+  Check,
   ChevronDown,
   ChevronUp,
   Dices,
@@ -25,7 +27,9 @@ interface GameTopBarProps {
   isRolling: boolean;
   isSaving: boolean;
   collapsed: boolean;
+  arranging: boolean;
   onToggleCollapsed: () => void;
+  onToggleArranging: () => void;
   onToggleTimer: () => void;
   onUndo: () => void;
   onRollFirstPlayer: () => void;
@@ -50,7 +54,9 @@ export function GameTopBar({
   isRolling,
   isSaving,
   collapsed,
+  arranging,
   onToggleCollapsed,
+  onToggleArranging,
   onToggleTimer,
   onUndo,
   onRollFirstPlayer,
@@ -60,6 +66,30 @@ export function GameTopBar({
   onExit,
   t,
 }: GameTopBarProps) {
+  /**
+   * Arranging replaces the whole bar, collapsed or not: the mode locks life
+   * totals, so the way out has to be obvious and the other game controls
+   * have no business being pressed while seats are moving.
+   */
+  if (arranging) {
+    return (
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-primary/40 bg-primary/10 px-2 backdrop-blur-xl">
+        <ArrowLeftRight className="h-4 w-4 shrink-0 text-primary" />
+        <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-tight">
+          {t('currentGame.arrangeHint')}
+        </p>
+        <Button
+          size="sm"
+          className="h-8 shrink-0 px-3 text-xs font-bold"
+          onClick={onToggleArranging}
+        >
+          <Check className="mr-1 h-3.5 w-3.5" />
+          {t('currentGame.doneArranging')}
+        </Button>
+      </header>
+    );
+  }
+
   /**
    * Collapsed, the bar leaves the layout entirely so the board gets the whole
    * viewport, and only the two controls worth interrupting a game for float
@@ -132,6 +162,17 @@ export function GameTopBar({
           aria-label={t('currentGame.rollForFirst')}
         >
           <Dices className={`h-4 w-4 ${isRolling ? 'animate-spin' : ''}`} />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onToggleArranging}
+          disabled={isRolling}
+          aria-label={t('currentGame.arrangeSeats')}
+        >
+          <ArrowLeftRight className="h-4 w-4" />
         </Button>
 
         <Button

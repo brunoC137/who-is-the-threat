@@ -54,6 +54,7 @@ export default function CurrentGamePage() {
   const [state, dispatch] = useReducer(gameReducer, undefined, () => createInitialState());
 
   const [openSeatId, setOpenSeatId] = useState<string | null>(null);
+  const [arranging, setArranging] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [rollingSeatId, setRollingSeatId] = useState<string | null>(null);
@@ -331,7 +332,9 @@ export default function CurrentGamePage() {
         isRolling={rollingSeatId !== null}
         isSaving={saving}
         collapsed={headerCollapsed}
+        arranging={arranging}
         onToggleCollapsed={toggleHeaderCollapsed}
+        onToggleArranging={() => setArranging(current => !current)}
         onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
         onUndo={() => dispatch({ type: 'UNDO' })}
         onRollFirstPlayer={handleRollFirstPlayer}
@@ -347,8 +350,10 @@ export default function CurrentGamePage() {
           gamePlayers={state.players}
           orientation={orientation}
           rollingSeatId={rollingSeatId}
+          arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}
           onOpenDetails={setOpenSeatId}
+          onSwapSeats={(seatA, seatB) => dispatch({ type: 'SWAP_SEATS', seatA, seatB })}
           t={t}
         />
       </main>

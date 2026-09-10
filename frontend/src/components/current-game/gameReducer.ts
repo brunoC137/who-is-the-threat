@@ -24,6 +24,7 @@ export type GameAction =
   | { type: 'CONCEDE'; seatId: string }
   | { type: 'REVIVE'; seatId: string }
   | { type: 'SET_FIRST_PLAYER'; seatId: string }
+  | { type: 'SWAP_SEATS'; seatA: string; seatB: string }
   | { type: 'TICK' }
   | { type: 'SET_TIMER_RUNNING'; running: boolean }
   | { type: 'SET_NOTES'; notes: string }
@@ -76,6 +77,16 @@ const updateSeat = (
 
 const alivePlayers = (players: GamePlayer[]): GamePlayer[] =>
   players.filter(p => !p.isEliminated);
+
+/**
+ * The board draws players in array order, so the array order is the seating.
+ * Snapshots capture that order too; this puts restored players back where the
+ * table is sitting now, so undoing a life change never moves anyone.
+ */
+const inSeatOrder = (players: GamePlayer[], seating: GamePlayer[]): GamePlayer[] => {
+  const order = new Map(seating.map((p, index) => [p.id, index]));
+  return [...players].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+};
 
 /** True when the player is at or past any lethal threshold. */
 const isAtLethalState = (player: GamePlayer): boolean =>
@@ -321,6 +332,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         })),
       };
 
+    /**
+     * Seating reflects where people physically sit, not something that
+     * happened in the game, so it stays off the undo stack. Seat ids travel
+     * with the player, which keeps commander damage and eliminations intact.
+     */
+    case 'SWAP_SEATS': {
+      const a = state.players.findIndex(p => p.id === action.seatA);
+      const b = state.players.findIndex(p => p.id === action.seatB);
+      if (a < 0 || b < 0 || a === b) return state;
+
+      const players = [...state.players];
+      [players[a], players[b]] = [players[b], players[a]];
+      return { ...state, players };
+    }
+
     case 'TICK':
       if (!state.isTimerRunning || state.status === 'ended') return state;
       return { ...state, elapsedSeconds: state.elapsedSeconds + 1 };
@@ -373,6 +399,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         ...previous,
+        players: inSeatOrder(previous.players, state.players),
         eliminationPrompt: null,
         past: state.past.slice(0, -1),
       };

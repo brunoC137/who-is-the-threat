@@ -602,6 +602,11 @@ export const translations = {
       damageReceived: 'Taken',
       damageDealt: 'Dealt',
       faceThisSide: 'Turn this panel to face this side of the table',
+      // Seating
+      arrangeSeats: 'Arrange seats to match the table',
+      arrangeHint: 'Drag each player to where they are sitting, or tap two players to swap them.',
+      doneArranging: 'Done',
+      moveSeat: 'Move seat',
       // Elimination
       wasEliminated: 'is out',
       confirmElimination: 'Confirm elimination',
@@ -1236,6 +1241,11 @@ export const translations = {
       damageReceived: 'Recebido',
       damageDealt: 'Causado',
       faceThisSide: 'Virar este painel para este lado da mesa',
+      // Lugares
+      arrangeSeats: 'Organizar lugares conforme a mesa',
+      arrangeHint: 'Arraste cada jogador para onde ele está sentado, ou toque em dois jogadores para trocá-los.',
+      doneArranging: 'Pronto',
+      moveSeat: 'Mudar de lugar',
       // Eliminação
       wasEliminated: 'está fora',
       confirmElimination: 'Confirmar eliminação',
