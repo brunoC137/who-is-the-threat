@@ -7,14 +7,14 @@ import { PlayerCard } from './PlayerCard';
 import { ArrangeSeatPanel } from './ArrangeSeatPanel';
 import { useFrame } from './LandscapeFrame';
 import { GamePlayer } from './types';
-import { BoardView, STRIP_AREA, getBoardLayout, isQuarterTurn } from './layout';
+import { BoardView, getBoardLayout, isQuarterTurn } from './layout';
 import { getDisplayName, haptic } from './utils';
 
 interface GameBoardProps {
   gamePlayers: GamePlayer[];
   view: BoardView;
-  /** Game controls, placed between the rows when the layout has a strip. */
-  strip?: ReactNode;
+  /** Controls floated over the centre of the board (the sides view's orb). */
+  centerControls?: ReactNode;
   rollingSeatId: string | null;
   /** Seat arrangement mode: panels become draggable and life is locked. */
   arranging: boolean;
@@ -57,7 +57,7 @@ const seatIdAt = (x: number, y: number): string | null =>
 export function GameBoard({
   gamePlayers,
   view,
-  strip,
+  centerControls,
   rollingSeatId,
   arranging,
   onLifeChange,
@@ -179,7 +179,7 @@ export function GameBoard({
 
   return (
     <div
-      className="cg-board grid h-full w-full gap-1.5 p-1.5"
+      className="cg-board relative grid h-full w-full gap-1.5 p-1.5"
       style={{
         gridTemplateAreas: layout.gridTemplateAreas,
         gridTemplateColumns: layout.gridTemplateColumns,
@@ -220,6 +220,9 @@ export function GameBoard({
                   gamePlayer={gamePlayer}
                   edge={seat.edge}
                   rotation={seat.rotation}
+                  // The orb sits where the rows meet, so names move to each
+                  // panel's outer edge, next to the person reading it.
+                  labelEdge={view === 'sides' ? 'bottom' : 'top'}
                   layout={layout}
                   players={gamePlayers}
                   isRolling={rollingSeatId === gamePlayer.id}
@@ -234,9 +237,11 @@ export function GameBoard({
         );
       })}
 
-      {layout.hasStrip && (
-        <div className="min-w-0" style={{ gridArea: STRIP_AREA }}>
-          {strip}
+      {/* Zero-size anchor at the board's centre. Deliberately no transform:
+          it would become the containing block for the orb's fixed backdrop. */}
+      {centerControls && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-30 h-0 w-0">
+          {centerControls}
         </div>
       )}
 

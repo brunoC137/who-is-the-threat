@@ -51,8 +51,6 @@ export interface BoardLayout {
   gridTemplateAreas: string;
   gridTemplateColumns: string;
   gridTemplateRows: string;
-  /** The grid has a STRIP_AREA between the rows, for the game controls. */
-  hasStrip?: boolean;
 }
 
 /**
@@ -65,13 +63,11 @@ export type Orientation = 'landscape' | 'portrait';
 /**
  * How seats are arranged on the board.
  *  - table: players on every edge of the phone; four players get a pinwheel.
- *  - sides: players only along the two long edges, facing each other across a
- *    control strip — the arrangement LifeTap uses.
+ *  - sides: players only along the two long edges, facing each other — the
+ *    arrangement LifeTap uses. The rows meet in the middle; the game controls
+ *    float over the centre in an orb (see GameOrb) instead of taking a row.
  */
 export type BoardView = 'table' | 'sides';
-
-/** Grid area of the control strip in layouts that have one. */
-export const STRIP_AREA = 'strip';
 
 const EDGE_ROTATION: Record<SeatEdge, SeatRotation> = {
   bottom: 0,
@@ -144,30 +140,14 @@ const TABLE_LAYOUTS: Record<number, BoardLayout> = {
   },
 };
 
-/** Two rows of seats with the control strip, sized to its content, between. */
-const STRIP_ROWS = 'minmax(0, 1fr) auto minmax(0, 1fr)';
-
 /**
  * Nobody sits at the short ends: two rows of players face each other across
- * the phone, with the game controls in the middle. Only 4 players actually
- * sit differently from the table view; for the rest the difference is the
- * strip.
+ * the phone. Only 4 players actually sit differently from the table view;
+ * for the rest the difference is where the controls live (the orb).
  */
 const SIDES_LAYOUTS: Record<number, BoardLayout> = {
-  2: {
-    seats: [seat('p0', 'top'), seat('p1', 'bottom')],
-    gridTemplateAreas: `"p0" "${STRIP_AREA}" "p1"`,
-    gridTemplateColumns: '1fr',
-    gridTemplateRows: STRIP_ROWS,
-    hasStrip: true,
-  },
-  3: {
-    seats: [seat('p0', 'top'), seat('p1', 'bottom'), seat('p2', 'bottom')],
-    gridTemplateAreas: `"p0 p0" "${STRIP_AREA} ${STRIP_AREA}" "p2 p1"`,
-    gridTemplateColumns: '1fr 1fr',
-    gridTemplateRows: STRIP_ROWS,
-    hasStrip: true,
-  },
+  2: TABLE_LAYOUTS[2],
+  3: TABLE_LAYOUTS[3],
   4: {
     seats: [
       seat('p0', 'top'),
@@ -175,38 +155,12 @@ const SIDES_LAYOUTS: Record<number, BoardLayout> = {
       seat('p2', 'bottom'),
       seat('p3', 'bottom'),
     ],
-    gridTemplateAreas: `"p0 p1" "${STRIP_AREA} ${STRIP_AREA}" "p3 p2"`,
+    gridTemplateAreas: '"p0 p1" "p3 p2"',
     gridTemplateColumns: '1fr 1fr',
-    gridTemplateRows: STRIP_ROWS,
-    hasStrip: true,
+    gridTemplateRows: '1fr 1fr',
   },
-  5: {
-    seats: [
-      seat('p0', 'top'),
-      seat('p1', 'top'),
-      seat('p2', 'top'),
-      seat('p3', 'bottom'),
-      seat('p4', 'bottom'),
-    ],
-    gridTemplateAreas: `"p0 p0 p1 p1 p2 p2" "${Array(6).fill(STRIP_AREA).join(' ')}" "p4 p4 p4 p3 p3 p3"`,
-    gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-    gridTemplateRows: STRIP_ROWS,
-    hasStrip: true,
-  },
-  6: {
-    seats: [
-      seat('p0', 'top'),
-      seat('p1', 'top'),
-      seat('p2', 'top'),
-      seat('p3', 'bottom'),
-      seat('p4', 'bottom'),
-      seat('p5', 'bottom'),
-    ],
-    gridTemplateAreas: `"p0 p1 p2" "${STRIP_AREA} ${STRIP_AREA} ${STRIP_AREA}" "p5 p4 p3"`,
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gridTemplateRows: STRIP_ROWS,
-    hasStrip: true,
-  },
+  5: TABLE_LAYOUTS[5],
+  6: TABLE_LAYOUTS[6],
 };
 
 const clampPlayerCount = (playerCount: number): number =>

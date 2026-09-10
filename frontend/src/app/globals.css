@@ -333,6 +333,10 @@
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
+.cg-panel-label-scrim-bottom {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
 .cg-life-number {
   text-shadow:
     0 0 2px rgba(0, 0, 0, 0.95),

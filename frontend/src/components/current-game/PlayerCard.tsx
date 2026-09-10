@@ -19,6 +19,11 @@ interface PlayerCardProps {
   gamePlayer: GamePlayer;
   edge: SeatEdge;
   rotation: SeatRotation;
+  /**
+   * Which edge of the panel (as its reader sees it) carries the name. Top by
+   * default; bottom when something floats over the panels' inner edges.
+   */
+  labelEdge?: 'top' | 'bottom';
   /** Board layout and every player in seat order, for the commander damage map. */
   layout: BoardLayout;
   players: GamePlayer[];
@@ -44,6 +49,7 @@ function LivePanel({
   gamePlayer,
   edge,
   rotation,
+  labelEdge = 'top',
   layout,
   players,
   isRolling,
@@ -95,10 +101,17 @@ function LivePanel({
         />
       </div>
 
-      {/* Identity strip. Kept out of the tap zones so it never eats a press.
-          Carries its own gradient: 11px text cannot rely on a glyph halo the
-          way the large life total can. */}
-      <div className="cg-panel-label-scrim pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 p-1.5 pb-3">
+      {/* Identity strip. Lets presses through to the life zones beneath it;
+          only the poison chip is a target. Carries its own gradient: 11px text
+          cannot rely on a glyph halo the way the large life total can. At the
+          bottom it stops short of the commander damage map in that corner. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 flex items-center gap-1.5 p-1.5 ${
+          labelEdge === 'bottom'
+            ? 'cg-panel-label-scrim-bottom bottom-0 pr-[96px] pt-3'
+            : 'cg-panel-label-scrim top-0 pb-3'
+        }`}
+      >
         {gamePlayer.isFirstPlayer && (
           <Crown className="h-3.5 w-3.5 shrink-0 text-warning drop-shadow" />
         )}
@@ -110,9 +123,19 @@ function LivePanel({
             {gamePlayer.deck.commander}
           </span>
         )}
+        {gamePlayer.poison > 0 && (
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
+          >
+            <Droplet className="h-3 w-3 text-success" />
+            <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
+              {gamePlayer.poison}
+            </span>
+          </button>
+        )}
       </div>
-
-      <PoisonBadge gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} />
 
       {/* Commander damage is recorded right here, in one tap per point, rather
           than through the detail sheet. Sits in the + corner, clear of the
@@ -176,34 +199,6 @@ function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
     >
       {life}
     </span>
-  );
-}
-
-/** Only shown once poison is actually in play, so a clean board stays clean. */
-function PoisonBadge({
-  gamePlayer,
-  onOpenDetails,
-}: {
-  gamePlayer: GamePlayer;
-  onOpenDetails: () => void;
-}) {
-  if (gamePlayer.poison <= 0) return null;
-
-  return (
-    // The strip itself lets presses through to the life zones beneath it;
-    // only the badge is a target.
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center p-1">
-      <button
-        type="button"
-        onClick={onOpenDetails}
-        className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
-      >
-        <Droplet className="h-3 w-3 text-success" />
-        <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
-          {gamePlayer.poison}
-        </span>
-      </button>
-    </div>
   );
 }
 

@@ -1,0 +1,269 @@
+'use client';
+
+import { useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Check,
+  Dices,
+  Flag,
+  LayoutGrid,
+  Loader2,
+  MessageSquare,
+  Pause,
+  Play,
+  RotateCcw,
+  Save,
+  X,
+} from 'lucide-react';
+import { formatTime, haptic } from './utils';
+
+interface GameOrbProps {
+  elapsedSeconds: number;
+  isTimerRunning: boolean;
+  hasEnded: boolean;
+  canUndo: boolean;
+  commentaryCount: number;
+  isRolling: boolean;
+  isSaving: boolean;
+  arranging: boolean;
+  onToggleArranging: () => void;
+  onToggleBoardView: () => void;
+  onToggleTimer: () => void;
+  onUndo: () => void;
+  onRollFirstPlayer: () => void;
+  onOpenNotes: () => void;
+  onEndGame: () => void;
+  onSave: () => void;
+  onExit: () => void;
+  t: (key: string) => string;
+}
+
+interface OrbAction {
+  key: string;
+  Icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  /** Stay open afterwards: undo and pause are often pressed several times. */
+  keepOpen?: boolean;
+  tone?: 'primary' | 'warning';
+  badge?: number;
+  spin?: boolean;
+}
+
+const ORB_SIZE = 52;
+const ACTION_SIZE = 44;
+/** Distance from the orb's centre to each action's centre. */
+const RING_RADIUS = 80;
+
+const TONE: Record<NonNullable<OrbAction['tone']> | 'default', string> = {
+  default: 'border-border bg-card text-foreground',
+  primary: 'border-primary bg-primary text-primary-foreground',
+  warning: 'border-warning/60 bg-card text-warning',
+};
+
+/**
+ * The sides view's game controls, folded into one orb at the centre of the
+ * board so every pixel between the two rows goes to the panels.
+ *
+ * Closed, it shows the game clock (or a save prompt once the game is over).
+ * Open, the actions fan out in a ring over a dimmed board — icons read the
+ * same from either side of the table, which a labelled bar would not.
+ *
+ * Positioned from a zero-size anchor at the board's centre (see GameBoard)
+ * with offsets rather than transforms: a transformed ancestor would become
+ * the containing block for the fixed backdrop and shrink it to nothing.
+ */
+export function GameOrb({
+  elapsedSeconds,
+  isTimerRunning,
+  hasEnded,
+  canUndo,
+  commentaryCount,
+  isRolling,
+  isSaving,
+  arranging,
+  onToggleArranging,
+  onToggleBoardView,
+  onToggleTimer,
+  onUndo,
+  onRollFirstPlayer,
+  onOpenNotes,
+  onEndGame,
+  onSave,
+  onExit,
+  t,
+}: GameOrbProps) {
+  const [open, setOpen] = useState(false);
+
+  if (arranging) {
+    return (
+      <div className="pointer-events-auto absolute left-0 top-0 flex w-60 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5">
+        <p className="rounded-md bg-card/95 px-2 py-1 text-center text-[11px] leading-tight shadow-lg">
+          {t('currentGame.arrangeHint')}
+        </p>
+        <button
+          type="button"
+          onClick={onToggleArranging}
+          className="flex h-11 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-glow-md"
+        >
+          <Check className="h-4 w-4" />
+          {t('currentGame.doneArranging')}
+        </button>
+      </div>
+    );
+  }
+
+  const actions: OrbAction[] = [
+    {
+      key: 'undo',
+      Icon: RotateCcw,
+      label: t('currentGame.undo'),
+      onClick: onUndo,
+      disabled: !canUndo,
+      keepOpen: true,
+    },
+    {
+      key: 'timer',
+      Icon: isTimerRunning ? Pause : Play,
+      label: t('currentGame.toggleTimer'),
+      onClick: onToggleTimer,
+      disabled: hasEnded,
+      keepOpen: true,
+    },
+    {
+      key: 'dice',
+      Icon: Dices,
+      label: t('currentGame.rollForFirst'),
+      onClick: onRollFirstPlayer,
+      disabled: isRolling || hasEnded,
+      spin: isRolling,
+    },
+    {
+      key: 'arrange',
+      Icon: ArrowLeftRight,
+      label: t('currentGame.arrangeSeats'),
+      onClick: onToggleArranging,
+      disabled: isRolling,
+    },
+    {
+      key: 'view',
+      Icon: LayoutGrid,
+      label: t('currentGame.switchBoardView'),
+      onClick: onToggleBoardView,
+    },
+    {
+      key: 'notes',
+      Icon: MessageSquare,
+      label: t('currentGame.gameCommentary'),
+      onClick: onOpenNotes,
+      badge: commentaryCount,
+    },
+    hasEnded
+      ? {
+          key: 'save',
+          Icon: isSaving ? Loader2 : Save,
+          label: isSaving ? t('currentGame.saving') : t('currentGame.saveGame'),
+          onClick: onSave,
+          disabled: isSaving,
+          tone: 'primary',
+          spin: isSaving,
+        }
+      : {
+          key: 'end',
+          Icon: Flag,
+          label: t('currentGame.endGame'),
+          onClick: onEndGame,
+          tone: 'warning',
+        },
+    { key: 'exit', Icon: X, label: t('actions.close'), onClick: onExit },
+  ];
+
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      {open && (
+        <div
+          className="pointer-events-auto fixed inset-0 z-30 bg-black/55"
+          onClick={close}
+          aria-hidden
+        />
+      )}
+
+      {open &&
+        actions.map((action, index) => {
+          // Clockwise from the top
+          const angle = (index / actions.length) * 2 * Math.PI - Math.PI / 2;
+          const x = Math.cos(angle) * RING_RADIUS;
+          const y = Math.sin(angle) * RING_RADIUS;
+
+          return (
+            <button
+              key={action.key}
+              type="button"
+              aria-label={action.label}
+              title={action.label}
+              disabled={action.disabled}
+              onClick={() => {
+                haptic();
+                action.onClick();
+                if (!action.keepOpen) close();
+              }}
+              className={`pointer-events-auto absolute z-40 flex items-center justify-center rounded-full border shadow-lg transition-opacity disabled:opacity-40 ${
+                TONE[action.tone ?? 'default']
+              }`}
+              style={{
+                width: ACTION_SIZE,
+                height: ACTION_SIZE,
+                left: x - ACTION_SIZE / 2,
+                top: y - ACTION_SIZE / 2,
+              }}
+            >
+              <action.Icon className={`h-5 w-5 ${action.spin ? 'animate-spin' : ''}`} />
+              {!!action.badge && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {action.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+      <button
+        type="button"
+        onClick={() => {
+          haptic();
+          setOpen(current => !current);
+        }}
+        aria-label={open ? t('actions.close') : t('currentGame.openControls')}
+        aria-expanded={open}
+        className={`pointer-events-auto absolute z-40 flex flex-col items-center justify-center gap-0.5 rounded-full border shadow-glow-md backdrop-blur-md transition-colors ${
+          hasEnded && !open
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-primary/60 bg-card/90 text-foreground'
+        }`}
+        style={{
+          width: ORB_SIZE,
+          height: ORB_SIZE,
+          left: -ORB_SIZE / 2,
+          top: -ORB_SIZE / 2,
+        }}
+      >
+        {open ? (
+          <X className="h-5 w-5" />
+        ) : hasEnded ? (
+          <Save className="h-5 w-5" />
+        ) : (
+          <>
+            {!isTimerRunning && <Pause className="h-3 w-3 text-muted-foreground" />}
+            <span className="font-mono text-[11px] font-bold tabular-nums leading-none">
+              {formatTime(elapsedSeconds)}
+            </span>
+          </>
+        )}
+      </button>
+    </>
+  );
+}

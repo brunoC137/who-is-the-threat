@@ -1,7 +1,7 @@
 'use client';
 
 import { GamePlayer } from './types';
-import { BoardLayout, STRIP_AREA, SeatRotation, isQuarterTurn } from './layout';
+import { BoardLayout, SeatRotation, isQuarterTurn } from './layout';
 import { LETHAL_COMMANDER_DAMAGE } from './gameReducer';
 import { getDisplayName, haptic } from './utils';
 import { useHoldRepeat } from './hooks';
@@ -22,14 +22,12 @@ const MAP_WIDTH = 84;
 const MAP_HEIGHT = 52;
 
 /**
- * Same seat areas as the board, but equal tracks and no control strip: the
- * map shows where people sit, not the board's proportions, and the board's
- * narrow side columns would leave those players a sliver of a touch target.
+ * Same seat areas as the board, but equal tracks: the map shows where people
+ * sit, not the board's proportions, and the board's narrow side columns would
+ * leave those players a sliver of a touch target.
  */
 const mapGrid = (layout: BoardLayout) => {
-  const rows = (layout.gridTemplateAreas.match(/"[^"]*"/g) ?? []).filter(
-    row => !row.includes(STRIP_AREA)
-  );
+  const rows = layout.gridTemplateAreas.match(/"[^"]*"/g) ?? [];
   const columns = rows[0]?.replace(/"/g, '').trim().split(/\s+/).length ?? 1;
   return {
     gridTemplateAreas: rows.join(' '),
