@@ -7,9 +7,11 @@ import { BoardLayout, SeatEdge, SeatRotation, isSideSeat } from './layout';
 import { LETHAL_POISON } from './gameReducer';
 import { CommanderDamageMap } from './CommanderDamageMap';
 import {
+  formatLifeDelta,
   formatPlacement,
   getDisplayName,
   getLifeColor,
+  getLifeDeltaColor,
   getPoisonColor,
   haptic,
 } from './utils';
@@ -179,9 +181,67 @@ function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps
   );
 }
 
+/** How long the running change stays up after life last moved. */
+const DELTA_SETTLE_MS = 2000;
+/** Fade-out before the chip is removed; matches its opacity transition. */
+const DELTA_FADE_MS = 200;
+
+/**
+ * Net life change over the current burst of changes — "−7" after seven taps,
+ * a big hit, or commander damage — so the table can confirm what just
+ * happened without doing arithmetic. Resets once life has been still for a
+ * moment. Undo counts too: undoing one of those seven taps leaves "−6", the
+ * true net, rather than a misleading "+1".
+ */
+function useRunningDelta(value: number): { delta: number; fading: boolean } {
+  // `start` is life at the beginning of the current burst, or null between
+  // bursts. It is adjusted during render (React's pattern for state derived
+  // from a changing prop), so the chip shows the new net change in the same
+  // frame as the new number rather than one render behind it.
+  const [burst, setBurst] = useState<{ seen: number; start: number | null }>({
+    seen: value,
+    start: null,
+  });
+  const [fading, setFading] = useState(false);
+  const previous = useRef(value);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  let start = burst.start;
+  if (burst.seen !== value) {
+    start = burst.start ?? burst.seen;
+    setBurst({ seen: value, start });
+  }
+
+  // Every change restarts the settle countdown
+  useEffect(() => {
+    if (previous.current === value) return;
+    previous.current = value;
+
+    timers.current.forEach(clearTimeout);
+    setFading(false);
+    timers.current = [
+      setTimeout(() => setFading(true), DELTA_SETTLE_MS),
+      setTimeout(() => {
+        setBurst(current => ({ ...current, start: null }));
+        setFading(false);
+      }, DELTA_SETTLE_MS + DELTA_FADE_MS),
+    ];
+  }, [value]);
+
+  const delta = start === null ? 0 : value - start;
+
+  useEffect(() => {
+    const pending = timers;
+    return () => pending.current.forEach(clearTimeout);
+  }, []);
+
+  return { delta, fading };
+}
+
 function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   const [pulse, setPulse] = useState(false);
   const previous = useRef(life);
+  const { delta, fading } = useRunningDelta(life);
 
   useEffect(() => {
     if (previous.current !== life) {
@@ -191,13 +251,29 @@ function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   }, [life]);
 
   return (
-    <span
-      onAnimationEnd={() => setPulse(false)}
-      className={`cg-life-number font-bold tabular-nums leading-none ${getLifeColor(life)} ${
-        pulse ? 'cg-life-pulse' : ''
-      } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
-    >
-      {life}
+    // relative: anchors the delta chip above the number without moving it
+    <span className="relative inline-flex">
+      {delta !== 0 && (
+        <span
+          // Re-keyed per value so the pop-in replays on every change
+          key={delta}
+          aria-hidden
+          className={`cg-life-delta pointer-events-none absolute bottom-full left-1/2 mb-1.5 whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 font-bold tabular-nums leading-none backdrop-blur-sm transition-opacity duration-200 ${
+            compact ? 'text-xs' : 'text-sm'
+          } ${getLifeDeltaColor(delta)} ${fading ? 'opacity-0' : 'opacity-100'}`}
+        >
+          {formatLifeDelta(delta)}
+        </span>
+      )}
+
+      <span
+        onAnimationEnd={() => setPulse(false)}
+        className={`cg-life-number font-bold tabular-nums leading-none ${getLifeColor(life)} ${
+          pulse ? 'cg-life-pulse' : ''
+        } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
+      >
+        {life}
+      </span>
     </span>
   );
 }

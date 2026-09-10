@@ -1,4 +1,4 @@
-import { GamePlayer, Player } from './types';
+import { Player } from './types';
 import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON, STARTING_LIFE } from './gameReducer';
 
 /**
@@ -17,6 +17,16 @@ export function getLifeColor(life: number): string {
   if (ratio <= 0.25) return 'text-red-400';
   if (ratio <= 0.5) return 'text-amber-300';
   return 'text-white';
+}
+
+/** Running life change colour. Explicit for the same reason as getLifeColor: it sits over deck art. */
+export function getLifeDeltaColor(delta: number): string {
+  return delta > 0 ? 'text-emerald-300' : 'text-red-400';
+}
+
+/** "+3" / "−7", with a true minus sign so it lines up with the plus. */
+export function formatLifeDelta(delta: number): string {
+  return delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`;
 }
 
 /** Poison is only interesting as it approaches lethal. */
@@ -69,10 +79,4 @@ export function haptic(durationMs = 12): void {
     // Vibration can throw when the document is not focused; feedback is
     // non-essential so failing silently is correct here.
   }
-}
-
-/** Highest commander damage from any single source, for the card summary. */
-export function getHighestCommanderDamage(gamePlayer: GamePlayer): number {
-  const values = Object.values(gamePlayer.commanderDamage);
-  return values.length > 0 ? Math.max(...values) : 0;
 }

@@ -381,8 +381,21 @@
   animation: cgDangerPulse 1.8s ease-in-out infinite;
 }
 
+/* Running life change chip. Centred with a transform, so the pop-in has to
+   carry the same translate or it would jump sideways while it plays. */
+.cg-life-delta {
+  transform: translateX(-50%);
+  animation: cgLifeDelta 180ms ease-out;
+}
+
+@keyframes cgLifeDelta {
+  from { opacity: 0; transform: translate(-50%, 4px) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cg-life-pulse,
+  .cg-life-delta,
   .cg-danger {
     animation: none;
   }
