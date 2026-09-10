@@ -27,6 +27,7 @@ import {
   haptic,
 } from './utils';
 import { useFrame } from './LandscapeFrame';
+import { useHoldRepeat } from './hooks';
 
 interface PlayerDetailsSheetProps {
   gamePlayer: GamePlayer;
@@ -352,6 +353,12 @@ function CounterButton({
   disabled?: boolean;
   ariaLabel: string;
 }) {
+  // Hold to repeat, so correcting a big commander hit is one press, not ten
+  const holdHandlers = useHoldRepeat(() => {
+    haptic();
+    onClick();
+  });
+
   return (
     <Button
       variant="outline"
@@ -359,10 +366,7 @@ function CounterButton({
       aria-label={ariaLabel}
       disabled={disabled}
       className="h-9 w-9 shrink-0"
-      onClick={() => {
-        haptic();
-        onClick();
-      }}
+      {...holdHandlers}
     >
       {children}
     </Button>

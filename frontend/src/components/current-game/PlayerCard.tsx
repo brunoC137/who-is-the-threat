@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Crown, Droplet, Skull, Swords } from 'lucide-react';
+import { Crown, Droplet, Skull } from 'lucide-react';
 import { GamePlayer } from './types';
-import { SeatEdge, isSideSeat } from './layout';
-import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON } from './gameReducer';
+import { BoardLayout, SeatEdge, SeatRotation, isSideSeat } from './layout';
+import { LETHAL_POISON } from './gameReducer';
+import { CommanderDamageMap } from './CommanderDamageMap';
 import {
   formatPlacement,
   getDisplayName,
-  getHighestCommanderDamage,
   getLifeColor,
   getPoisonColor,
   haptic,
@@ -18,42 +18,38 @@ import { useHoldRepeat } from './hooks';
 interface PlayerCardProps {
   gamePlayer: GamePlayer;
   edge: SeatEdge;
+  rotation: SeatRotation;
+  /** Board layout and every player in seat order, for the commander damage map. */
+  layout: BoardLayout;
+  players: GamePlayer[];
   isRolling: boolean;
   onLifeChange: (delta: number) => void;
   onOpenDetails: () => void;
+  /** One point of commander damage taken from the given seat. */
+  onCommanderDamage: (fromSeatId: string) => void;
   t: (key: string) => string;
 }
 
-export function PlayerCard({
-  gamePlayer,
-  edge,
-  isRolling,
-  onLifeChange,
-  onOpenDetails,
-  t,
-}: PlayerCardProps) {
+export function PlayerCard(props: PlayerCardProps) {
+  const { gamePlayer, onOpenDetails, t } = props;
+
   if (gamePlayer.isEliminated) {
     return <EliminatedPanel gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} t={t} />;
   }
 
-  return (
-    <LivePanel
-      gamePlayer={gamePlayer}
-      edge={edge}
-      isRolling={isRolling}
-      onLifeChange={onLifeChange}
-      onOpenDetails={onOpenDetails}
-      t={t}
-    />
-  );
+  return <LivePanel {...props} />;
 }
 
 function LivePanel({
   gamePlayer,
   edge,
+  rotation,
+  layout,
+  players,
   isRolling,
   onLifeChange,
   onOpenDetails,
+  onCommanderDamage,
   t,
 }: PlayerCardProps) {
   const compact = isSideSeat(edge);
@@ -116,9 +112,21 @@ function LivePanel({
         )}
       </div>
 
-      {/* Counter summary. Only shown once a counter is actually in play, so a
-          clean board stays clean. */}
-      <CounterStrip gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} />
+      <PoisonBadge gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} />
+
+      {/* Commander damage is recorded right here, in one tap per point, rather
+          than through the detail sheet. Sits in the + corner, clear of the
+          life total and the identity strip. */}
+      <div className="absolute bottom-1.5 right-1.5">
+        <CommanderDamageMap
+          self={gamePlayer}
+          players={players}
+          layout={layout}
+          rotation={rotation}
+          onDamage={onCommanderDamage}
+          t={t}
+        />
+      </div>
     </div>
   );
 }
@@ -171,52 +179,30 @@ function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   );
 }
 
-function CounterStrip({
+/** Only shown once poison is actually in play, so a clean board stays clean. */
+function PoisonBadge({
   gamePlayer,
   onOpenDetails,
 }: {
   gamePlayer: GamePlayer;
   onOpenDetails: () => void;
 }) {
-  const highestCommanderDamage = getHighestCommanderDamage(gamePlayer);
-  const showPoison = gamePlayer.poison > 0;
-  const showCommander = highestCommanderDamage > 0;
-
-  if (!showPoison && !showCommander) return null;
+  if (gamePlayer.poison <= 0) return null;
 
   return (
-    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-1">
-      {showPoison && (
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
-        >
-          <Droplet className="h-3 w-3 text-success" />
-          <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
-            {gamePlayer.poison}
-          </span>
-        </button>
-      )}
-
-      {showCommander && (
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
-        >
-          <Swords className="h-3 w-3 text-accent" />
-          <span
-            className={`text-[11px] font-bold tabular-nums ${
-              highestCommanderDamage >= LETHAL_COMMANDER_DAMAGE
-                ? 'text-destructive'
-                : 'text-white'
-            }`}
-          >
-            {highestCommanderDamage}
-          </span>
-        </button>
-      )}
+    // The strip itself lets presses through to the life zones beneath it;
+    // only the badge is a target.
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center p-1">
+      <button
+        type="button"
+        onClick={onOpenDetails}
+        className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
+      >
+        <Droplet className="h-3 w-3 text-success" />
+        <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
+          {gamePlayer.poison}
+        </span>
+      </button>
     </div>
   );
 }

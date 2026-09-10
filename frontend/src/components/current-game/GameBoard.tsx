@@ -17,6 +17,8 @@ interface GameBoardProps {
   arranging: boolean;
   onLifeChange: (seatId: string, delta: number) => void;
   onOpenDetails: (seatId: string) => void;
+  /** One point of commander damage to seatId, from fromSeatId. */
+  onCommanderDamage: (seatId: string, fromSeatId: string) => void;
   onSwapSeats: (seatA: string, seatB: string) => void;
   t: (key: string) => string;
 }
@@ -55,6 +57,7 @@ export function GameBoard({
   arranging,
   onLifeChange,
   onOpenDetails,
+  onCommanderDamage,
   onSwapSeats,
   t,
 }: GameBoardProps) {
@@ -208,9 +211,13 @@ export function GameBoard({
                 <PlayerCard
                   gamePlayer={gamePlayer}
                   edge={seat.edge}
+                  rotation={seat.rotation}
+                  layout={layout}
+                  players={gamePlayers}
                   isRolling={rollingSeatId === gamePlayer.id}
                   onLifeChange={delta => onLifeChange(gamePlayer.id, delta)}
                   onOpenDetails={() => onOpenDetails(gamePlayer.id)}
+                  onCommanderDamage={fromSeatId => onCommanderDamage(gamePlayer.id, fromSeatId)}
                   t={t}
                 />
               )}

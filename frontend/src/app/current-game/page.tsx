@@ -355,6 +355,9 @@ export default function CurrentGamePage() {
           arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}
           onOpenDetails={setOpenSeatId}
+          onCommanderDamage={(seatId, fromSeatId) =>
+            dispatch({ type: 'CHANGE_COMMANDER_DAMAGE', seatId, fromSeatId, delta: 1 })
+          }
           onSwapSeats={(seatA, seatB) => dispatch({ type: 'SWAP_SEATS', seatA, seatB })}
           t={t}
         />
