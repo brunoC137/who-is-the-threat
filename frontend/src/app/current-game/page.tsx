@@ -26,6 +26,7 @@ import {
   getDisplayName,
   getPlacementError,
   loadPersistedGame,
+  useBoardView,
   useCollapsedHeader,
   usePersistedGame,
   useWakeLock,
@@ -54,6 +55,7 @@ export default function CurrentGamePage() {
 
   const [openSeatId, setOpenSeatId] = useState<string | null>(null);
   const [arranging, setArranging] = useState(false);
+  const [boardView, setBoardView] = useBoardView();
   const [showNotes, setShowNotes] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [rollingSeatId, setRollingSeatId] = useState<string | null>(null);
@@ -139,10 +141,10 @@ export default function CurrentGamePage() {
   const openSeatRotation = useMemo(() => {
     if (!openSeat) return 0 as const;
 
-    const layout = getBoardLayout(state.players.length);
+    const layout = getBoardLayout(state.players.length, boardView);
     const index = state.players.findIndex(p => p.id === openSeat.id);
     return layout.seats[index]?.rotation ?? 0;
-  }, [openSeat, state.players]);
+  }, [openSeat, state.players, boardView]);
 
   const handleStart = () => {
     const players: GamePlayer[] = selections.map((selection, index) => {
@@ -297,6 +299,8 @@ export default function CurrentGamePage() {
           availablePlayers={availablePlayers}
           availableDecks={availableDecks}
           hasResumableGame={Boolean(resumable)}
+          boardView={boardView}
+          onBoardViewChange={setBoardView}
           onPlayerCountChange={setPlayerCount}
           onSelectPlayer={(index, playerId) =>
             setSelections(current =>
@@ -322,35 +326,46 @@ export default function CurrentGamePage() {
 
   const winner = state.players.find(p => p.placement === 1);
 
+  // One control bar, placed by the view: across the top of the table view,
+  // or in the strip between the two rows of the sides view.
+  const controls = (
+    <GameTopBar
+      elapsedSeconds={state.elapsedSeconds}
+      isTimerRunning={state.isTimerRunning}
+      hasEnded={state.status === 'ended'}
+      canUndo={state.past.length > 0}
+      commentaryCount={state.commentary.length}
+      isRolling={rollingSeatId !== null}
+      isSaving={saving}
+      collapsed={headerCollapsed}
+      arranging={arranging}
+      inline={boardView === 'sides'}
+      boardView={boardView}
+      onToggleCollapsed={toggleHeaderCollapsed}
+      onToggleArranging={() => setArranging(current => !current)}
+      onToggleBoardView={() => setBoardView(boardView === 'table' ? 'sides' : 'table')}
+      onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
+      onUndo={() => dispatch({ type: 'UNDO' })}
+      onRollFirstPlayer={handleRollFirstPlayer}
+      onOpenNotes={() => setShowNotes(true)}
+      onEndGame={() => setShowEndGame(true)}
+      onSave={handleSave}
+      onExit={handleExit}
+      t={t}
+    />
+  );
+
   return (
     // The frame anchors the collapsed control overlay and every dialog, and
     // turns the whole game a quarter when the phone is held upright.
     <LandscapeFrame className="flex flex-col bg-background">
-      <GameTopBar
-        elapsedSeconds={state.elapsedSeconds}
-        isTimerRunning={state.isTimerRunning}
-        hasEnded={state.status === 'ended'}
-        canUndo={state.past.length > 0}
-        commentaryCount={state.commentary.length}
-        isRolling={rollingSeatId !== null}
-        isSaving={saving}
-        collapsed={headerCollapsed}
-        arranging={arranging}
-        onToggleCollapsed={toggleHeaderCollapsed}
-        onToggleArranging={() => setArranging(current => !current)}
-        onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
-        onUndo={() => dispatch({ type: 'UNDO' })}
-        onRollFirstPlayer={handleRollFirstPlayer}
-        onOpenNotes={() => setShowNotes(true)}
-        onEndGame={() => setShowEndGame(true)}
-        onSave={handleSave}
-        onExit={handleExit}
-        t={t}
-      />
+      {boardView === 'table' && controls}
 
       <main className="min-h-0 flex-1">
         <GameBoard
           gamePlayers={state.players}
+          view={boardView}
+          strip={boardView === 'sides' ? controls : undefined}
           rollingSeatId={rollingSeatId}
           arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}

@@ -24,9 +24,10 @@ export {
   isQuarterTurn,
   isSideSeat,
 } from './layout';
-export type { BoardLayout, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
+export type { BoardLayout, BoardView, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
 
 export {
+  useBoardView,
   useCollapsedHeader,
   useHoldRepeat,
   useOrientation,

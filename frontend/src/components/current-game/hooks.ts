@@ -5,7 +5,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react';
-import { Orientation } from './layout';
+import { BoardView, Orientation } from './layout';
 import { GameState } from './types';
 
 /**
@@ -147,6 +147,37 @@ export function useCollapsedHeader(): {
   const expandWithoutSaving = useCallback(() => setCollapsed(false), []);
 
   return { collapsed, toggle, expandWithoutSaving };
+}
+
+const BOARD_VIEW_KEY = 'currentGame:boardView';
+
+/**
+ * Which board arrangement this device uses, remembered across games. Like the
+ * collapsed header, the stored choice is applied after mount, so the server
+ * render and first paint use the default.
+ */
+export function useBoardView(): [BoardView, (view: BoardView) => void] {
+  const [view, setView] = useState<BoardView>('table');
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(BOARD_VIEW_KEY);
+      if (stored === 'table' || stored === 'sides') setView(stored);
+    } catch {
+      // Preference is cosmetic; the default stands.
+    }
+  }, []);
+
+  const update = useCallback((next: BoardView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(BOARD_VIEW_KEY, next);
+    } catch {
+      // Ignore; the choice still applies for this session.
+    }
+  }, []);
+
+  return [view, update];
 }
 
 const STORAGE_KEY = 'currentGame:v1';

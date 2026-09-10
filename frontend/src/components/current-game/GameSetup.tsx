@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Check, Play, RotateCcw, Users } from 'lucide-react';
+import { ArrowLeft, Check, LayoutGrid, Play, RotateCcw, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Deck, Player } from './types';
+import { BoardView, STRIP_AREA, getBoardLayout } from './layout';
 import { getDisplayName } from './utils';
 
 export interface SeatSelection {
@@ -18,6 +19,8 @@ interface GameSetupProps {
   availablePlayers: Player[];
   availableDecks: Deck[];
   hasResumableGame: boolean;
+  boardView: BoardView;
+  onBoardViewChange: (view: BoardView) => void;
   onPlayerCountChange: (count: number) => void;
   onSelectPlayer: (index: number, playerId: string) => void;
   onSelectDeck: (index: number, deckId: string) => void;
@@ -33,6 +36,8 @@ export function GameSetup({
   availablePlayers,
   availableDecks,
   hasResumableGame,
+  boardView,
+  onBoardViewChange,
   onPlayerCountChange,
   onSelectPlayer,
   onSelectDeck,
@@ -92,6 +97,40 @@ export function GameSetup({
               {count}
             </Button>
           ))}
+        </div>
+      </section>
+
+      <section className="mb-5">
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+          <LayoutGrid className="h-4 w-4" />
+          {t('currentGame.boardView')}
+        </h2>
+        <div className="grid grid-cols-2 gap-2">
+          {(['table', 'sides'] as const).map(view => {
+            const active = boardView === view;
+
+            return (
+              <button
+                key={view}
+                type="button"
+                onClick={() => onBoardViewChange(view)}
+                aria-pressed={active}
+                className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors ${
+                  active ? 'border-primary bg-primary/10 shadow-glow-sm' : 'border-border bg-card/50'
+                }`}
+              >
+                <ViewPreview view={view} active={active} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-tight">
+                    {t(view === 'table' ? 'currentGame.viewTable' : 'currentGame.viewSides')}
+                  </span>
+                  <span className="block text-xs leading-snug text-muted-foreground">
+                    {t(view === 'table' ? 'currentGame.viewTableHint' : 'currentGame.viewSidesHint')}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -196,5 +235,35 @@ export function GameSetup({
         {t('currentGame.landscapeHint')}
       </p>
     </div>
+  );
+}
+
+/** A four-player thumbnail of a view, drawn from the real layout data. */
+function ViewPreview({ view, active }: { view: BoardView; active: boolean }) {
+  const layout = getBoardLayout(4, view);
+
+  return (
+    <span
+      aria-hidden
+      className="grid h-8 w-12 shrink-0 gap-0.5 rounded-md border border-border/60 p-0.5"
+      style={{
+        gridTemplateAreas: layout.gridTemplateAreas,
+        gridTemplateColumns: layout.gridTemplateColumns,
+        gridTemplateRows: layout.hasStrip
+          ? 'minmax(0, 1fr) 3px minmax(0, 1fr)'
+          : layout.gridTemplateRows,
+      }}
+    >
+      {layout.seats.map(seat => (
+        <span
+          key={seat.area}
+          style={{ gridArea: seat.area }}
+          className={`rounded-sm ${active ? 'bg-primary/70' : 'bg-muted-foreground/40'}`}
+        />
+      ))}
+      {layout.hasStrip && (
+        <span style={{ gridArea: STRIP_AREA }} className="rounded-sm bg-warning/70" />
+      )}
+    </span>
   );
 }

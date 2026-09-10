@@ -1,17 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlayerCard } from './PlayerCard';
 import { ArrangeSeatPanel } from './ArrangeSeatPanel';
 import { useFrame } from './LandscapeFrame';
 import { GamePlayer } from './types';
-import { getBoardLayout, isQuarterTurn } from './layout';
+import { BoardView, STRIP_AREA, getBoardLayout, isQuarterTurn } from './layout';
 import { getDisplayName, haptic } from './utils';
 
 interface GameBoardProps {
   gamePlayers: GamePlayer[];
+  view: BoardView;
+  /** Game controls, placed between the rows when the layout has a strip. */
+  strip?: ReactNode;
   rollingSeatId: string | null;
   /** Seat arrangement mode: panels become draggable and life is locked. */
   arranging: boolean;
@@ -53,6 +56,8 @@ const seatIdAt = (x: number, y: number): string | null =>
 
 export function GameBoard({
   gamePlayers,
+  view,
+  strip,
   rollingSeatId,
   arranging,
   onLifeChange,
@@ -61,7 +66,10 @@ export function GameBoard({
   onSwapSeats,
   t,
 }: GameBoardProps) {
-  const layout = useMemo(() => getBoardLayout(gamePlayers.length), [gamePlayers.length]);
+  const layout = useMemo(
+    () => getBoardLayout(gamePlayers.length, view),
+    [gamePlayers.length, view]
+  );
   const { toFrame } = useFrame();
 
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
@@ -225,6 +233,12 @@ export function GameBoard({
           </div>
         );
       })}
+
+      {layout.hasStrip && (
+        <div className="min-w-0" style={{ gridArea: STRIP_AREA }}>
+          {strip}
+        </div>
+      )}
 
       {/* Follows the pointer, lifted above it so a finger does not cover it.
           `fixed` resolves against LandscapeFrame, hence frame coordinates.
