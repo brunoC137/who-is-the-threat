@@ -2,6 +2,7 @@ export { GameBoard } from './GameBoard';
 export { GameSetup } from './GameSetup';
 export type { SeatSelection } from './GameSetup';
 export { GameTopBar } from './GameTopBar';
+export { LandscapeFrame, useFrame } from './LandscapeFrame';
 export { PlayerCard } from './PlayerCard';
 export { PlayerDetailsSheet } from './PlayerDetailsSheet';
 export { EliminationDialog } from './EliminationDialog';

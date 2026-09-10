@@ -26,7 +26,7 @@ import {
   getPoisonColor,
   haptic,
 } from './utils';
-import { useViewportSize } from './hooks';
+import { useFrame } from './LandscapeFrame';
 
 interface PlayerDetailsSheetProps {
   gamePlayer: GamePlayer;
@@ -91,17 +91,23 @@ export function PlayerDetailsSheet({
   const [damageView, setDamageView] = useState<'received' | 'dealt'>('received');
 
   const quarterTurned = viewRotation === 90 || viewRotation === 270;
-  const viewport = useViewportSize();
+  // Measured against the game frame, not the window: on an upright phone the
+  // frame is itself turned, so the window's width is the frame's height.
+  const frame = useFrame();
 
-  // The frame is what the sheet actually lives in, and a quarter turn swaps
-  // its axes. Two columns only pay off when that frame is wide and short —
-  // i.e. an upright seat on a landscape phone.
-  const frameWidth = quarterTurned ? viewport.height : viewport.width;
-  const frameHeight = quarterTurned ? viewport.width : viewport.height;
-  const compact = frameHeight < 430 && frameWidth >= 620;
+  // A quarter turn swaps the sheet's axes again. Two columns only pay off
+  // when the space it reads in is wide and short — i.e. an upright seat.
+  const sheetWidth = quarterTurned ? frame.height : frame.width;
+  const sheetHeight = quarterTurned ? frame.width : frame.height;
+  const compact = sheetHeight < 430 && sheetWidth >= 620;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+    // Size container so the rotating frame below can swap its dimensions in
+    // cq units, relative to the game frame rather than the viewport.
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm [container-type:size]"
+      onClick={onClose}
+    >
       {/* Edge tabs live outside the rotating frame and stay pinned to the
           screen, so "the tab nearest me" means the same thing no matter which
           way the sheet is currently facing. */}
@@ -137,8 +143,8 @@ export function PlayerDetailsSheet({
         // px leaves room for the left/right edge tabs to sit clear of the sheet
         className="absolute left-1/2 top-1/2 flex items-center justify-center px-12 py-3"
         style={{
-          width: quarterTurned ? '100dvh' : '100dvw',
-          height: quarterTurned ? '100dvw' : '100dvh',
+          width: quarterTurned ? '100cqh' : '100cqw',
+          height: quarterTurned ? '100cqw' : '100cqh',
           transform: `translate(-50%, -50%) rotate(${viewRotation}deg)`,
         }}
       >

@@ -618,7 +618,7 @@ export const translations = {
       // Setup and session
       emptySeat: 'Empty seat',
       noDecksForPlayer: 'This player has no decks yet',
-      landscapeHint: 'Tip: turn your phone sideways and put it in the middle of the table.',
+      landscapeHint: 'Tip: lay your phone flat in the middle of the table.',
       resumeFound: 'You have a game in progress.',
       resumeGame: 'Resume game',
       discardGame: 'Discard',
@@ -1257,7 +1257,7 @@ export const translations = {
       // Configuração e sessão
       emptySeat: 'Lugar vazio',
       noDecksForPlayer: 'Este jogador ainda não tem decks',
-      landscapeHint: 'Dica: vire o celular na horizontal e coloque no meio da mesa.',
+      landscapeHint: 'Dica: deixe o celular deitado no meio da mesa.',
       resumeFound: 'Você tem uma partida em andamento.',
       resumeGame: 'Retomar partida',
       discardGame: 'Descartar',

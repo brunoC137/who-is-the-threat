@@ -14,6 +14,7 @@ import {
   GameBoard,
   GameSetup,
   GameTopBar,
+  LandscapeFrame,
   NotesSheet,
   PlayerDetailsSheet,
   STARTING_LIFE,
@@ -27,7 +28,6 @@ import {
   loadPersistedGame,
   useCollapsedHeader,
   usePersistedGame,
-  useOrientation,
   useWakeLock,
 } from '@/components/current-game';
 import type { Deck, GamePlayer, GameState, Player, SeatSelection } from '@/components/current-game';
@@ -38,7 +38,6 @@ export default function CurrentGamePage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-  const orientation = useOrientation();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [loadingData, setLoadingData] = useState(true);
@@ -140,10 +139,10 @@ export default function CurrentGamePage() {
   const openSeatRotation = useMemo(() => {
     if (!openSeat) return 0 as const;
 
-    const layout = getBoardLayout(state.players.length, orientation);
+    const layout = getBoardLayout(state.players.length);
     const index = state.players.findIndex(p => p.id === openSeat.id);
     return layout.seats[index]?.rotation ?? 0;
-  }, [openSeat, state.players, orientation]);
+  }, [openSeat, state.players]);
 
   const handleStart = () => {
     const players: GamePlayer[] = selections.map((selection, index) => {
@@ -320,9 +319,9 @@ export default function CurrentGamePage() {
   const winner = state.players.find(p => p.placement === 1);
 
   return (
-    // relative: anchors the collapsed control overlay, which sits on top of
-    // the board rather than taking layout height from it
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
+    // The frame anchors the collapsed control overlay and every dialog, and
+    // turns the whole game a quarter when the phone is held upright.
+    <LandscapeFrame className="flex flex-col bg-background">
       <GameTopBar
         elapsedSeconds={state.elapsedSeconds}
         isTimerRunning={state.isTimerRunning}
@@ -348,7 +347,6 @@ export default function CurrentGamePage() {
       <main className="min-h-0 flex-1">
         <GameBoard
           gamePlayers={state.players}
-          orientation={orientation}
           rollingSeatId={rollingSeatId}
           arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}
@@ -441,7 +439,7 @@ export default function CurrentGamePage() {
       )}
 
       <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage(null)} />
-    </div>
+    </LandscapeFrame>
   );
 }
 

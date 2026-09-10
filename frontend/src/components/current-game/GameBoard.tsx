@@ -5,13 +5,13 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlayerCard } from './PlayerCard';
 import { ArrangeSeatPanel } from './ArrangeSeatPanel';
+import { useFrame } from './LandscapeFrame';
 import { GamePlayer } from './types';
-import { Orientation, getBoardLayout, isQuarterTurn } from './layout';
+import { getBoardLayout, isQuarterTurn } from './layout';
 import { getDisplayName, haptic } from './utils';
 
 interface GameBoardProps {
   gamePlayers: GamePlayer[];
-  orientation: Orientation;
   rollingSeatId: string | null;
   /** Seat arrangement mode: panels become draggable and life is locked. */
   arranging: boolean;
@@ -34,6 +34,7 @@ interface Press {
 
 interface DragState {
   seatId: string;
+  /** Pointer position in frame coordinates, for placing the drag ghost. */
   x: number;
   y: number;
   overSeatId: string | null;
@@ -41,8 +42,8 @@ interface DragState {
 
 /**
  * Hit-testing goes through the DOM rather than seat rectangles because the
- * panels are rotated; the grid cells carrying data-seat-id are not, so this
- * resolves correctly no matter which way a panel faces.
+ * panels (and possibly the whole frame) are rotated; elementFromPoint takes
+ * viewport coordinates and resolves correctly whichever way anything faces.
  */
 const seatIdAt = (x: number, y: number): string | null =>
   document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-seat-id]')?.dataset.seatId ??
@@ -50,7 +51,6 @@ const seatIdAt = (x: number, y: number): string | null =>
 
 export function GameBoard({
   gamePlayers,
-  orientation,
   rollingSeatId,
   arranging,
   onLifeChange,
@@ -58,10 +58,8 @@ export function GameBoard({
   onSwapSeats,
   t,
 }: GameBoardProps) {
-  const layout = useMemo(
-    () => getBoardLayout(gamePlayers.length, orientation),
-    [gamePlayers.length, orientation]
-  );
+  const layout = useMemo(() => getBoardLayout(gamePlayers.length), [gamePlayers.length]);
+  const { toFrame } = useFrame();
 
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -129,8 +127,7 @@ export function GameBoard({
       const overSeatId = seatIdAt(event.clientX, event.clientY);
       setDrag({
         seatId: current.seatId,
-        x: event.clientX,
-        y: event.clientY,
+        ...toFrame(event.clientX, event.clientY),
         overSeatId: overSeatId === current.seatId ? null : overSeatId,
       });
     },
@@ -223,6 +220,7 @@ export function GameBoard({
       })}
 
       {/* Follows the pointer, lifted above it so a finger does not cover it.
+          `fixed` resolves against LandscapeFrame, hence frame coordinates.
           pointer-events-none keeps it out of seatIdAt's hit test. */}
       {drag && draggedPlayer && (
         <div

@@ -29,9 +29,9 @@ export function useOrientation(): Orientation {
 }
 
 /**
- * Live viewport size. Needed because the board's dialogs rotate, so whether a
- * dialog is "short" depends on its own rotation rather than on a plain CSS
- * media query against the viewport.
+ * Live viewport size. LandscapeFrame derives the game frame's size from it;
+ * components inside the frame should read useFrame() instead, since on an
+ * upright phone the viewport's axes are the frame's axes swapped.
  */
 export function useViewportSize(): { width: number; height: number } {
   const [size, setSize] = useState({ width: 1024, height: 768 });
