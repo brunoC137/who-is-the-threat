@@ -9,6 +9,7 @@ import {
   Flag,
   LayoutGrid,
   Loader2,
+  LogOut,
   MessageSquare,
   Pause,
   Play,
@@ -177,7 +178,8 @@ export function GameOrb({
           onClick: onEndGame,
           tone: 'warning',
         },
-    { key: 'exit', Icon: X, label: t('actions.close'), onClick: onExit },
+    // Not X: that is the orb's own close icon, right next to it
+    { key: 'exit', Icon: LogOut, label: t('actions.close'), onClick: onExit },
   ];
 
   const close = () => setOpen(false);

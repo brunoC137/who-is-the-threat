@@ -5,7 +5,7 @@ import { ArrowLeft, Check, LayoutGrid, Play, RotateCcw, Users } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Deck, Player } from './types';
-import { BoardView, STRIP_AREA, getBoardLayout } from './layout';
+import { BoardView, getBoardLayout } from './layout';
 import { getDisplayName } from './utils';
 
 export interface SeatSelection {
@@ -245,13 +245,11 @@ function ViewPreview({ view, active }: { view: BoardView; active: boolean }) {
   return (
     <span
       aria-hidden
-      className="grid h-8 w-12 shrink-0 gap-0.5 rounded-md border border-border/60 p-0.5"
+      className="relative grid h-8 w-12 shrink-0 gap-0.5 rounded-md border border-border/60 p-0.5"
       style={{
         gridTemplateAreas: layout.gridTemplateAreas,
         gridTemplateColumns: layout.gridTemplateColumns,
-        gridTemplateRows: layout.hasStrip
-          ? 'minmax(0, 1fr) 3px minmax(0, 1fr)'
-          : layout.gridTemplateRows,
+        gridTemplateRows: layout.gridTemplateRows,
       }}
     >
       {layout.seats.map(seat => (
@@ -261,8 +259,9 @@ function ViewPreview({ view, active }: { view: BoardView; active: boolean }) {
           className={`rounded-sm ${active ? 'bg-primary/70' : 'bg-muted-foreground/40'}`}
         />
       ))}
-      {layout.hasStrip && (
-        <span style={{ gridArea: STRIP_AREA }} className="rounded-sm bg-warning/70" />
+      {/* The sides view's control orb */}
+      {view === 'sides' && (
+        <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background bg-warning" />
       )}
     </span>
   );

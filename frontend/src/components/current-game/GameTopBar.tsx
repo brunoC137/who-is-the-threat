@@ -30,12 +30,6 @@ interface GameTopBarProps {
   isSaving: boolean;
   collapsed: boolean;
   arranging: boolean;
-  /**
-   * Rendered inside the board — the sides view's middle strip — rather than
-   * across the top. Inline, the bar never collapses: it already sits in space
-   * the board would not give to a panel.
-   */
-  inline: boolean;
   boardView: BoardView;
   onToggleCollapsed: () => void;
   onToggleArranging: () => void;
@@ -51,9 +45,10 @@ interface GameTopBarProps {
 }
 
 /**
- * One slim bar holds every game control. In landscape on a phone the viewport
- * is ~390px tall, so a second fixed bar at the bottom would cost the board
- * roughly a third of its height for no benefit.
+ * The table view's controls: one slim bar across the top. In landscape on a
+ * phone the viewport is ~390px tall, so a second fixed bar at the bottom
+ * would cost the board roughly a third of its height for no benefit. (The
+ * sides view uses GameOrb instead.)
  */
 export function GameTopBar({
   elapsedSeconds,
@@ -65,7 +60,6 @@ export function GameTopBar({
   isSaving,
   collapsed,
   arranging,
-  inline,
   boardView,
   onToggleCollapsed,
   onToggleArranging,
@@ -79,9 +73,6 @@ export function GameTopBar({
   onExit,
   t,
 }: GameTopBarProps) {
-  // Across the top it is a bar with a bottom rule; in the strip, a card.
-  const edge = inline ? 'rounded-lg border' : 'border-b';
-
   /**
    * Arranging replaces the whole bar, collapsed or not: the mode locks life
    * totals, so the way out has to be obvious and the other game controls
@@ -89,9 +80,7 @@ export function GameTopBar({
    */
   if (arranging) {
     return (
-      <header
-        className={`flex h-11 shrink-0 items-center gap-2 border-primary/40 bg-primary/10 px-2 backdrop-blur-xl ${edge}`}
-      >
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-primary/40 bg-primary/10 px-2 backdrop-blur-xl">
         <ArrowLeftRight className="h-4 w-4 shrink-0 text-primary" />
         <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-tight">
           {t('currentGame.arrangeHint')}
@@ -118,7 +107,7 @@ export function GameTopBar({
    * happened. Everything else (dice, notes, exit, end game) is deliberate
    * enough to cost an extra tap.
    */
-  if (collapsed && !inline) {
+  if (collapsed) {
     return (
       <div className="pointer-events-none absolute left-1.5 top-1.5 z-30 flex items-center gap-1">
         <button
@@ -148,9 +137,7 @@ export function GameTopBar({
   }
 
   return (
-    <header
-      className={`flex h-11 shrink-0 items-center gap-1 border-border/50 bg-card/80 px-1.5 backdrop-blur-xl ${edge}`}
-    >
+    <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border/50 bg-card/80 px-1.5 backdrop-blur-xl">
       <Button
         variant="ghost"
         size="icon"
@@ -232,18 +219,16 @@ export function GameTopBar({
           )}
         </Button>
 
-        {!inline && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onToggleCollapsed}
-            aria-label={t('currentGame.hideControls')}
-            aria-expanded
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onToggleCollapsed}
+          aria-label={t('currentGame.hideControls')}
+          aria-expanded
+        >
+          <ChevronUp className="h-4 w-4" />
+        </Button>
       </div>
 
       {hasEnded ? (

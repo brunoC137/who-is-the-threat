@@ -1,4 +1,5 @@
 export { GameBoard } from './GameBoard';
+export { GameOrb } from './GameOrb';
 export { GameSetup } from './GameSetup';
 export type { SeatSelection } from './GameSetup';
 export { GameTopBar } from './GameTopBar';

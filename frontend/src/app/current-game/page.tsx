@@ -12,6 +12,7 @@ import {
   EliminationDialog,
   EndGameDialog,
   GameBoard,
+  GameOrb,
   GameSetup,
   GameTopBar,
   LandscapeFrame,
@@ -326,34 +327,41 @@ export default function CurrentGamePage() {
 
   const winner = state.players.find(p => p.placement === 1);
 
-  // One control bar, placed by the view: across the top of the table view,
-  // or in the strip between the two rows of the sides view.
-  const controls = (
-    <GameTopBar
-      elapsedSeconds={state.elapsedSeconds}
-      isTimerRunning={state.isTimerRunning}
-      hasEnded={state.status === 'ended'}
-      canUndo={state.past.length > 0}
-      commentaryCount={state.commentary.length}
-      isRolling={rollingSeatId !== null}
-      isSaving={saving}
-      collapsed={headerCollapsed}
-      arranging={arranging}
-      inline={boardView === 'sides'}
-      boardView={boardView}
-      onToggleCollapsed={toggleHeaderCollapsed}
-      onToggleArranging={() => setArranging(current => !current)}
-      onToggleBoardView={() => setBoardView(boardView === 'table' ? 'sides' : 'table')}
-      onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
-      onUndo={() => dispatch({ type: 'UNDO' })}
-      onRollFirstPlayer={handleRollFirstPlayer}
-      onOpenNotes={() => setShowNotes(true)}
-      onEndGame={() => setShowEndGame(true)}
-      onSave={handleSave}
-      onExit={handleExit}
-      t={t}
-    />
-  );
+  // The same controls, presented by the view: a bar across the top of the
+  // table view, or a floating orb at the centre of the sides view so the
+  // panels keep all the space between the rows.
+  const controlProps = {
+    elapsedSeconds: state.elapsedSeconds,
+    isTimerRunning: state.isTimerRunning,
+    hasEnded: state.status === 'ended',
+    canUndo: state.past.length > 0,
+    commentaryCount: state.commentary.length,
+    isRolling: rollingSeatId !== null,
+    isSaving: saving,
+    arranging,
+    onToggleArranging: () => setArranging(current => !current),
+    onToggleBoardView: () => setBoardView(boardView === 'table' ? 'sides' : 'table'),
+    onToggleTimer: () => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning }),
+    onUndo: () => dispatch({ type: 'UNDO' }),
+    onRollFirstPlayer: handleRollFirstPlayer,
+    onOpenNotes: () => setShowNotes(true),
+    onEndGame: () => setShowEndGame(true),
+    onSave: handleSave,
+    onExit: handleExit,
+    t,
+  };
+
+  const controls =
+    boardView === 'sides' ? (
+      <GameOrb {...controlProps} />
+    ) : (
+      <GameTopBar
+        {...controlProps}
+        collapsed={headerCollapsed}
+        boardView={boardView}
+        onToggleCollapsed={toggleHeaderCollapsed}
+      />
+    );
 
   return (
     // The frame anchors the collapsed control overlay and every dialog, and
@@ -365,7 +373,7 @@ export default function CurrentGamePage() {
         <GameBoard
           gamePlayers={state.players}
           view={boardView}
-          strip={boardView === 'sides' ? controls : undefined}
+          centerControls={boardView === 'sides' ? controls : undefined}
           rollingSeatId={rollingSeatId}
           arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}
