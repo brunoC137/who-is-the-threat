@@ -9,6 +9,9 @@ import {
 export const STARTING_LIFE = 40;
 export const LETHAL_POISON = 10;
 export const LETHAL_COMMANDER_DAMAGE = 21;
+/** Table sizes the API accepts (see the Game model and routes/games.js). */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 6;
 
 /** Undo depth. Snapshots are ~6 small objects, so this is cheap. */
 const MAX_HISTORY = 60;

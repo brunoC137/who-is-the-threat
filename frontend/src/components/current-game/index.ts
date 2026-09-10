@@ -15,10 +15,15 @@ export {
   createInitialState,
   getPlacementError,
   STARTING_LIFE,
+  MIN_PLAYERS,
+  MAX_PLAYERS,
   LETHAL_POISON,
   LETHAL_COMMANDER_DAMAGE,
 } from './gameReducer';
 export type { GameAction } from './gameReducer';
+
+export { EMPTY_SETUP_HISTORY, buildSetupHistory, defaultDeckFor } from './setupHistory';
+export type { RecentGame, SetupHistory } from './setupHistory';
 
 export {
   getBoardLayout,

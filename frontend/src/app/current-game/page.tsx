@@ -18,9 +18,13 @@ import {
   LandscapeFrame,
   NotesSheet,
   PlayerDetailsSheet,
+  EMPTY_SETUP_HISTORY,
+  MAX_PLAYERS,
   STARTING_LIFE,
+  buildSetupHistory,
   clearPersistedGame,
   createInitialState,
+  defaultDeckFor,
   formatPlacement,
   gameReducer,
   getBoardLayout,
@@ -32,7 +36,15 @@ import {
   usePersistedGame,
   useWakeLock,
 } from '@/components/current-game';
-import type { Deck, GamePlayer, GameState, Player, SeatSelection } from '@/components/current-game';
+import type {
+  Deck,
+  GamePlayer,
+  GameState,
+  Player,
+  RecentGame,
+  SeatSelection,
+  SetupHistory,
+} from '@/components/current-game';
 
 type Phase = 'setup' | 'playing';
 
@@ -46,10 +58,8 @@ export default function CurrentGamePage() {
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [availableDecks, setAvailableDecks] = useState<Deck[]>([]);
 
-  const [playerCount, setPlayerCount] = useState(4);
-  const [selections, setSelections] = useState<SeatSelection[]>(
-    Array.from({ length: 4 }, () => ({ playerId: '', deckId: '' }))
-  );
+  const [selections, setSelections] = useState<SeatSelection[]>([]);
+  const [history, setHistory] = useState<SetupHistory>(EMPTY_SETUP_HISTORY);
   const [resumable, setResumable] = useState<GameState | null>(null);
 
   const [state, dispatch] = useReducer(gameReducer, undefined, () => createInitialState());
@@ -73,21 +83,33 @@ export default function CurrentGamePage() {
   usePersistedGame(state, phase === 'playing');
   useWakeLock(phase === 'playing' && state.status === 'playing');
 
-  // Load players and decks through the shared API layer
+  // Load players, decks and recent games through the shared API layer
   useEffect(() => {
     let cancelled = false;
 
+    const asList = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
     const fetchData = async () => {
       try {
-        const [playersResponse, decksResponse] = await Promise.all([
-          playersAPI.getAll(),
-          decksAPI.getAll(),
+        // The list endpoints paginate (players default to 25, decks to 100),
+        // so ask for everything: nobody should be missing from setup.
+        const [playersResponse, decksResponse, gamesResponse] = await Promise.all([
+          playersAPI.getAll({ limit: 500 }),
+          decksAPI.getAll({ limit: 500 }),
+          // History only improves the defaults; setup works without it
+          gamesAPI.getAll({ limit: 50 }).catch(() => null),
         ]);
 
         if (cancelled) return;
 
-        setAvailablePlayers(playersResponse.data?.data || []);
-        setAvailableDecks(decksResponse.data?.data || []);
+        const players = asList<Player>(playersResponse.data?.data);
+        const decks = asList<Deck>(decksResponse.data?.data);
+
+        setAvailablePlayers(players);
+        setAvailableDecks(decks);
+        setHistory(
+          buildSetupHistory(asList<RecentGame>(gamesResponse?.data?.data), players, decks)
+        );
       } catch (error) {
         if (!cancelled) setErrorMessage(t('currentGame.errorLoading'));
       } finally {
@@ -106,15 +128,6 @@ export default function CurrentGamePage() {
     const persisted = loadPersistedGame();
     if (persisted) setResumable(persisted.state);
   }, []);
-
-  useEffect(() => {
-    setSelections(current => {
-      const next = Array.from({ length: playerCount }, (_, index) =>
-        current[index] || { playerId: '', deckId: '' }
-      );
-      return next;
-    });
-  }, [playerCount]);
 
   // Game clock
   useEffect(() => {
@@ -172,6 +185,21 @@ export default function CurrentGamePage() {
     // the order already matches, it costs a single tap on Done.
     setArranging(true);
   };
+
+  /** A tapped player takes the next seat with their usual deck; tapping again removes them. */
+  const handleTogglePlayer = (playerId: string) =>
+    setSelections(current => {
+      if (current.some(selection => selection.playerId === playerId)) {
+        return current.filter(selection => selection.playerId !== playerId);
+      }
+      if (current.length >= MAX_PLAYERS) return current;
+      return [...current, { playerId, deckId: defaultDeckFor(playerId, history, availableDecks) }];
+    });
+
+  const handleSelectDeck = (playerId: string, deckId: string) =>
+    setSelections(current =>
+      current.map(selection => (selection.playerId === playerId ? { ...selection, deckId } : selection))
+    );
 
   const handleResume = () => {
     if (!resumable) return;
@@ -295,26 +323,17 @@ export default function CurrentGamePage() {
     return (
       <>
         <GameSetup
-          playerCount={playerCount}
           selections={selections}
           availablePlayers={availablePlayers}
           availableDecks={availableDecks}
+          playerRecency={history.recency}
+          rematchLineup={history.lastLineup}
           hasResumableGame={Boolean(resumable)}
           boardView={boardView}
           onBoardViewChange={setBoardView}
-          onPlayerCountChange={setPlayerCount}
-          onSelectPlayer={(index, playerId) =>
-            setSelections(current =>
-              current.map((selection, i) =>
-                i === index ? { playerId, deckId: '' } : selection
-              )
-            )
-          }
-          onSelectDeck={(index, deckId) =>
-            setSelections(current =>
-              current.map((selection, i) => (i === index ? { ...selection, deckId } : selection))
-            )
-          }
+          onTogglePlayer={handleTogglePlayer}
+          onSelectDeck={handleSelectDeck}
+          onRematch={() => setSelections(history.lastLineup)}
           onResume={handleResume}
           onDiscardResumable={handleDiscardResumable}
           onStart={handleStart}
