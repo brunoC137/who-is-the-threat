@@ -139,6 +139,10 @@ export default function PrivacyPage() {
               Estes cookies são necessários para o funcionamento da plataforma e não podem 
               ser desativados. Não utilizamos cookies de rastreamento ou publicidade.
             </p>
+            <p className="text-muted-foreground leading-relaxed mt-2">
+              Usamos o Vercel Web Analytics para contar visitas e páginas acessadas de forma
+              agregada e anônima. Ele não usa cookies e não identifica usuários individualmente.
+            </p>
           </section>
 
           <section>
