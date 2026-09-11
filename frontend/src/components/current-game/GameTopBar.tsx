@@ -14,6 +14,7 @@ import {
   Play,
   RotateCcw,
   Save,
+  Swords,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,8 @@ interface GameTopBarProps {
   onToggleCollapsed: () => void;
   onToggleArranging: () => void;
   onToggleBoardView: () => void;
+  commanderShortcuts: boolean;
+  onToggleCommanderShortcuts: () => void;
   onToggleTimer: () => void;
   onUndo: () => void;
   onRollFirstPlayer: () => void;
@@ -80,6 +83,8 @@ export function GameTopBar({
   onToggleCollapsed,
   onToggleArranging,
   onToggleBoardView,
+  commanderShortcuts,
+  onToggleCommanderShortcuts,
   onToggleTimer,
   onUndo,
   onRollFirstPlayer,
@@ -208,6 +213,17 @@ export function GameTopBar({
           aria-pressed={boardView === 'sides'}
         >
           <LayoutGrid className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${ICON_BUTTON} ${commanderShortcuts ? 'text-primary' : 'text-muted-foreground'}`}
+          onClick={onToggleCommanderShortcuts}
+          aria-label={t('currentGame.toggleCommanderShortcuts')}
+          aria-pressed={commanderShortcuts}
+        >
+          <Swords className="h-4 w-4" />
         </Button>
 
         <Button

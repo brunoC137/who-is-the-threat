@@ -35,6 +35,7 @@ export type { BoardLayout, BoardView, Orientation, Seat, SeatEdge, SeatRotation 
 export {
   useBoardView,
   useCollapsedHeader,
+  useCommanderShortcuts,
   useHoldRepeat,
   useOrientation,
   usePersistedGame,

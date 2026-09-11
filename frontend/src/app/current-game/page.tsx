@@ -33,6 +33,7 @@ import {
   loadPersistedGame,
   useBoardView,
   useCollapsedHeader,
+  useCommanderShortcuts,
   usePersistedGame,
   useWakeLock,
 } from '@/components/current-game';
@@ -67,6 +68,7 @@ export default function CurrentGamePage() {
   const [openSeatId, setOpenSeatId] = useState<string | null>(null);
   const [arranging, setArranging] = useState(false);
   const [boardView, setBoardView] = useBoardView();
+  const [commanderShortcuts, setCommanderShortcuts] = useCommanderShortcuts();
   const [showNotes, setShowNotes] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [rollingSeatId, setRollingSeatId] = useState<string | null>(null);
@@ -331,6 +333,8 @@ export default function CurrentGamePage() {
           hasResumableGame={Boolean(resumable)}
           boardView={boardView}
           onBoardViewChange={setBoardView}
+          commanderShortcuts={commanderShortcuts}
+          onCommanderShortcutsChange={setCommanderShortcuts}
           onTogglePlayer={handleTogglePlayer}
           onSelectDeck={handleSelectDeck}
           onRematch={() => setSelections(history.lastLineup)}
@@ -360,6 +364,8 @@ export default function CurrentGamePage() {
     arranging,
     onToggleArranging: () => setArranging(current => !current),
     onToggleBoardView: () => setBoardView(boardView === 'table' ? 'sides' : 'table'),
+    commanderShortcuts,
+    onToggleCommanderShortcuts: () => setCommanderShortcuts(!commanderShortcuts),
     onToggleTimer: () => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning }),
     onUndo: () => dispatch({ type: 'UNDO' }),
     onRollFirstPlayer: handleRollFirstPlayer,
@@ -392,6 +398,7 @@ export default function CurrentGamePage() {
         <GameBoard
           gamePlayers={state.players}
           view={boardView}
+          showCommanderShortcuts={commanderShortcuts}
           centerControls={boardView === 'sides' ? controls : undefined}
           rollingSeatId={rollingSeatId}
           arranging={arranging}

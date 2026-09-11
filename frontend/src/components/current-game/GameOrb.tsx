@@ -15,6 +15,7 @@ import {
   Play,
   RotateCcw,
   Save,
+  Swords,
   X,
 } from 'lucide-react';
 import { formatTime, haptic } from './utils';
@@ -30,6 +31,8 @@ interface GameOrbProps {
   arranging: boolean;
   onToggleArranging: () => void;
   onToggleBoardView: () => void;
+  commanderShortcuts: boolean;
+  onToggleCommanderShortcuts: () => void;
   onToggleTimer: () => void;
   onUndo: () => void;
   onRollFirstPlayer: () => void;
@@ -49,6 +52,8 @@ interface OrbAction {
   /** Stay open afterwards: undo and pause are often pressed several times. */
   keepOpen?: boolean;
   tone?: 'primary' | 'warning';
+  /** A toggle that is currently on. */
+  active?: boolean;
   badge?: number;
   spin?: boolean;
 }
@@ -58,8 +63,9 @@ const ACTION_SIZE = 44;
 /** Distance from the orb's centre to each action's centre. */
 const RING_RADIUS = 80;
 
-const TONE: Record<NonNullable<OrbAction['tone']> | 'default', string> = {
+const TONE: Record<NonNullable<OrbAction['tone']> | 'default' | 'active', string> = {
   default: 'border-border bg-card text-foreground',
+  active: 'border-primary/70 bg-card text-primary',
   primary: 'border-primary bg-primary text-primary-foreground',
   warning: 'border-warning/60 bg-card text-warning',
 };
@@ -87,6 +93,8 @@ export function GameOrb({
   arranging,
   onToggleArranging,
   onToggleBoardView,
+  commanderShortcuts,
+  onToggleCommanderShortcuts,
   onToggleTimer,
   onUndo,
   onRollFirstPlayer,
@@ -155,6 +163,13 @@ export function GameOrb({
       onClick: onToggleBoardView,
     },
     {
+      key: 'shortcuts',
+      Icon: Swords,
+      label: t('currentGame.toggleCommanderShortcuts'),
+      onClick: onToggleCommanderShortcuts,
+      active: commanderShortcuts,
+    },
+    {
       key: 'notes',
       Icon: MessageSquare,
       label: t('currentGame.gameCommentary'),
@@ -207,6 +222,7 @@ export function GameOrb({
               type="button"
               aria-label={action.label}
               title={action.label}
+              aria-pressed={action.active}
               disabled={action.disabled}
               onClick={() => {
                 haptic();
@@ -214,7 +230,7 @@ export function GameOrb({
                 if (!action.keepOpen) close();
               }}
               className={`pointer-events-auto absolute z-40 flex items-center justify-center rounded-full border shadow-lg transition-opacity disabled:opacity-40 ${
-                TONE[action.tone ?? 'default']
+                action.active ? TONE.active : TONE[action.tone ?? 'default']
               }`}
               style={{
                 width: ACTION_SIZE,

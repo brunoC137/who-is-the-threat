@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, LayoutGrid, Play, Repeat, RotateCcw, Users, X } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Play, Repeat, RotateCcw, Swords, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Deck, Player } from './types';
@@ -27,6 +27,9 @@ interface GameSetupProps {
   hasResumableGame: boolean;
   boardView: BoardView;
   onBoardViewChange: (view: BoardView) => void;
+  /** Table-wide: the commander damage map on every panel. */
+  commanderShortcuts: boolean;
+  onCommanderShortcutsChange: (on: boolean) => void;
   /** Add a player to the next seat, or remove them if already in. */
   onTogglePlayer: (playerId: string) => void;
   onSelectDeck: (playerId: string, deckId: string) => void;
@@ -53,6 +56,8 @@ export function GameSetup({
   hasResumableGame,
   boardView,
   onBoardViewChange,
+  commanderShortcuts,
+  onCommanderShortcutsChange,
   onTogglePlayer,
   onSelectDeck,
   onRematch,
@@ -179,6 +184,37 @@ export function GameSetup({
           })}
         </div>
       </section>
+
+      {/* One setting for the whole table, not per player */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={commanderShortcuts}
+        onClick={() => onCommanderShortcutsChange(!commanderShortcuts)}
+        className="mb-5 flex w-full items-center gap-3 rounded-xl border border-border bg-card/50 p-3 text-left"
+      >
+        <Swords
+          className={`h-5 w-5 shrink-0 ${commanderShortcuts ? 'text-primary' : 'text-muted-foreground'}`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{t('currentGame.commanderShortcuts')}</span>
+          <span className="block text-xs text-muted-foreground">
+            {t('currentGame.commanderShortcutsHint')}
+          </span>
+        </span>
+        <span
+          aria-hidden
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+            commanderShortcuts ? 'bg-primary' : 'bg-muted'
+          }`}
+        >
+          <span
+            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+              commanderShortcuts ? 'translate-x-5' : ''
+            }`}
+          />
+        </span>
+      </button>
 
       <section className="mb-5">
         <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">

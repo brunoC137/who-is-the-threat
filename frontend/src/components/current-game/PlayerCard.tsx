@@ -26,6 +26,8 @@ interface PlayerCardProps {
    * default; bottom when something floats over the panels' inner edges.
    */
   labelEdge?: 'top' | 'bottom';
+  /** Table-wide setting; off hides the commander damage map on every panel. */
+  showCommanderMap?: boolean;
   /** Board layout and every player in seat order, for the commander damage map. */
   layout: BoardLayout;
   players: GamePlayer[];
@@ -52,6 +54,7 @@ function LivePanel({
   edge,
   rotation,
   labelEdge = 'top',
+  showCommanderMap = true,
   layout,
   players,
   isRolling,
@@ -110,7 +113,7 @@ function LivePanel({
       <div
         className={`pointer-events-none absolute inset-x-0 flex items-center gap-1.5 p-1.5 ${
           labelEdge === 'bottom'
-            ? 'cg-panel-label-scrim-bottom bottom-0 pr-[96px] pt-3'
+            ? `cg-panel-label-scrim-bottom bottom-0 pt-3 ${showCommanderMap ? 'pr-[96px]' : ''}`
             : 'cg-panel-label-scrim top-0 pb-3'
         }`}
       >
@@ -141,17 +144,19 @@ function LivePanel({
 
       {/* Commander damage is recorded right here, in one tap per point, rather
           than through the detail sheet. Sits in the + corner, clear of the
-          life total and the identity strip. */}
-      <div className="absolute bottom-1.5 right-1.5">
-        <CommanderDamageMap
-          self={gamePlayer}
-          players={players}
-          layout={layout}
-          rotation={rotation}
-          onDamage={onCommanderDamage}
-          t={t}
-        />
-      </div>
+          life total and the identity strip. The table can switch it off. */}
+      {showCommanderMap && (
+        <div className="absolute bottom-1.5 right-1.5">
+          <CommanderDamageMap
+            self={gamePlayer}
+            players={players}
+            layout={layout}
+            rotation={rotation}
+            onDamage={onCommanderDamage}
+            t={t}
+          />
+        </div>
+      )}
     </div>
   );
 }

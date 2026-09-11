@@ -149,35 +149,65 @@ export function useCollapsedHeader(): {
   return { collapsed, toggle, expandWithoutSaving };
 }
 
-const BOARD_VIEW_KEY = 'currentGame:boardView';
-
 /**
- * Which board arrangement this device uses, remembered across games. Like the
- * collapsed header, the stored choice is applied after mount, so the server
- * render and first paint use the default.
+ * A table-wide preference remembered on this device: one phone runs the
+ * table, so "for everyone" means "on this device". Like the collapsed header,
+ * the stored value is applied after mount, so the server render and first
+ * paint use the fallback. `allowed` must be a module-level constant.
  */
-export function useBoardView(): [BoardView, (view: BoardView) => void] {
-  const [view, setView] = useState<BoardView>('table');
+function useDevicePreference<T extends string>(
+  key: string,
+  allowed: readonly T[],
+  fallback: T
+): [T, (value: T) => void] {
+  const [value, setValue] = useState<T>(fallback);
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(BOARD_VIEW_KEY);
-      if (stored === 'table' || stored === 'sides') setView(stored);
+      const stored = window.localStorage.getItem(key);
+      if (stored && (allowed as readonly string[]).includes(stored)) setValue(stored as T);
     } catch {
-      // Preference is cosmetic; the default stands.
+      // Preference is cosmetic; the fallback stands.
     }
-  }, []);
+  }, [key, allowed]);
 
-  const update = useCallback((next: BoardView) => {
-    setView(next);
-    try {
-      window.localStorage.setItem(BOARD_VIEW_KEY, next);
-    } catch {
-      // Ignore; the choice still applies for this session.
-    }
-  }, []);
+  const update = useCallback(
+    (next: T) => {
+      setValue(next);
+      try {
+        window.localStorage.setItem(key, next);
+      } catch {
+        // Ignore; the choice still applies for this session.
+      }
+    },
+    [key]
+  );
 
-  return [view, update];
+  return [value, update];
+}
+
+const BOARD_VIEWS = ['table', 'sides'] as const;
+
+/** Which board arrangement this device uses, remembered across games. */
+export function useBoardView(): [BoardView, (view: BoardView) => void] {
+  return useDevicePreference<BoardView>('currentGame:boardView', BOARD_VIEWS, 'table');
+}
+
+const SHORTCUT_STATES = ['on', 'off'] as const;
+
+/**
+ * Whether player panels show the commander damage map. One setting for the
+ * whole table rather than per player: a group that records damage through
+ * the detail sheet only finds the maps in the way of the life tap zones.
+ */
+export function useCommanderShortcuts(): [boolean, (on: boolean) => void] {
+  const [state, setState] = useDevicePreference(
+    'currentGame:commanderShortcuts',
+    SHORTCUT_STATES,
+    'on'
+  );
+  const setOn = useCallback((on: boolean) => setState(on ? 'on' : 'off'), [setState]);
+  return [state === 'on', setOn];
 }
 
 const STORAGE_KEY = 'currentGame:v1';

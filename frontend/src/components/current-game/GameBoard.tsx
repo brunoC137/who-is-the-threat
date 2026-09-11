@@ -13,6 +13,8 @@ import { getDisplayName, haptic } from './utils';
 interface GameBoardProps {
   gamePlayers: GamePlayer[];
   view: BoardView;
+  /** Table-wide setting: whether panels show the commander damage map. */
+  showCommanderShortcuts: boolean;
   /** Controls floated over the centre of the board (the sides view's orb). */
   centerControls?: ReactNode;
   rollingSeatId: string | null;
@@ -57,6 +59,7 @@ const seatIdAt = (x: number, y: number): string | null =>
 export function GameBoard({
   gamePlayers,
   view,
+  showCommanderShortcuts,
   centerControls,
   rollingSeatId,
   arranging,
@@ -223,6 +226,7 @@ export function GameBoard({
                   // The orb sits where the rows meet, so names move to each
                   // panel's outer edge, next to the person reading it.
                   labelEdge={view === 'sides' ? 'bottom' : 'top'}
+                  showCommanderMap={showCommanderShortcuts}
                   layout={layout}
                   players={gamePlayers}
                   isRolling={rollingSeatId === gamePlayer.id}
