@@ -95,6 +95,10 @@ export function CommanderDamageMap({
               area={seat.area}
               rotation={rotation}
               damage={damage}
+              // The attacker's deck art, the same art as their panel, so the
+              // cell reads as a colour reminder of who it stands for; their
+              // profile picture when the deck has none.
+              image={player.deck?.deckImage || player.player.profileImage}
               // A player who has left the game takes their commander with them
               disabled={player.isEliminated}
               ariaLabel={`${t('currentGame.commanderDamageFrom')} ${getDisplayName(player.player)}: ${damage}`}
@@ -111,6 +115,7 @@ function DamageCell({
   area,
   rotation,
   damage,
+  image,
   disabled,
   ariaLabel,
   onFire,
@@ -118,6 +123,8 @@ function DamageCell({
   area: string;
   rotation: SeatRotation;
   damage: number;
+  /** Background art; the plain cell is used when absent. */
+  image?: string;
   disabled: boolean;
   ariaLabel: string;
   onFire: () => void;
@@ -132,13 +139,30 @@ function DamageCell({
       type="button"
       aria-label={ariaLabel}
       disabled={disabled}
-      style={{ gridArea: area }}
-      className="flex min-h-0 min-w-0 items-center justify-center rounded bg-white/15 transition-colors active:bg-white/40 disabled:opacity-40"
+      style={{
+        gridArea: area,
+        // JSON.stringify quotes and escapes the URL for CSS
+        backgroundImage: image ? `url(${JSON.stringify(image)})` : undefined,
+      }}
+      className="group relative flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded bg-white/15 bg-cover bg-center disabled:opacity-40 disabled:grayscale"
       {...holdHandlers}
     >
+      {/* The art is only a colour reminder; the scrim keeps the number
+          readable over any artwork, and lifts while the cell is pressed. */}
+      {image && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-black/55 transition-colors group-active:bg-black/20"
+        />
+      )}
       <span
-        className={`text-[11px] font-bold tabular-nums leading-none ${damageColor(damage)}`}
-        style={{ transform: `rotate(${rotation}deg)` }}
+        className={`relative text-[11px] font-bold tabular-nums leading-none ${damageColor(damage)} ${
+          image ? '' : 'group-active:opacity-70'
+        }`}
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          textShadow: '0 0 3px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.9)',
+        }}
       >
         {damage}
       </span>
