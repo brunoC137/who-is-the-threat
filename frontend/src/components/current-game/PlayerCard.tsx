@@ -1,59 +1,75 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Crown, Droplet, Skull, Swords } from 'lucide-react';
+import { Crown, Droplet, Skull } from 'lucide-react';
 import { GamePlayer } from './types';
-import { SeatEdge, isSideSeat } from './layout';
-import { LETHAL_COMMANDER_DAMAGE, LETHAL_POISON } from './gameReducer';
+import { BoardLayout, SeatEdge, SeatRotation, isSideSeat } from './layout';
+import { LETHAL_POISON } from './gameReducer';
+import { CommanderDamageMap } from './CommanderDamageMap';
 import {
+  formatLifeDelta,
   formatPlacement,
   getDisplayName,
-  getHighestCommanderDamage,
   getLifeColor,
+  getLifeDeltaColor,
   getPoisonColor,
   haptic,
 } from './utils';
 import { useHoldRepeat } from './hooks';
+import { cssUrl } from '@/lib/utils';
 
 interface PlayerCardProps {
   gamePlayer: GamePlayer;
   edge: SeatEdge;
+  rotation: SeatRotation;
+  /**
+   * Which edge of the panel (as its reader sees it) carries the name. Top by
+   * default; bottom when something floats over the panels' inner edges.
+   */
+  labelEdge?: 'top' | 'bottom';
+  /** Table-wide setting; off hides the commander damage map on every panel. */
+  showCommanderMap?: boolean;
+  /** Board layout and every player in seat order, for the commander damage map. */
+  layout: BoardLayout;
+  players: GamePlayer[];
   isRolling: boolean;
   onLifeChange: (delta: number) => void;
   onOpenDetails: () => void;
+  /** One point of commander damage taken from the given seat. */
+  onCommanderDamage: (fromSeatId: string) => void;
   t: (key: string) => string;
 }
 
-export function PlayerCard({
-  gamePlayer,
-  edge,
-  isRolling,
-  onLifeChange,
-  onOpenDetails,
-  t,
-}: PlayerCardProps) {
+export function PlayerCard(props: PlayerCardProps) {
+  const { gamePlayer, players, onOpenDetails, t } = props;
+
   if (gamePlayer.isEliminated) {
-    return <EliminatedPanel gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} t={t} />;
+    return (
+      <EliminatedPanel
+        gamePlayer={gamePlayer}
+        // The first player out takes last place
+        firstOut={gamePlayer.placement === players.length}
+        onOpenDetails={onOpenDetails}
+        t={t}
+      />
+    );
   }
 
-  return (
-    <LivePanel
-      gamePlayer={gamePlayer}
-      edge={edge}
-      isRolling={isRolling}
-      onLifeChange={onLifeChange}
-      onOpenDetails={onOpenDetails}
-      t={t}
-    />
-  );
+  return <LivePanel {...props} />;
 }
 
 function LivePanel({
   gamePlayer,
   edge,
+  rotation,
+  labelEdge = 'top',
+  showCommanderMap = true,
+  layout,
+  players,
   isRolling,
   onLifeChange,
   onOpenDetails,
+  onCommanderDamage,
   t,
 }: PlayerCardProps) {
   const compact = isSideSeat(edge);
@@ -99,10 +115,17 @@ function LivePanel({
         />
       </div>
 
-      {/* Identity strip. Kept out of the tap zones so it never eats a press.
-          Carries its own gradient: 11px text cannot rely on a glyph halo the
-          way the large life total can. */}
-      <div className="cg-panel-label-scrim pointer-events-none absolute inset-x-0 top-0 flex items-center gap-1.5 p-1.5 pb-3">
+      {/* Identity strip. Lets presses through to the life zones beneath it;
+          only the poison chip is a target. Carries its own gradient: 11px text
+          cannot rely on a glyph halo the way the large life total can. At the
+          bottom it stops short of the commander damage map in that corner. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 flex items-center gap-1.5 p-1.5 ${
+          labelEdge === 'bottom'
+            ? `cg-panel-label-scrim-bottom bottom-0 pt-3 ${showCommanderMap ? 'pr-[96px]' : ''}`
+            : 'cg-panel-label-scrim top-0 pb-3'
+        }`}
+      >
         {gamePlayer.isFirstPlayer && (
           <Crown className="h-3.5 w-3.5 shrink-0 text-warning drop-shadow" />
         )}
@@ -114,11 +137,35 @@ function LivePanel({
             {gamePlayer.deck.commander}
           </span>
         )}
+        {gamePlayer.poison > 0 && (
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
+          >
+            <Droplet className="h-3 w-3 text-success" />
+            <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
+              {gamePlayer.poison}
+            </span>
+          </button>
+        )}
       </div>
 
-      {/* Counter summary. Only shown once a counter is actually in play, so a
-          clean board stays clean. */}
-      <CounterStrip gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} />
+      {/* Commander damage is recorded right here, in one tap per point, rather
+          than through the detail sheet. Sits in the + corner, clear of the
+          life total and the identity strip. The table can switch it off. */}
+      {showCommanderMap && (
+        <div className="absolute bottom-1.5 right-1.5">
+          <CommanderDamageMap
+            self={gamePlayer}
+            players={players}
+            layout={layout}
+            rotation={rotation}
+            onDamage={onCommanderDamage}
+            t={t}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -148,9 +195,67 @@ function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps
   );
 }
 
+/** How long the running change stays up after life last moved. */
+const DELTA_SETTLE_MS = 2000;
+/** Fade-out before the chip is removed; matches its opacity transition. */
+const DELTA_FADE_MS = 200;
+
+/**
+ * Net life change over the current burst of changes — "−7" after seven taps,
+ * a big hit, or commander damage — so the table can confirm what just
+ * happened without doing arithmetic. Resets once life has been still for a
+ * moment. Undo counts too: undoing one of those seven taps leaves "−6", the
+ * true net, rather than a misleading "+1".
+ */
+function useRunningDelta(value: number): { delta: number; fading: boolean } {
+  // `start` is life at the beginning of the current burst, or null between
+  // bursts. It is adjusted during render (React's pattern for state derived
+  // from a changing prop), so the chip shows the new net change in the same
+  // frame as the new number rather than one render behind it.
+  const [burst, setBurst] = useState<{ seen: number; start: number | null }>({
+    seen: value,
+    start: null,
+  });
+  const [fading, setFading] = useState(false);
+  const previous = useRef(value);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  let start = burst.start;
+  if (burst.seen !== value) {
+    start = burst.start ?? burst.seen;
+    setBurst({ seen: value, start });
+  }
+
+  // Every change restarts the settle countdown
+  useEffect(() => {
+    if (previous.current === value) return;
+    previous.current = value;
+
+    timers.current.forEach(clearTimeout);
+    setFading(false);
+    timers.current = [
+      setTimeout(() => setFading(true), DELTA_SETTLE_MS),
+      setTimeout(() => {
+        setBurst(current => ({ ...current, start: null }));
+        setFading(false);
+      }, DELTA_SETTLE_MS + DELTA_FADE_MS),
+    ];
+  }, [value]);
+
+  const delta = start === null ? 0 : value - start;
+
+  useEffect(() => {
+    const pending = timers;
+    return () => pending.current.forEach(clearTimeout);
+  }, []);
+
+  return { delta, fading };
+}
+
 function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   const [pulse, setPulse] = useState(false);
   const previous = useRef(life);
+  const { delta, fading } = useRunningDelta(life);
 
   useEffect(() => {
     if (previous.current !== life) {
@@ -160,74 +265,40 @@ function LifeTotal({ life, compact }: { life: number; compact: boolean }) {
   }, [life]);
 
   return (
-    <span
-      onAnimationEnd={() => setPulse(false)}
-      className={`cg-life-number font-bold tabular-nums leading-none ${getLifeColor(life)} ${
-        pulse ? 'cg-life-pulse' : ''
-      } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
-    >
-      {life}
+    // relative: anchors the delta chip above the number without moving it
+    <span className="relative inline-flex">
+      {delta !== 0 && (
+        <span
+          // Re-keyed per value so the pop-in replays on every change
+          key={delta}
+          aria-hidden
+          className={`cg-life-delta pointer-events-none absolute bottom-full left-1/2 mb-1.5 whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 font-bold tabular-nums leading-none backdrop-blur-sm transition-opacity duration-200 ${
+            compact ? 'text-xs' : 'text-sm'
+          } ${getLifeDeltaColor(delta)} ${fading ? 'opacity-0' : 'opacity-100'}`}
+        >
+          {formatLifeDelta(delta)}
+        </span>
+      )}
+
+      <span
+        onAnimationEnd={() => setPulse(false)}
+        className={`cg-life-number font-bold tabular-nums leading-none ${getLifeColor(life)} ${
+          pulse ? 'cg-life-pulse' : ''
+        } ${compact ? 'text-4xl' : 'text-5xl sm:text-6xl'}`}
+      >
+        {life}
+      </span>
     </span>
   );
 }
 
-function CounterStrip({
-  gamePlayer,
-  onOpenDetails,
-}: {
-  gamePlayer: GamePlayer;
-  onOpenDetails: () => void;
-}) {
-  const highestCommanderDamage = getHighestCommanderDamage(gamePlayer);
-  const showPoison = gamePlayer.poison > 0;
-  const showCommander = highestCommanderDamage > 0;
-
-  if (!showPoison && !showCommander) return null;
-
-  return (
-    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-1">
-      {showPoison && (
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
-        >
-          <Droplet className="h-3 w-3 text-success" />
-          <span className={`text-[11px] font-bold tabular-nums ${getPoisonColor(gamePlayer.poison)}`}>
-            {gamePlayer.poison}
-          </span>
-        </button>
-      )}
-
-      {showCommander && (
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 backdrop-blur-sm"
-        >
-          <Swords className="h-3 w-3 text-accent" />
-          <span
-            className={`text-[11px] font-bold tabular-nums ${
-              highestCommanderDamage >= LETHAL_COMMANDER_DAMAGE
-                ? 'text-destructive'
-                : 'text-white'
-            }`}
-          >
-            {highestCommanderDamage}
-          </span>
-        </button>
-      )}
-    </div>
-  );
-}
-
-function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
+export function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
   if (deck.deckImage) {
     return (
       <>
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${deck.deckImage})` }}
+          style={{ backgroundImage: cssUrl(deck.deckImage) }}
         />
         {/* No blur: the art stays sharp and the radial vignette buys contrast
             only where the life total actually sits. See .cg-panel-focus. */}
@@ -239,12 +310,22 @@ function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
   return <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />;
 }
 
+/**
+ * House joke: whoever is knocked out first takes last place, where Vasco da
+ * Gama so often finishes, so their panel gets a dim Vasco-style crest. The
+ * art is an original homage, not the club's crest; drop another image at
+ * this path to swap it.
+ */
+const FIRST_OUT_ART = '/easter-eggs/vasco.svg';
+
 function EliminatedPanel({
   gamePlayer,
+  firstOut,
   onOpenDetails,
   t,
 }: {
   gamePlayer: GamePlayer;
+  firstOut: boolean;
   onOpenDetails: () => void;
   t: (key: string) => string;
 }) {
@@ -253,13 +334,23 @@ function EliminatedPanel({
       type="button"
       onClick={onOpenDetails}
       aria-label={t('currentGame.openDetails')}
-      className="relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-destructive/30 bg-card/40 grayscale"
+      // The crest keeps its colours; everyone else out goes grey
+      className={`relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-destructive/30 bg-card/40 ${
+        firstOut ? '' : 'grayscale'
+      }`}
     >
-      <Skull className="h-6 w-6 text-destructive/60" />
-      <span className="max-w-full truncate px-2 text-[11px] font-semibold text-muted-foreground">
+      {firstOut && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-3 bg-contain bg-center bg-no-repeat opacity-25"
+          style={{ backgroundImage: cssUrl(FIRST_OUT_ART) }}
+        />
+      )}
+      <Skull className="relative h-6 w-6 text-destructive/60" />
+      <span className="relative max-w-full truncate px-2 text-[11px] font-semibold text-muted-foreground">
         {getDisplayName(gamePlayer.player)}
       </span>
-      <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">
+      <span className="relative rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">
         {formatPlacement(gamePlayer.placement)}
       </span>
     </button>

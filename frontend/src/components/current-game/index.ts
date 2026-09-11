@@ -1,7 +1,9 @@
 export { GameBoard } from './GameBoard';
+export { GameOrb } from './GameOrb';
 export { GameSetup } from './GameSetup';
 export type { SeatSelection } from './GameSetup';
 export { GameTopBar } from './GameTopBar';
+export { LandscapeFrame, useFrame } from './LandscapeFrame';
 export { PlayerCard } from './PlayerCard';
 export { PlayerDetailsSheet } from './PlayerDetailsSheet';
 export { EliminationDialog } from './EliminationDialog';
@@ -13,20 +15,29 @@ export {
   createInitialState,
   getPlacementError,
   STARTING_LIFE,
+  MIN_PLAYERS,
+  MAX_PLAYERS,
   LETHAL_POISON,
   LETHAL_COMMANDER_DAMAGE,
 } from './gameReducer';
 export type { GameAction } from './gameReducer';
 
+export { EMPTY_SETUP_HISTORY, buildSetupHistory, defaultDeckFor } from './setupHistory';
+export type { RecentGame, SetupHistory } from './setupHistory';
+
 export {
   getBoardLayout,
   isQuarterTurn,
   isSideSeat,
+  miniMapGrid,
 } from './layout';
-export type { BoardLayout, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
+export type { BoardLayout, BoardView, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
 
 export {
+  useBoardView,
   useCollapsedHeader,
+  useCommanderShortcuts,
+  useOrbLabels,
   useHoldRepeat,
   useOrientation,
   usePersistedGame,

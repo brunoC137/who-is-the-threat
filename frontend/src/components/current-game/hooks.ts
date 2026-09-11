@@ -5,7 +5,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react';
-import { Orientation } from './layout';
+import { BoardView, Orientation } from './layout';
 import { GameState } from './types';
 
 /**
@@ -29,9 +29,9 @@ export function useOrientation(): Orientation {
 }
 
 /**
- * Live viewport size. Needed because the board's dialogs rotate, so whether a
- * dialog is "short" depends on its own rotation rather than on a plain CSS
- * media query against the viewport.
+ * Live viewport size. LandscapeFrame derives the game frame's size from it;
+ * components inside the frame should read useFrame() instead, since on an
+ * upright phone the viewport's axes are the frame's axes swapped.
  */
 export function useViewportSize(): { width: number; height: number } {
   const [size, setSize] = useState({ width: 1024, height: 768 });
@@ -147,6 +147,112 @@ export function useCollapsedHeader(): {
   const expandWithoutSaving = useCallback(() => setCollapsed(false), []);
 
   return { collapsed, toggle, expandWithoutSaving };
+}
+
+/**
+ * A table-wide preference remembered on this device: one phone runs the
+ * table, so "for everyone" means "on this device". Like the collapsed header,
+ * the stored value is applied after mount, so the server render and first
+ * paint use the fallback. `allowed` must be a module-level constant.
+ */
+function useDevicePreference<T extends string>(
+  key: string,
+  allowed: readonly T[],
+  fallback: T
+): [T, (value: T) => void] {
+  const [value, setValue] = useState<T>(fallback);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(key);
+      if (stored && (allowed as readonly string[]).includes(stored)) setValue(stored as T);
+    } catch {
+      // Preference is cosmetic; the fallback stands.
+    }
+  }, [key, allowed]);
+
+  const update = useCallback(
+    (next: T) => {
+      setValue(next);
+      try {
+        window.localStorage.setItem(key, next);
+      } catch {
+        // Ignore; the choice still applies for this session.
+      }
+    },
+    [key]
+  );
+
+  return [value, update];
+}
+
+const BOARD_VIEWS = ['table', 'sides'] as const;
+
+/** Which board arrangement this device uses, remembered across games. */
+export function useBoardView(): [BoardView, (view: BoardView) => void] {
+  return useDevicePreference<BoardView>('currentGame:boardView', BOARD_VIEWS, 'table');
+}
+
+const SHORTCUT_STATES = ['on', 'off'] as const;
+
+/**
+ * Whether player panels show the commander damage map. One setting for the
+ * whole table rather than per player: a group that records damage through
+ * the detail sheet only finds the maps in the way of the life tap zones.
+ */
+export function useCommanderShortcuts(): [boolean, (on: boolean) => void] {
+  const [state, setState] = useDevicePreference(
+    'currentGame:commanderShortcuts',
+    SHORTCUT_STATES,
+    'on'
+  );
+  const setOn = useCallback((on: boolean) => setState(on ? 'on' : 'off'), [setState]);
+  return [state === 'on', setOn];
+}
+
+const ORB_LABEL_MODES = ['auto', 'on', 'off'] as const;
+const ORB_OPENS_KEY = 'currentGame:orbOpens';
+/** How many times the ring opens with captions before they step aside. */
+const LEARNING_OPENS = 3;
+
+/**
+ * Captions on the orb's ring while the table is learning it. They show the
+ * first few times the ring opens on this device, then step aside; the "?"
+ * in the ring switches them on or off for good. Device-wide, like the other
+ * table settings.
+ */
+export function useOrbLabels(): {
+  showLabels: boolean;
+  toggleLabels: () => void;
+  recordOpen: () => void;
+} {
+  const [mode, setMode] = useDevicePreference('currentGame:orbLabels', ORB_LABEL_MODES, 'auto');
+  const [opens, setOpens] = useState(0);
+
+  useEffect(() => {
+    try {
+      setOpens(Number(window.localStorage.getItem(ORB_OPENS_KEY)) || 0);
+    } catch {
+      // Without storage every session counts as new, which only shows captions more.
+    }
+  }, []);
+
+  const recordOpen = useCallback(() => {
+    setOpens(current => {
+      const next = current + 1;
+      try {
+        window.localStorage.setItem(ORB_OPENS_KEY, String(next));
+      } catch {
+        // Ignore; the count still applies for this session.
+      }
+      return next;
+    });
+  }, []);
+
+  const showLabels = mode === 'on' || (mode === 'auto' && opens <= LEARNING_OPENS);
+  const toggleLabels = useCallback(() => setMode(showLabels ? 'off' : 'on'), [setMode, showLabels]);
+
+  return { showLabels, toggleLabels, recordOpen };
 }
 
 const STORAGE_KEY = 'currentGame:v1';

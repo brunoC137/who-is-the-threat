@@ -333,6 +333,10 @@
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
+.cg-panel-label-scrim-bottom {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
 .cg-life-number {
   text-shadow:
     0 0 2px rgba(0, 0, 0, 0.95),
@@ -377,8 +381,21 @@
   animation: cgDangerPulse 1.8s ease-in-out infinite;
 }
 
+/* Running life change chip. Centred with a transform, so the pop-in has to
+   carry the same translate or it would jump sideways while it plays. */
+.cg-life-delta {
+  transform: translateX(-50%);
+  animation: cgLifeDelta 180ms ease-out;
+}
+
+@keyframes cgLifeDelta {
+  from { opacity: 0; transform: translate(-50%, 4px) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cg-life-pulse,
+  .cg-life-delta,
   .cg-danger {
     animation: none;
   }

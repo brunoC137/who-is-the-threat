@@ -27,6 +27,12 @@
  * Note left/right are the mirror of the naive reading: a player sitting on the
  * LEFT reads text whose top points RIGHT. Getting this backwards renders the
  * side panels 180deg out for the very players they are meant to face.
+ *
+ * Seat order. seats[i] is where players[i] sits, and every layout lists its
+ * seats clockwise around the table: top edge left to right, right edge,
+ * bottom edge right to left, left edge. Both views share that order, so
+ * switching views mid-game keeps everyone next to the same neighbours; only
+ * the positions on the phone change.
  */
 
 export type SeatEdge = 'top' | 'bottom' | 'left' | 'right';
@@ -47,7 +53,21 @@ export interface BoardLayout {
   gridTemplateRows: string;
 }
 
+/**
+ * Device orientation. The board itself is always laid out landscape; a
+ * portrait device gets the whole game screen turned a quarter instead (see
+ * LandscapeFrame), so there is only one set of layouts per view to get right.
+ */
 export type Orientation = 'landscape' | 'portrait';
+
+/**
+ * How seats are arranged on the board.
+ *  - table: players on every edge of the phone; four players get a pinwheel.
+ *  - sides: players only along the two long edges, facing each other — the
+ *    arrangement LifeTap uses. The rows meet in the middle; the game controls
+ *    float over the centre in an orb (see GameOrb) instead of taking a row.
+ */
+export type BoardView = 'table' | 'sides';
 
 const EDGE_ROTATION: Record<SeatEdge, SeatRotation> = {
   bottom: 0,
@@ -63,13 +83,13 @@ const seat = (area: string, edge: SeatEdge): Seat => ({
 });
 
 /**
- * Landscape is the primary orientation: the phone sits flat between players.
+ * The phone sits flat between players, long side across.
  *
  * Four players get a true pinwheel (one panel per edge) with no dead centre —
  * the left/right columns are narrow cells whose rotated content reads wide,
  * so every panel ends up landscape-shaped for its own reader.
  */
-const LANDSCAPE_LAYOUTS: Record<number, BoardLayout> = {
+const TABLE_LAYOUTS: Record<number, BoardLayout> = {
   2: {
     seats: [seat('p0', 'top'), seat('p1', 'bottom')],
     gridTemplateAreas: '"p0" "p1"',
@@ -78,18 +98,18 @@ const LANDSCAPE_LAYOUTS: Record<number, BoardLayout> = {
   },
   3: {
     seats: [seat('p0', 'top'), seat('p1', 'bottom'), seat('p2', 'bottom')],
-    gridTemplateAreas: '"p0 p0" "p1 p2"',
+    gridTemplateAreas: '"p0 p0" "p2 p1"',
     gridTemplateColumns: '1fr 1fr',
     gridTemplateRows: '1fr 1fr',
   },
   4: {
     seats: [
       seat('p0', 'top'),
-      seat('p1', 'left'),
-      seat('p2', 'right'),
-      seat('p3', 'bottom'),
+      seat('p1', 'right'),
+      seat('p2', 'bottom'),
+      seat('p3', 'left'),
     ],
-    gridTemplateAreas: '"p1 p0 p2" "p1 p3 p2"',
+    gridTemplateAreas: '"p3 p0 p1" "p3 p2 p1"',
     gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr)',
     gridTemplateRows: '1fr 1fr',
   },
@@ -101,7 +121,7 @@ const LANDSCAPE_LAYOUTS: Record<number, BoardLayout> = {
       seat('p3', 'bottom'),
       seat('p4', 'bottom'),
     ],
-    gridTemplateAreas: '"p0 p0 p1 p1 p2 p2" "p3 p3 p3 p4 p4 p4"',
+    gridTemplateAreas: '"p0 p0 p1 p1 p2 p2" "p4 p4 p4 p3 p3 p3"',
     gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
     gridTemplateRows: '1fr 1fr',
   },
@@ -114,30 +134,20 @@ const LANDSCAPE_LAYOUTS: Record<number, BoardLayout> = {
       seat('p4', 'bottom'),
       seat('p5', 'bottom'),
     ],
-    gridTemplateAreas: '"p0 p1 p2" "p3 p4 p5"',
+    gridTemplateAreas: '"p0 p1 p2" "p5 p4 p3"',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
     gridTemplateRows: '1fr 1fr',
   },
 };
 
 /**
- * Portrait keeps the same "face your seat" rule but stacks rows, since a tall
- * narrow viewport cannot give side seats a usable share of the width until
- * there are enough players to justify a middle row.
+ * Nobody sits at the short ends: two rows of players face each other across
+ * the phone. Only 4 players actually sit differently from the table view;
+ * for the rest the difference is where the controls live (the orb).
  */
-const PORTRAIT_LAYOUTS: Record<number, BoardLayout> = {
-  2: {
-    seats: [seat('p0', 'top'), seat('p1', 'bottom')],
-    gridTemplateAreas: '"p0" "p1"',
-    gridTemplateColumns: '1fr',
-    gridTemplateRows: '1fr 1fr',
-  },
-  3: {
-    seats: [seat('p0', 'top'), seat('p1', 'bottom'), seat('p2', 'bottom')],
-    gridTemplateAreas: '"p0 p0" "p1 p2"',
-    gridTemplateColumns: '1fr 1fr',
-    gridTemplateRows: '1fr 1fr',
-  },
+const SIDES_LAYOUTS: Record<number, BoardLayout> = {
+  2: TABLE_LAYOUTS[2],
+  3: TABLE_LAYOUTS[3],
   4: {
     seats: [
       seat('p0', 'top'),
@@ -145,47 +155,20 @@ const PORTRAIT_LAYOUTS: Record<number, BoardLayout> = {
       seat('p2', 'bottom'),
       seat('p3', 'bottom'),
     ],
-    gridTemplateAreas: '"p0 p1" "p2 p3"',
+    gridTemplateAreas: '"p0 p1" "p3 p2"',
     gridTemplateColumns: '1fr 1fr',
     gridTemplateRows: '1fr 1fr',
   },
-  5: {
-    seats: [
-      seat('p0', 'top'),
-      seat('p1', 'top'),
-      seat('p2', 'left'),
-      seat('p3', 'right'),
-      seat('p4', 'bottom'),
-    ],
-    gridTemplateAreas: '"p0 p1" "p2 p3" "p4 p4"',
-    gridTemplateColumns: '1fr 1fr',
-    gridTemplateRows: 'repeat(3, 1fr)',
-  },
-  6: {
-    seats: [
-      seat('p0', 'top'),
-      seat('p1', 'top'),
-      seat('p2', 'left'),
-      seat('p3', 'right'),
-      seat('p4', 'bottom'),
-      seat('p5', 'bottom'),
-    ],
-    gridTemplateAreas: '"p0 p1" "p2 p3" "p4 p5"',
-    gridTemplateColumns: '1fr 1fr',
-    gridTemplateRows: 'repeat(3, 1fr)',
-  },
+  5: TABLE_LAYOUTS[5],
+  6: TABLE_LAYOUTS[6],
 };
 
 const clampPlayerCount = (playerCount: number): number =>
   Math.min(6, Math.max(2, playerCount));
 
-export function getBoardLayout(
-  playerCount: number,
-  orientation: Orientation
-): BoardLayout {
-  const count = clampPlayerCount(playerCount);
-  const layouts = orientation === 'portrait' ? PORTRAIT_LAYOUTS : LANDSCAPE_LAYOUTS;
-  return layouts[count];
+export function getBoardLayout(playerCount: number, view: BoardView = 'table'): BoardLayout {
+  const layouts = view === 'sides' ? SIDES_LAYOUTS : TABLE_LAYOUTS;
+  return layouts[clampPlayerCount(playerCount)];
 }
 
 /** A seat rotated a quarter turn needs its cell's width/height swapped. */
@@ -199,3 +182,19 @@ export const isQuarterTurn = (rotation: SeatRotation): boolean =>
  */
 export const isSideSeat = (edge: SeatEdge): boolean =>
   edge === 'left' || edge === 'right';
+
+/**
+ * Grid for a miniature of the board (the panels' commander damage map, the
+ * player sheet's seat picker): the same seat areas with equal tracks. A
+ * miniature shows where people sit, not the board's proportions, and the
+ * board's narrow side columns would leave those seats a sliver of a target.
+ */
+export function miniMapGrid(layout: BoardLayout) {
+  const rows = layout.gridTemplateAreas.match(/"[^"]*"/g) ?? [];
+  const columns = rows[0]?.replace(/"/g, '').trim().split(/\s+/).length ?? 1;
+  return {
+    gridTemplateAreas: rows.join(' '),
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${Math.max(1, rows.length)}, minmax(0, 1fr))`,
+  };
+}

@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Plus, ExternalLink, Trophy, Target, Layers, Filter, Users, User, ChevronDown, ChevronUp, Archive, ArchiveRestore, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI } from '@/lib/api';
+import { cssUrl } from '@/lib/utils';
 
 interface Deck {
   _id: string;
@@ -490,7 +491,7 @@ export default function DecksPage() {
                   {deck.deckImage ? (
                     <div className="relative w-full h-48 rounded-lg mb-4 overflow-hidden">
                       <div className="w-full h-full bg-cover bg-center transition-transform duration-300 group-hover:scale-110" 
-                           style={{ backgroundImage: `url(${deck.deckImage})` }} />
+                           style={{ backgroundImage: cssUrl(deck.deckImage) }} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ) : (

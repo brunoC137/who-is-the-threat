@@ -1,19 +1,24 @@
 'use client';
 
 import {
+  ArrowLeftRight,
+  Check,
   ChevronDown,
   ChevronUp,
   Dices,
   Flag,
+  LayoutGrid,
   Loader2,
   MessageSquare,
   Pause,
   Play,
   RotateCcw,
   Save,
+  Swords,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BoardView } from './layout';
 import { formatTime } from './utils';
 
 interface GameTopBarProps {
@@ -25,7 +30,13 @@ interface GameTopBarProps {
   isRolling: boolean;
   isSaving: boolean;
   collapsed: boolean;
+  arranging: boolean;
+  boardView: BoardView;
   onToggleCollapsed: () => void;
+  onToggleArranging: () => void;
+  onToggleBoardView: () => void;
+  commanderShortcuts: boolean;
+  onToggleCommanderShortcuts: () => void;
   onToggleTimer: () => void;
   onUndo: () => void;
   onRollFirstPlayer: () => void;
@@ -37,9 +48,26 @@ interface GameTopBarProps {
 }
 
 /**
- * One slim bar holds every game control. In landscape on a phone the viewport
- * is ~390px tall, so a second fixed bar at the bottom would cost the board
- * roughly a third of its height for no benefit.
+ * Touch targets. Everything here is pressed mid-game, often by someone
+ * reaching across the table, so every control gets at least a 44px target:
+ *  - icon buttons are simply 44x44, filling the bar's height;
+ *  - labelled buttons and the floating pills keep a compact look and extend
+ *    their hit area with an invisible ::after, so the bar does not have to
+ *    grow and the collapsed pills do not cover more of the board.
+ *
+ * The ::after is positioned against the padding box, so a bordered button
+ * loses its border width from the extension; the insets are sized so a
+ * 1px-bordered 36px (or 32px) control still ends up at 44px or more.
+ */
+const ICON_BUTTON = 'h-11 w-11 shrink-0';
+const EXTEND_Y = "relative after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']";
+const EXTEND_ALL = "relative after:absolute after:-inset-2 after:content-['']";
+
+/**
+ * The table view's controls: one slim bar across the top. In landscape on a
+ * phone the viewport is ~390px tall, so a second fixed bar at the bottom
+ * would cost the board roughly a third of its height for no benefit. (The
+ * sides view uses GameOrb instead.)
  */
 export function GameTopBar({
   elapsedSeconds,
@@ -50,7 +78,13 @@ export function GameTopBar({
   isRolling,
   isSaving,
   collapsed,
+  arranging,
+  boardView,
   onToggleCollapsed,
+  onToggleArranging,
+  onToggleBoardView,
+  commanderShortcuts,
+  onToggleCommanderShortcuts,
   onToggleTimer,
   onUndo,
   onRollFirstPlayer,
@@ -60,6 +94,30 @@ export function GameTopBar({
   onExit,
   t,
 }: GameTopBarProps) {
+  /**
+   * Arranging replaces the whole bar, collapsed or not: the mode locks life
+   * totals, so the way out has to be obvious and the other game controls
+   * have no business being pressed while seats are moving.
+   */
+  if (arranging) {
+    return (
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-primary/40 bg-primary/10 px-2 backdrop-blur-xl">
+        <ArrowLeftRight className="h-4 w-4 shrink-0 text-primary" />
+        <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-tight">
+          {t('currentGame.arrangeHint')}
+        </p>
+        <Button
+          size="sm"
+          className={`h-9 shrink-0 px-4 text-xs font-bold ${EXTEND_Y}`}
+          onClick={onToggleArranging}
+        >
+          <Check className="mr-1 h-3.5 w-3.5" />
+          {t('currentGame.doneArranging')}
+        </Button>
+      </header>
+    );
+  }
+
   /**
    * Collapsed, the bar leaves the layout entirely so the board gets the whole
    * viewport, and only the two controls worth interrupting a game for float
@@ -72,13 +130,14 @@ export function GameTopBar({
    */
   if (collapsed) {
     return (
-      <div className="pointer-events-none absolute left-1.5 top-1.5 z-30 flex items-center gap-1">
+      // gap-4 matches the two 8px extensions, so the hit areas meet but never overlap
+      <div className="pointer-events-none absolute left-2.5 top-2.5 z-30 flex items-center gap-4">
         <button
           type="button"
           onClick={onToggleCollapsed}
           aria-label={t('currentGame.showControls')}
           aria-expanded={false}
-          className="pointer-events-auto flex h-8 items-center gap-1 rounded-full border border-border/60 bg-card/80 px-2 backdrop-blur-md"
+          className={`pointer-events-auto flex h-8 items-center gap-1 rounded-full border border-border/60 bg-card/80 px-2.5 backdrop-blur-md ${EXTEND_ALL}`}
         >
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-mono text-xs font-bold tabular-nums">
@@ -91,7 +150,7 @@ export function GameTopBar({
           onClick={onUndo}
           disabled={!canUndo}
           aria-label={t('currentGame.undo')}
-          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur-md disabled:opacity-40"
+          className={`pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur-md disabled:opacity-40 ${EXTEND_ALL}`}
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -100,11 +159,11 @@ export function GameTopBar({
   }
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border/50 bg-card/80 px-1.5 backdrop-blur-xl">
+    <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border/50 bg-card/80 px-1 backdrop-blur-xl">
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 shrink-0"
+        className={ICON_BUTTON}
         onClick={onExit}
         aria-label={t('actions.close')}
       >
@@ -116,17 +175,17 @@ export function GameTopBar({
         onClick={onToggleTimer}
         disabled={hasEnded}
         aria-label={t('currentGame.toggleTimer')}
-        className="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-sm font-mono font-bold tabular-nums hover:bg-muted disabled:opacity-60"
+        className="flex h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm font-mono font-bold tabular-nums hover:bg-muted disabled:opacity-60"
       >
         {isTimerRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
         {formatTime(elapsedSeconds)}
       </button>
 
-      <div className="flex flex-1 items-center justify-center gap-1">
+      <div className="flex flex-1 items-center justify-center">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className={ICON_BUTTON}
           onClick={onRollFirstPlayer}
           disabled={isRolling || hasEnded}
           aria-label={t('currentGame.rollForFirst')}
@@ -137,7 +196,40 @@ export function GameTopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className={ICON_BUTTON}
+          onClick={onToggleArranging}
+          disabled={isRolling}
+          aria-label={t('currentGame.arrangeSeats')}
+        >
+          <ArrowLeftRight className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={ICON_BUTTON}
+          onClick={onToggleBoardView}
+          aria-label={t('currentGame.switchBoardView')}
+          aria-pressed={boardView === 'sides'}
+        >
+          <LayoutGrid className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`${ICON_BUTTON} ${commanderShortcuts ? 'text-primary' : 'text-muted-foreground'}`}
+          onClick={onToggleCommanderShortcuts}
+          aria-label={t('currentGame.toggleCommanderShortcuts')}
+          aria-pressed={commanderShortcuts}
+        >
+          <Swords className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={ICON_BUTTON}
           onClick={onUndo}
           disabled={!canUndo}
           aria-label={t('currentGame.undo')}
@@ -148,13 +240,13 @@ export function GameTopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-8 w-8"
+          className={`relative ${ICON_BUTTON}`}
           onClick={onOpenNotes}
           aria-label={t('currentGame.gameCommentary')}
         >
           <MessageSquare className="h-4 w-4" />
           {commentaryCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
+            <span className="absolute right-1.5 top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
               {commentaryCount}
             </span>
           )}
@@ -163,7 +255,7 @@ export function GameTopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className={ICON_BUTTON}
           onClick={onToggleCollapsed}
           aria-label={t('currentGame.hideControls')}
           aria-expanded
@@ -173,7 +265,12 @@ export function GameTopBar({
       </div>
 
       {hasEnded ? (
-        <Button size="sm" className="h-8 shrink-0 px-2 text-xs font-bold" onClick={onSave} disabled={isSaving}>
+        <Button
+          size="sm"
+          className={`h-9 shrink-0 px-3 text-xs font-bold ${EXTEND_Y}`}
+          onClick={onSave}
+          disabled={isSaving}
+        >
           {isSaving ? (
             <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
           ) : (
@@ -185,7 +282,7 @@ export function GameTopBar({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 shrink-0 px-2 text-xs font-bold"
+          className={`h-9 shrink-0 px-3 text-xs font-bold ${EXTEND_Y}`}
           onClick={onEndGame}
         >
           <Flag className="mr-1 h-3.5 w-3.5" />

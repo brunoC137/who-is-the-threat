@@ -12,25 +12,40 @@ import {
   EliminationDialog,
   EndGameDialog,
   GameBoard,
+  GameOrb,
   GameSetup,
   GameTopBar,
+  LandscapeFrame,
   NotesSheet,
   PlayerDetailsSheet,
+  EMPTY_SETUP_HISTORY,
+  MAX_PLAYERS,
   STARTING_LIFE,
+  buildSetupHistory,
   clearPersistedGame,
   createInitialState,
+  defaultDeckFor,
   formatPlacement,
   gameReducer,
   getBoardLayout,
   getDisplayName,
   getPlacementError,
   loadPersistedGame,
+  useBoardView,
   useCollapsedHeader,
+  useCommanderShortcuts,
   usePersistedGame,
-  useOrientation,
   useWakeLock,
 } from '@/components/current-game';
-import type { Deck, GamePlayer, GameState, Player, SeatSelection } from '@/components/current-game';
+import type {
+  Deck,
+  GamePlayer,
+  GameState,
+  Player,
+  RecentGame,
+  SeatSelection,
+  SetupHistory,
+} from '@/components/current-game';
 
 type Phase = 'setup' | 'playing';
 
@@ -38,22 +53,22 @@ export default function CurrentGamePage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-  const orientation = useOrientation();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [loadingData, setLoadingData] = useState(true);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [availableDecks, setAvailableDecks] = useState<Deck[]>([]);
 
-  const [playerCount, setPlayerCount] = useState(4);
-  const [selections, setSelections] = useState<SeatSelection[]>(
-    Array.from({ length: 4 }, () => ({ playerId: '', deckId: '' }))
-  );
+  const [selections, setSelections] = useState<SeatSelection[]>([]);
+  const [history, setHistory] = useState<SetupHistory>(EMPTY_SETUP_HISTORY);
   const [resumable, setResumable] = useState<GameState | null>(null);
 
   const [state, dispatch] = useReducer(gameReducer, undefined, () => createInitialState());
 
   const [openSeatId, setOpenSeatId] = useState<string | null>(null);
+  const [arranging, setArranging] = useState(false);
+  const [boardView, setBoardView] = useBoardView();
+  const [commanderShortcuts, setCommanderShortcuts] = useCommanderShortcuts();
   const [showNotes, setShowNotes] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [rollingSeatId, setRollingSeatId] = useState<string | null>(null);
@@ -70,21 +85,33 @@ export default function CurrentGamePage() {
   usePersistedGame(state, phase === 'playing');
   useWakeLock(phase === 'playing' && state.status === 'playing');
 
-  // Load players and decks through the shared API layer
+  // Load players, decks and recent games through the shared API layer
   useEffect(() => {
     let cancelled = false;
 
+    const asList = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
     const fetchData = async () => {
       try {
-        const [playersResponse, decksResponse] = await Promise.all([
-          playersAPI.getAll(),
-          decksAPI.getAll(),
+        // The list endpoints paginate (players default to 25, decks to 100),
+        // so ask for everything: nobody should be missing from setup.
+        const [playersResponse, decksResponse, gamesResponse] = await Promise.all([
+          playersAPI.getAll({ limit: 500 }),
+          decksAPI.getAll({ limit: 500 }),
+          // History only improves the defaults; setup works without it
+          gamesAPI.getAll({ limit: 50 }).catch(() => null),
         ]);
 
         if (cancelled) return;
 
-        setAvailablePlayers(playersResponse.data?.data || []);
-        setAvailableDecks(decksResponse.data?.data || []);
+        const players = asList<Player>(playersResponse.data?.data);
+        const decks = asList<Deck>(decksResponse.data?.data);
+
+        setAvailablePlayers(players);
+        setAvailableDecks(decks);
+        setHistory(
+          buildSetupHistory(asList<RecentGame>(gamesResponse?.data?.data), players, decks)
+        );
       } catch (error) {
         if (!cancelled) setErrorMessage(t('currentGame.errorLoading'));
       } finally {
@@ -103,15 +130,6 @@ export default function CurrentGamePage() {
     const persisted = loadPersistedGame();
     if (persisted) setResumable(persisted.state);
   }, []);
-
-  useEffect(() => {
-    setSelections(current => {
-      const next = Array.from({ length: playerCount }, (_, index) =>
-        current[index] || { playerId: '', deckId: '' }
-      );
-      return next;
-    });
-  }, [playerCount]);
 
   // Game clock
   useEffect(() => {
@@ -139,10 +157,10 @@ export default function CurrentGamePage() {
   const openSeatRotation = useMemo(() => {
     if (!openSeat) return 0 as const;
 
-    const layout = getBoardLayout(state.players.length, orientation);
+    const layout = getBoardLayout(state.players.length, boardView);
     const index = state.players.findIndex(p => p.id === openSeat.id);
     return layout.seats[index]?.rotation ?? 0;
-  }, [openSeat, state.players, orientation]);
+  }, [openSeat, state.players, boardView]);
 
   const handleStart = () => {
     const players: GamePlayer[] = selections.map((selection, index) => {
@@ -164,7 +182,26 @@ export default function CurrentGamePage() {
 
     dispatch({ type: 'START', players });
     setPhase('playing');
+    // Setup order is pick order, not where people sit. Opening straight into
+    // arrange mode lets the table fix that before the first life change; if
+    // the order already matches, it costs a single tap on Done.
+    setArranging(true);
   };
+
+  /** A tapped player takes the next seat with their usual deck; tapping again removes them. */
+  const handleTogglePlayer = (playerId: string) =>
+    setSelections(current => {
+      if (current.some(selection => selection.playerId === playerId)) {
+        return current.filter(selection => selection.playerId !== playerId);
+      }
+      if (current.length >= MAX_PLAYERS) return current;
+      return [...current, { playerId, deckId: defaultDeckFor(playerId, history, availableDecks) }];
+    });
+
+  const handleSelectDeck = (playerId: string, deckId: string) =>
+    setSelections(current =>
+      current.map(selection => (selection.playerId === playerId ? { ...selection, deckId } : selection))
+    );
 
   const handleResume = () => {
     if (!resumable) return;
@@ -254,9 +291,13 @@ export default function CurrentGamePage() {
         })),
       };
 
-      await gamesAPI.create(payload);
+      const response = await gamesAPI.create(payload);
       clearPersistedGame();
-      router.push('/games');
+      // Land on the result of the game just played, the story the table wants
+      // to see, rather than the full history; the list is only a fallback for
+      // a response without an id.
+      const savedId = response.data?.data?._id;
+      router.push(savedId ? `/games/${savedId}` : '/games');
     } catch (error: any) {
       const response = error?.response?.data;
       const detail = response?.errors?.[0]?.msg || response?.message;
@@ -288,24 +329,19 @@ export default function CurrentGamePage() {
     return (
       <>
         <GameSetup
-          playerCount={playerCount}
           selections={selections}
           availablePlayers={availablePlayers}
           availableDecks={availableDecks}
+          playerRecency={history.recency}
+          rematchLineup={history.lastLineup}
           hasResumableGame={Boolean(resumable)}
-          onPlayerCountChange={setPlayerCount}
-          onSelectPlayer={(index, playerId) =>
-            setSelections(current =>
-              current.map((selection, i) =>
-                i === index ? { playerId, deckId: '' } : selection
-              )
-            )
-          }
-          onSelectDeck={(index, deckId) =>
-            setSelections(current =>
-              current.map((selection, i) => (i === index ? { ...selection, deckId } : selection))
-            )
-          }
+          boardView={boardView}
+          onBoardViewChange={setBoardView}
+          commanderShortcuts={commanderShortcuts}
+          onCommanderShortcutsChange={setCommanderShortcuts}
+          onTogglePlayer={handleTogglePlayer}
+          onSelectDeck={handleSelectDeck}
+          onRematch={() => setSelections(history.lastLineup)}
           onResume={handleResume}
           onDiscardResumable={handleDiscardResumable}
           onStart={handleStart}
@@ -318,37 +354,64 @@ export default function CurrentGamePage() {
 
   const winner = state.players.find(p => p.placement === 1);
 
-  return (
-    // relative: anchors the collapsed control overlay, which sits on top of
-    // the board rather than taking layout height from it
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
+  // The same controls, presented by the view: a bar across the top of the
+  // table view, or a floating orb at the centre of the sides view so the
+  // panels keep all the space between the rows.
+  const controlProps = {
+    elapsedSeconds: state.elapsedSeconds,
+    isTimerRunning: state.isTimerRunning,
+    hasEnded: state.status === 'ended',
+    canUndo: state.past.length > 0,
+    commentaryCount: state.commentary.length,
+    isRolling: rollingSeatId !== null,
+    isSaving: saving,
+    arranging,
+    onToggleArranging: () => setArranging(current => !current),
+    onToggleBoardView: () => setBoardView(boardView === 'table' ? 'sides' : 'table'),
+    commanderShortcuts,
+    onToggleCommanderShortcuts: () => setCommanderShortcuts(!commanderShortcuts),
+    onToggleTimer: () => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning }),
+    onUndo: () => dispatch({ type: 'UNDO' }),
+    onRollFirstPlayer: handleRollFirstPlayer,
+    onOpenNotes: () => setShowNotes(true),
+    onEndGame: () => setShowEndGame(true),
+    onSave: handleSave,
+    onExit: handleExit,
+    t,
+  };
+
+  const controls =
+    boardView === 'sides' ? (
+      <GameOrb {...controlProps} />
+    ) : (
       <GameTopBar
-        elapsedSeconds={state.elapsedSeconds}
-        isTimerRunning={state.isTimerRunning}
-        hasEnded={state.status === 'ended'}
-        canUndo={state.past.length > 0}
-        commentaryCount={state.commentary.length}
-        isRolling={rollingSeatId !== null}
-        isSaving={saving}
+        {...controlProps}
         collapsed={headerCollapsed}
+        boardView={boardView}
         onToggleCollapsed={toggleHeaderCollapsed}
-        onToggleTimer={() => dispatch({ type: 'SET_TIMER_RUNNING', running: !state.isTimerRunning })}
-        onUndo={() => dispatch({ type: 'UNDO' })}
-        onRollFirstPlayer={handleRollFirstPlayer}
-        onOpenNotes={() => setShowNotes(true)}
-        onEndGame={() => setShowEndGame(true)}
-        onSave={handleSave}
-        onExit={handleExit}
-        t={t}
       />
+    );
+
+  return (
+    // The frame anchors the collapsed control overlay and every dialog, and
+    // turns the whole game a quarter when the phone is held upright.
+    <LandscapeFrame className="flex flex-col bg-background">
+      {boardView === 'table' && controls}
 
       <main className="min-h-0 flex-1">
         <GameBoard
           gamePlayers={state.players}
-          orientation={orientation}
+          view={boardView}
+          showCommanderShortcuts={commanderShortcuts}
+          centerControls={boardView === 'sides' ? controls : undefined}
           rollingSeatId={rollingSeatId}
+          arranging={arranging}
           onLifeChange={(seatId, delta) => dispatch({ type: 'CHANGE_LIFE', seatId, delta })}
           onOpenDetails={setOpenSeatId}
+          onCommanderDamage={(seatId, fromSeatId) =>
+            dispatch({ type: 'CHANGE_COMMANDER_DAMAGE', seatId, fromSeatId, delta: 1 })
+          }
+          onSwapSeats={(seatA, seatB) => dispatch({ type: 'SWAP_SEATS', seatA, seatB })}
           t={t}
         />
       </main>
@@ -366,6 +429,7 @@ export default function CurrentGamePage() {
         <PlayerDetailsSheet
           gamePlayer={openSeat}
           allPlayers={state.players}
+          layout={getBoardLayout(state.players.length, boardView)}
           rotation={openSeatRotation}
           onPoisonChange={delta =>
             dispatch({ type: 'CHANGE_POISON', seatId: openSeat.id, delta })
@@ -436,7 +500,7 @@ export default function CurrentGamePage() {
       )}
 
       <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage(null)} />
-    </div>
+    </LandscapeFrame>
   );
 }
 

@@ -9,6 +9,9 @@ import {
 export const STARTING_LIFE = 40;
 export const LETHAL_POISON = 10;
 export const LETHAL_COMMANDER_DAMAGE = 21;
+/** Table sizes the API accepts (see the Game model and routes/games.js). */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 6;
 
 /** Undo depth. Snapshots are ~6 small objects, so this is cheap. */
 const MAX_HISTORY = 60;
@@ -24,6 +27,7 @@ export type GameAction =
   | { type: 'CONCEDE'; seatId: string }
   | { type: 'REVIVE'; seatId: string }
   | { type: 'SET_FIRST_PLAYER'; seatId: string }
+  | { type: 'SWAP_SEATS'; seatA: string; seatB: string }
   | { type: 'TICK' }
   | { type: 'SET_TIMER_RUNNING'; running: boolean }
   | { type: 'SET_NOTES'; notes: string }
@@ -76,6 +80,16 @@ const updateSeat = (
 
 const alivePlayers = (players: GamePlayer[]): GamePlayer[] =>
   players.filter(p => !p.isEliminated);
+
+/**
+ * The board draws players in array order, so the array order is the seating.
+ * Snapshots capture that order too; this puts restored players back where the
+ * table is sitting now, so undoing a life change never moves anyone.
+ */
+const inSeatOrder = (players: GamePlayer[], seating: GamePlayer[]): GamePlayer[] => {
+  const order = new Map(seating.map((p, index) => [p.id, index]));
+  return [...players].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+};
 
 /** True when the player is at or past any lethal threshold. */
 const isAtLethalState = (player: GamePlayer): boolean =>
@@ -286,23 +300,38 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const target = state.players.find(p => p.id === action.seatId);
       if (!target || !target.isEliminated) return state;
 
-      // Bringing someone back invalidates every placement below them, so all
-      // placements are dropped and recomputed as the game plays out again.
-      const players = state.players.map(p =>
-        p.id === action.seatId
-          ? {
-              ...p,
-              isEliminated: false,
-              eliminatedBy: undefined,
-              eliminationCause: undefined,
-              placement: undefined,
-              deathDismissed: true,
-              life: p.life > 0 ? p.life : 1,
-            }
-          : p.isEliminated
-            ? p
-            : { ...p, placement: undefined }
-      );
+      // Survivors' placements are dropped: they are decided again as the game
+      // plays out. Everyone knocked out after the revived player moves down
+      // one place, so the eliminated keep consecutive placements from the
+      // bottom (n, n-1, ...) and the next death takes a free one. Without
+      // that shift a later death duplicates a placement, last place goes
+      // missing, and the game cannot be saved.
+      const revivedPlacement = target.placement;
+      const players = state.players.map(p => {
+        if (p.id === action.seatId) {
+          return {
+            ...p,
+            isEliminated: false,
+            eliminatedBy: undefined,
+            eliminationCause: undefined,
+            placement: undefined,
+            deathDismissed: true,
+            life: p.life > 0 ? p.life : 1,
+          };
+        }
+
+        if (!p.isEliminated) return { ...p, placement: undefined };
+
+        if (
+          revivedPlacement !== undefined &&
+          p.placement !== undefined &&
+          p.placement < revivedPlacement
+        ) {
+          return { ...p, placement: p.placement + 1 };
+        }
+
+        return p;
+      });
 
       return withHistory(state, {
         players,
@@ -320,6 +349,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           isFirstPlayer: p.id === action.seatId,
         })),
       };
+
+    /**
+     * Seating reflects where people physically sit, not something that
+     * happened in the game, so it stays off the undo stack. Seat ids travel
+     * with the player, which keeps commander damage and eliminations intact.
+     */
+    case 'SWAP_SEATS': {
+      const a = state.players.findIndex(p => p.id === action.seatA);
+      const b = state.players.findIndex(p => p.id === action.seatB);
+      if (a < 0 || b < 0 || a === b) return state;
+
+      const players = [...state.players];
+      [players[a], players[b]] = [players[b], players[a]];
+      return { ...state, players };
+    }
 
     case 'TICK':
       if (!state.isTimerRunning || state.status === 'ended') return state;
@@ -373,6 +417,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         ...previous,
+        players: inSeatOrder(previous.players, state.players),
         eliminationPrompt: null,
         past: state.past.slice(0, -1),
       };

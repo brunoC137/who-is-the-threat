@@ -43,7 +43,13 @@ export function NotesSheet({
       >
         <header className="flex shrink-0 items-center justify-between border-b border-border/50 p-3">
           <h2 className="text-sm font-bold">{t('currentGame.gameCommentary')}</h2>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label={t('actions.close')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-my-2 -mr-2 h-11 w-11"
+            onClick={onClose}
+            aria-label={t('actions.close')}
+          >
             <X className="h-4 w-4" />
           </Button>
         </header>
@@ -66,7 +72,8 @@ export function NotesSheet({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 shrink-0 text-muted-foreground"
+                    // Negative margins keep the row compact around a 44px target
+                    className="-my-2 -mr-1.5 h-11 w-11 shrink-0 text-muted-foreground"
                     onClick={() => onRemoveCommentary(index)}
                     aria-label={t('actions.remove')}
                   >
