@@ -291,9 +291,13 @@ export default function CurrentGamePage() {
         })),
       };
 
-      await gamesAPI.create(payload);
+      const response = await gamesAPI.create(payload);
       clearPersistedGame();
-      router.push('/games');
+      // Land on the result of the game just played, the story the table wants
+      // to see, rather than the full history; the list is only a fallback for
+      // a response without an id.
+      const savedId = response.data?.data?._id;
+      router.push(savedId ? `/games/${savedId}` : '/games');
     } catch (error: any) {
       const response = error?.response?.data;
       const detail = response?.errors?.[0]?.msg || response?.message;
