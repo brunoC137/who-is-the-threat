@@ -210,6 +210,51 @@ export function useCommanderShortcuts(): [boolean, (on: boolean) => void] {
   return [state === 'on', setOn];
 }
 
+const ORB_LABEL_MODES = ['auto', 'on', 'off'] as const;
+const ORB_OPENS_KEY = 'currentGame:orbOpens';
+/** How many times the ring opens with captions before they step aside. */
+const LEARNING_OPENS = 3;
+
+/**
+ * Captions on the orb's ring while the table is learning it. They show the
+ * first few times the ring opens on this device, then step aside; the "?"
+ * in the ring switches them on or off for good. Device-wide, like the other
+ * table settings.
+ */
+export function useOrbLabels(): {
+  showLabels: boolean;
+  toggleLabels: () => void;
+  recordOpen: () => void;
+} {
+  const [mode, setMode] = useDevicePreference('currentGame:orbLabels', ORB_LABEL_MODES, 'auto');
+  const [opens, setOpens] = useState(0);
+
+  useEffect(() => {
+    try {
+      setOpens(Number(window.localStorage.getItem(ORB_OPENS_KEY)) || 0);
+    } catch {
+      // Without storage every session counts as new, which only shows captions more.
+    }
+  }, []);
+
+  const recordOpen = useCallback(() => {
+    setOpens(current => {
+      const next = current + 1;
+      try {
+        window.localStorage.setItem(ORB_OPENS_KEY, String(next));
+      } catch {
+        // Ignore; the count still applies for this session.
+      }
+      return next;
+    });
+  }, []);
+
+  const showLabels = mode === 'on' || (mode === 'auto' && opens <= LEARNING_OPENS);
+  const toggleLabels = useCallback(() => setMode(showLabels ? 'off' : 'on'), [setMode, showLabels]);
+
+  return { showLabels, toggleLabels, recordOpen };
+}
+
 const STORAGE_KEY = 'currentGame:v1';
 
 interface PersistedGame {

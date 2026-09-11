@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeftRight,
   Check,
   Dices,
   Flag,
+  HelpCircle,
   LayoutGrid,
   Loader2,
   LogOut,
@@ -19,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatTime, haptic } from './utils';
+import { useOrbLabels } from './hooks';
 
 interface GameOrbProps {
   elapsedSeconds: number;
@@ -47,6 +49,8 @@ interface OrbAction {
   key: string;
   Icon: LucideIcon;
   label: string;
+  /** Short name shown beside the button while captions are on. */
+  caption: string;
   onClick: () => void;
   disabled?: boolean;
   /** Stay open afterwards: undo and pause are often pressed several times. */
@@ -60,8 +64,14 @@ interface OrbAction {
 
 const ORB_SIZE = 52;
 const ACTION_SIZE = 44;
-/** Distance from the orb's centre to each action's centre. */
-const RING_RADIUS = 80;
+/** Distance from the orb's centre to each action's centre: ten 44px actions need ~58px apart. */
+const RING_RADIUS = 92;
+/**
+ * Where each caption's inner edge sits: just outside its button, on the line
+ * from the orb through it. Anchoring the edge rather than the centre keeps a
+ * long caption ("End game", "Roll first") from reaching back over its button.
+ */
+const CAPTION_RADIUS = RING_RADIUS + ACTION_SIZE / 2 + 8;
 
 const TONE: Record<NonNullable<OrbAction['tone']> | 'default' | 'active', string> = {
   default: 'border-border bg-card text-foreground',
@@ -77,6 +87,8 @@ const TONE: Record<NonNullable<OrbAction['tone']> | 'default' | 'active', string
  * Closed, it shows the game clock (or a save prompt once the game is over).
  * Open, the actions fan out in a ring over a dimmed board — icons read the
  * same from either side of the table, which a labelled bar would not.
+ * While the table is still learning them, short captions name each action
+ * (see useOrbLabels).
  *
  * Positioned from a zero-size anchor at the board's centre (see GameBoard)
  * with offsets rather than transforms: a transformed ancestor would become
@@ -105,6 +117,7 @@ export function GameOrb({
   t,
 }: GameOrbProps) {
   const [open, setOpen] = useState(false);
+  const { showLabels, toggleLabels, recordOpen } = useOrbLabels();
 
   if (arranging) {
     return (
@@ -129,6 +142,7 @@ export function GameOrb({
       key: 'undo',
       Icon: RotateCcw,
       label: t('currentGame.undo'),
+      caption: t('currentGame.captionUndo'),
       onClick: onUndo,
       disabled: !canUndo,
       keepOpen: true,
@@ -137,6 +151,7 @@ export function GameOrb({
       key: 'timer',
       Icon: isTimerRunning ? Pause : Play,
       label: t('currentGame.toggleTimer'),
+      caption: t(isTimerRunning ? 'currentGame.captionPause' : 'currentGame.captionResume'),
       onClick: onToggleTimer,
       disabled: hasEnded,
       keepOpen: true,
@@ -145,6 +160,7 @@ export function GameOrb({
       key: 'dice',
       Icon: Dices,
       label: t('currentGame.rollForFirst'),
+      caption: t('currentGame.captionDice'),
       onClick: onRollFirstPlayer,
       disabled: isRolling || hasEnded,
       spin: isRolling,
@@ -153,6 +169,7 @@ export function GameOrb({
       key: 'arrange',
       Icon: ArrowLeftRight,
       label: t('currentGame.arrangeSeats'),
+      caption: t('currentGame.captionSeats'),
       onClick: onToggleArranging,
       disabled: isRolling,
     },
@@ -160,12 +177,14 @@ export function GameOrb({
       key: 'view',
       Icon: LayoutGrid,
       label: t('currentGame.switchBoardView'),
+      caption: t('currentGame.captionView'),
       onClick: onToggleBoardView,
     },
     {
       key: 'shortcuts',
       Icon: Swords,
       label: t('currentGame.toggleCommanderShortcuts'),
+      caption: t('currentGame.captionShortcuts'),
       onClick: onToggleCommanderShortcuts,
       active: commanderShortcuts,
     },
@@ -173,6 +192,7 @@ export function GameOrb({
       key: 'notes',
       Icon: MessageSquare,
       label: t('currentGame.gameCommentary'),
+      caption: t('currentGame.captionNotes'),
       onClick: onOpenNotes,
       badge: commentaryCount,
     },
@@ -181,6 +201,7 @@ export function GameOrb({
           key: 'save',
           Icon: isSaving ? Loader2 : Save,
           label: isSaving ? t('currentGame.saving') : t('currentGame.saveGame'),
+          caption: t('currentGame.captionSave'),
           onClick: onSave,
           disabled: isSaving,
           tone: 'primary',
@@ -190,11 +211,28 @@ export function GameOrb({
           key: 'end',
           Icon: Flag,
           label: t('currentGame.endGame'),
+          caption: t('currentGame.captionEnd'),
           onClick: onEndGame,
           tone: 'warning',
         },
     // Not X: that is the orb's own close icon, right next to it
-    { key: 'exit', Icon: LogOut, label: t('actions.close'), onClick: onExit },
+    {
+      key: 'exit',
+      Icon: LogOut,
+      label: t('actions.close'),
+      caption: t('currentGame.captionExit'),
+      onClick: onExit,
+    },
+    {
+      key: 'help',
+      Icon: HelpCircle,
+      label: t('currentGame.toggleOrbLabels'),
+      // Only visible while captions are on, so it names what it will do
+      caption: t('currentGame.captionHelp'),
+      onClick: toggleLabels,
+      active: showLabels,
+      keepOpen: true,
+    },
   ];
 
   const close = () => setOpen(false);
@@ -217,8 +255,8 @@ export function GameOrb({
           const y = Math.sin(angle) * RING_RADIUS;
 
           return (
+            <Fragment key={action.key}>
             <button
-              key={action.key}
               type="button"
               aria-label={action.label}
               title={action.label}
@@ -246,6 +284,23 @@ export function GameOrb({
                 </span>
               )}
             </button>
+
+            {showLabels && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute z-40 whitespace-nowrap rounded-md bg-card/95 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-foreground shadow-lg"
+                style={{
+                  left: Math.cos(angle) * CAPTION_RADIUS,
+                  top: Math.sin(angle) * CAPTION_RADIUS,
+                  // Centre on the point, then push outward by half the caption's
+                  // own size along the ring's direction (% is of the caption)
+                  transform: `translate(${-50 + Math.cos(angle) * 50}%, ${-50 + Math.sin(angle) * 50}%)`,
+                }}
+              >
+                {action.caption}
+              </span>
+            )}
+            </Fragment>
           );
         })}
 
@@ -253,7 +308,8 @@ export function GameOrb({
         type="button"
         onClick={() => {
           haptic();
-          setOpen(current => !current);
+          if (!open) recordOpen();
+          setOpen(!open);
         }}
         aria-label={open ? t('actions.close') : t('currentGame.openControls')}
         aria-expanded={open}

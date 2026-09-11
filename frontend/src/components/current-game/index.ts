@@ -36,6 +36,7 @@ export {
   useBoardView,
   useCollapsedHeader,
   useCommanderShortcuts,
+  useOrbLabels,
   useHoldRepeat,
   useOrientation,
   usePersistedGame,
