@@ -300,23 +300,38 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const target = state.players.find(p => p.id === action.seatId);
       if (!target || !target.isEliminated) return state;
 
-      // Bringing someone back invalidates every placement below them, so all
-      // placements are dropped and recomputed as the game plays out again.
-      const players = state.players.map(p =>
-        p.id === action.seatId
-          ? {
-              ...p,
-              isEliminated: false,
-              eliminatedBy: undefined,
-              eliminationCause: undefined,
-              placement: undefined,
-              deathDismissed: true,
-              life: p.life > 0 ? p.life : 1,
-            }
-          : p.isEliminated
-            ? p
-            : { ...p, placement: undefined }
-      );
+      // Survivors' placements are dropped: they are decided again as the game
+      // plays out. Everyone knocked out after the revived player moves down
+      // one place, so the eliminated keep consecutive placements from the
+      // bottom (n, n-1, ...) and the next death takes a free one. Without
+      // that shift a later death duplicates a placement, last place goes
+      // missing, and the game cannot be saved.
+      const revivedPlacement = target.placement;
+      const players = state.players.map(p => {
+        if (p.id === action.seatId) {
+          return {
+            ...p,
+            isEliminated: false,
+            eliminatedBy: undefined,
+            eliminationCause: undefined,
+            placement: undefined,
+            deathDismissed: true,
+            life: p.life > 0 ? p.life : 1,
+          };
+        }
+
+        if (!p.isEliminated) return { ...p, placement: undefined };
+
+        if (
+          revivedPlacement !== undefined &&
+          p.placement !== undefined &&
+          p.placement < revivedPlacement
+        ) {
+          return { ...p, placement: p.placement + 1 };
+        }
+
+        return p;
+      });
 
       return withHistory(state, {
         players,
