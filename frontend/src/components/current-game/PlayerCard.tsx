@@ -41,10 +41,18 @@ interface PlayerCardProps {
 }
 
 export function PlayerCard(props: PlayerCardProps) {
-  const { gamePlayer, onOpenDetails, t } = props;
+  const { gamePlayer, players, onOpenDetails, t } = props;
 
   if (gamePlayer.isEliminated) {
-    return <EliminatedPanel gamePlayer={gamePlayer} onOpenDetails={onOpenDetails} t={t} />;
+    return (
+      <EliminatedPanel
+        gamePlayer={gamePlayer}
+        // The first player out takes last place
+        firstOut={gamePlayer.placement === players.length}
+        onOpenDetails={onOpenDetails}
+        t={t}
+      />
+    );
   }
 
   return <LivePanel {...props} />;
@@ -302,12 +310,22 @@ export function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
   return <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />;
 }
 
+/**
+ * House joke: whoever is knocked out first takes last place, where Vasco da
+ * Gama so often finishes, so their panel gets a dim Vasco-style crest. The
+ * art is an original homage, not the club's crest; drop another image at
+ * this path to swap it.
+ */
+const FIRST_OUT_ART = '/easter-eggs/vasco.svg';
+
 function EliminatedPanel({
   gamePlayer,
+  firstOut,
   onOpenDetails,
   t,
 }: {
   gamePlayer: GamePlayer;
+  firstOut: boolean;
   onOpenDetails: () => void;
   t: (key: string) => string;
 }) {
@@ -316,13 +334,23 @@ function EliminatedPanel({
       type="button"
       onClick={onOpenDetails}
       aria-label={t('currentGame.openDetails')}
-      className="relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-destructive/30 bg-card/40 grayscale"
+      // The crest keeps its colours; everyone else out goes grey
+      className={`relative flex h-full w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-destructive/30 bg-card/40 ${
+        firstOut ? '' : 'grayscale'
+      }`}
     >
-      <Skull className="h-6 w-6 text-destructive/60" />
-      <span className="max-w-full truncate px-2 text-[11px] font-semibold text-muted-foreground">
+      {firstOut && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-3 bg-contain bg-center bg-no-repeat opacity-25"
+          style={{ backgroundImage: cssUrl(FIRST_OUT_ART) }}
+        />
+      )}
+      <Skull className="relative h-6 w-6 text-destructive/60" />
+      <span className="relative max-w-full truncate px-2 text-[11px] font-semibold text-muted-foreground">
         {getDisplayName(gamePlayer.player)}
       </span>
-      <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">
+      <span className="relative rounded-full bg-destructive/20 px-2 py-0.5 text-[11px] font-bold text-destructive">
         {formatPlacement(gamePlayer.placement)}
       </span>
     </button>
