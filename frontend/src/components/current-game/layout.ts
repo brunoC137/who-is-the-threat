@@ -182,3 +182,19 @@ export const isQuarterTurn = (rotation: SeatRotation): boolean =>
  */
 export const isSideSeat = (edge: SeatEdge): boolean =>
   edge === 'left' || edge === 'right';
+
+/**
+ * Grid for a miniature of the board (the panels' commander damage map, the
+ * player sheet's seat picker): the same seat areas with equal tracks. A
+ * miniature shows where people sit, not the board's proportions, and the
+ * board's narrow side columns would leave those seats a sliver of a target.
+ */
+export function miniMapGrid(layout: BoardLayout) {
+  const rows = layout.gridTemplateAreas.match(/"[^"]*"/g) ?? [];
+  const columns = rows[0]?.replace(/"/g, '').trim().split(/\s+/).length ?? 1;
+  return {
+    gridTemplateAreas: rows.join(' '),
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${Math.max(1, rows.length)}, minmax(0, 1fr))`,
+  };
+}

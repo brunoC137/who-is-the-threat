@@ -1,7 +1,7 @@
 'use client';
 
 import { GamePlayer } from './types';
-import { BoardLayout, SeatRotation, isQuarterTurn } from './layout';
+import { BoardLayout, SeatRotation, isQuarterTurn, miniMapGrid } from './layout';
 import { LETHAL_COMMANDER_DAMAGE } from './gameReducer';
 import { getDisplayName, haptic } from './utils';
 import { useHoldRepeat } from './hooks';
@@ -20,21 +20,6 @@ interface CommanderDamageMapProps {
 /** Map size in board (frame) pixels, before any rotation. */
 const MAP_WIDTH = 84;
 const MAP_HEIGHT = 52;
-
-/**
- * Same seat areas as the board, but equal tracks: the map shows where people
- * sit, not the board's proportions, and the board's narrow side columns would
- * leave those players a sliver of a touch target.
- */
-const mapGrid = (layout: BoardLayout) => {
-  const rows = layout.gridTemplateAreas.match(/"[^"]*"/g) ?? [];
-  const columns = rows[0]?.replace(/"/g, '').trim().split(/\s+/).length ?? 1;
-  return {
-    gridTemplateAreas: rows.join(' '),
-    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-    gridTemplateRows: `repeat(${Math.max(1, rows.length)}, minmax(0, 1fr))`,
-  };
-};
 
 const damageColor = (damage: number): string => {
   if (damage >= LETHAL_COMMANDER_DAMAGE) return 'text-destructive';
@@ -77,7 +62,7 @@ export function CommanderDamageMap({
         style={{
           width: MAP_WIDTH,
           height: MAP_HEIGHT,
-          ...mapGrid(layout),
+          ...miniMapGrid(layout),
           transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
         }}
       >

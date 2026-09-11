@@ -429,6 +429,7 @@ export default function CurrentGamePage() {
         <PlayerDetailsSheet
           gamePlayer={openSeat}
           allPlayers={state.players}
+          layout={getBoardLayout(state.players.length, boardView)}
           rotation={openSeatRotation}
           onPoisonChange={delta =>
             dispatch({ type: 'CHANGE_POISON', seatId: openSeat.id, delta })

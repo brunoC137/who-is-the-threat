@@ -29,6 +29,7 @@ export {
   getBoardLayout,
   isQuarterTurn,
   isSideSeat,
+  miniMapGrid,
 } from './layout';
 export type { BoardLayout, BoardView, Orientation, Seat, SeatEdge, SeatRotation } from './layout';
 
