@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI, statsAPI, gamesAPI } from '@/lib/api';
+import { cssUrl } from '@/lib/utils';
 
 const colorMap: { [key: string]: { name: string; color: string } } = {
   'W': { name: 'White', color: 'bg-yellow-100 text-yellow-800' },
@@ -280,7 +281,7 @@ export default function DeckPage() {
         <div className="flex-1 min-w-0">
           {deck.deckImage ? (
             <div className="w-full max-w-sm h-64 rounded-lg mb-4 bg-cover bg-center mx-auto md:mx-0 md:float-right md:ml-8 md:mb-0" 
-                 style={{ backgroundImage: `url(${deck.deckImage})` }} />
+                 style={{ backgroundImage: cssUrl(deck.deckImage) }} />
           ) : (
             <div className="w-full max-w-sm h-64 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center mx-auto md:mx-0 md:float-right md:ml-8 md:mb-0">
               <Layers className="h-16 w-16 text-white" />

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MetricInfo } from '@/components/MetricInfo';
+import { cssUrl } from '@/lib/utils';
 import { 
   Trophy, 
   Target, 
@@ -344,7 +345,7 @@ export default function StatsPage() {
                         {/* Deck Image Background */}
                         <div 
                           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                          style={{ backgroundImage: `url(${deck.deckImage})` }}
+                          style={{ backgroundImage: cssUrl(deck.deckImage) }}
                         />
                         {/* Dark Overlay for Text Readability */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -463,7 +464,7 @@ export default function StatsPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>
@@ -550,7 +551,7 @@ export default function StatsPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>
@@ -637,7 +638,7 @@ export default function StatsPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>

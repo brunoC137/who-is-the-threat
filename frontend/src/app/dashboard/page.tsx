@@ -11,6 +11,7 @@ import { Plus, Users, Package, Trophy, TrendingUp, Award, BarChart3, Zap } from 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { statsAPI } from '@/lib/api';
+import { cssUrl } from '@/lib/utils';
 
 interface GlobalStats {
   totalPlayers: number;
@@ -538,7 +539,7 @@ export default function DashboardPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>
@@ -626,7 +627,7 @@ export default function DashboardPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>
@@ -714,7 +715,7 @@ export default function DashboardPage() {
                           <>
                             <div 
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url(${deck.deckImage})` }}
+                              style={{ backgroundImage: cssUrl(deck.deckImage) }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                           </>

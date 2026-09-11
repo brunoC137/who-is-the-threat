@@ -5,6 +5,7 @@ import { BoardLayout, SeatRotation, isQuarterTurn, miniMapGrid } from './layout'
 import { LETHAL_COMMANDER_DAMAGE } from './gameReducer';
 import { getDisplayName, haptic } from './utils';
 import { useHoldRepeat } from './hooks';
+import { cssUrl } from '@/lib/utils';
 
 interface CommanderDamageMapProps {
   self: GamePlayer;
@@ -141,8 +142,7 @@ function DamageCell({
       disabled={disabled}
       style={{
         gridArea: area,
-        // JSON.stringify quotes and escapes the URL for CSS
-        backgroundImage: image ? `url(${JSON.stringify(image)})` : undefined,
+        backgroundImage: image ? cssUrl(image) : undefined,
       }}
       className="group relative flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded bg-white/15 bg-cover bg-center disabled:opacity-40 disabled:grayscale"
       {...holdHandlers}

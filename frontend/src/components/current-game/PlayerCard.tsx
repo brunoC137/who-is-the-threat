@@ -16,6 +16,7 @@ import {
   haptic,
 } from './utils';
 import { useHoldRepeat } from './hooks';
+import { cssUrl } from '@/lib/utils';
 
 interface PlayerCardProps {
   gamePlayer: GamePlayer;
@@ -289,7 +290,7 @@ export function PanelBackground({ deck }: { deck: GamePlayer['deck'] }) {
       <>
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${deck.deckImage})` }}
+          style={{ backgroundImage: cssUrl(deck.deckImage) }}
         />
         {/* No blur: the art stays sharp and the radial vignette buys contrast
             only where the life total actually sits. See .cg-panel-focus. */}
