@@ -97,7 +97,7 @@ export default function CurrentGamePage() {
         // so ask for everything: nobody should be missing from setup.
         const [playersResponse, decksResponse, gamesResponse] = await Promise.all([
           playersAPI.getAll({ limit: 500 }),
-          decksAPI.getAll({ limit: 500 }),
+          decksAPI.getAll({ limit: 500, withUsage: true }),
           // History only improves the defaults; setup works without it
           gamesAPI.getAll({ limit: 50 }).catch(() => null),
         ]);

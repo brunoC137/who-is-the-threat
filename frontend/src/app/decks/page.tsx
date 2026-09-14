@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Plus, ExternalLink, Trophy, Target, Layers, Filter, Users, User, ChevronDown, ChevronUp, Archive, ArchiveRestore, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import { decksAPI } from '@/lib/api';
-import { cssUrl } from '@/lib/utils';
+import { cssUrl, normalizeSearch } from '@/lib/utils';
 
 interface Deck {
   _id: string;
@@ -53,7 +53,6 @@ export default function DecksPage() {
   const { t } = useLanguage();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -62,59 +61,28 @@ export default function DecksPage() {
   const [showAllTags, setShowAllTags] = useState(false);
   const [showAllDecks, setShowAllDecks] = useState(false); // Default to showing only user's decks
   const [view, setView] = useState<'active' | 'archived'>('active');
-  const [pagination, setPagination] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    hasMore: boolean;
-  }>({
-    page: 1,
-    limit: 100,
-    total: 0,
-    hasMore: false
-  });
 
-  const fetchDecks = async (page = 1, append = false, targetView: 'active' | 'archived' = view) => {
+  const fetchDecks = async (targetView: 'active' | 'archived' = view) => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) return;
 
-      if (!append) setLoading(true);
-      else setLoadingMore(true);
+      setLoading(true);
 
-      // The API hides archived decks unless they are explicitly requested
+      // Everything at once: search, filters, tags and "My Decks" all run on
+      // this list, so a partial page would silently hide older decks from
+      // them. The API hides archived decks unless explicitly requested.
       const response = await decksAPI.getAll({
-        page,
-        limit: 100,
+        limit: 500,
         ...(targetView === 'archived' ? { archived: true } : {}),
       });
 
       const result = response.data;
-      const newDecks: Deck[] = result.data || result;
-
-      if (append) {
-        setDecks(prev => [...prev, ...newDecks]);
-      } else {
-        setDecks(newDecks);
-      }
-
-      setPagination({
-        page: page,
-        limit: 100,
-        total: result.total || newDecks.length,
-        hasMore: result.pagination?.next ? true : false
-      });
+      setDecks(result.data || result);
     } catch (error) {
       console.error('Error fetching decks:', error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  const loadMoreDecks = () => {
-    if (!loadingMore && pagination.hasMore) {
-      fetchDecks(pagination.page + 1, true);
     }
   };
 
@@ -122,7 +90,7 @@ export default function DecksPage() {
     if (nextView === view) return;
     setView(nextView);
     setDecks([]);
-    fetchDecks(1, false, nextView);
+    fetchDecks(nextView);
   };
 
   // Archiving and unarchiving both move the deck out of the current list
@@ -134,7 +102,6 @@ export default function DecksPage() {
         await decksAPI.archive(deck._id);
       }
       setDecks(prev => prev.filter(d => d._id !== deck._id));
-      setPagination(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }));
     } catch (error) {
       console.error('Error updating deck archive state:', error);
     }
@@ -144,15 +111,6 @@ export default function DecksPage() {
     fetchDecks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    if (searchTerm || selectedColors.length > 0 || selectedTags.length > 0) {
-      // When filtering, we show all locally filtered results and hide pagination
-      return;
-    }
-    // When no filters are active, we can show pagination
-  }, [searchTerm, selectedColors, selectedTags]);
 
   // Tags ordered by how often they are actually used, so the archetypes this
   // playgroup really plays come first instead of an arbitrary wall of badges.
@@ -189,11 +147,10 @@ export default function DecksPage() {
     // First filter by ownership if not showing all decks
     const matchesOwnership = showAllDecks || (user && deck.owner?._id === user.id);
 
-    const matchesSearch = 
-      deck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deck.commander.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (deck.owner?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (deck.owner?.nickname && deck.owner.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Accent-insensitive, so "amem" still finds "amém"
+    const matchesSearch = normalizeSearch(
+      `${deck.name} ${deck.commander} ${deck.owner?.name || ''} ${deck.owner?.nickname || ''}`
+    ).includes(normalizeSearch(searchTerm.trim()));
 
     const matchesColors = selectedColors.length === 0 || 
       (deck.colorIdentity && selectedColors.every(color => deck.colorIdentity!.includes(color)));
@@ -611,35 +568,8 @@ export default function DecksPage() {
               </Card>
             ))}
           </div>
-          
-          {/* Show More Button */}
-          {pagination.hasMore && !searchTerm && selectedColors.length === 0 && selectedTags.length === 0 && (
-            <div className="flex flex-col items-center mt-8">
-              <p className="text-sm text-muted-foreground mb-4">
-                {t('decks.showingDecks')} {decks.length} {t('decks.ofDecks')} {pagination.total} {t('decks.decks')}
-              </p>
-              <Button 
-                onClick={loadMoreDecks} 
-                disabled={loadingMore}
-                variant="outline"
-                size="lg"
-              >
-                {loadingMore ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                    {t('actions.loading')}
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    {t('decks.showMoreDecks')} ({pagination.total - decks.length} {t('decks.remaining')})
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
         </>
-      
+
       ) : view === 'archived' ? (
         <div className="text-center py-12">
           <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -692,7 +622,7 @@ export default function DecksPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                {showAllDecks ? pagination.total : (user ? decks.filter(d => d.owner?._id === user.id).length : 0)}
+                {showAllDecks ? decks.length : (user ? decks.filter(d => d.owner?._id === user.id).length : 0)}
               </CardTitle>
               <CardDescription>
                 {showAllDecks ? "Total Decks" : "Your Decks"}

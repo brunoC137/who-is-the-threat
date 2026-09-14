@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, LayoutGrid, Play, Repeat, RotateCcw, Swords, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DeckPicker } from '@/components/DeckPicker';
 import { Deck, Player } from './types';
 import { BoardView, getBoardLayout } from './layout';
 import { MAX_PLAYERS, MIN_PLAYERS } from './gameReducer';
@@ -291,23 +292,14 @@ export function GameSetup({
                   <p className="truncate text-sm font-medium leading-tight">
                     {player ? getDisplayName(player) : '—'}
                   </p>
-                  <select
+                  <DeckPicker
+                    decks={availableDecks}
+                    playerId={selection.playerId}
                     value={selection.deckId}
-                    onChange={event => onSelectDeck(selection.playerId, event.target.value)}
-                    aria-label={t('currentGame.selectDeck')}
-                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
-                  >
-                    <option value="">
-                      {decksForPlayer.length === 0
-                        ? t('currentGame.noDecksForPlayer')
-                        : t('currentGame.chooseDeck')}
-                    </option>
-                    {decksForPlayer.map(deck => (
-                      <option key={deck._id} value={deck._id}>
-                        {deck.name} — {deck.commander}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={deck => onSelectDeck(selection.playerId, deck._id)}
+                    t={t}
+                    className="mt-1 h-11"
+                  />
                 </div>
 
                 <button

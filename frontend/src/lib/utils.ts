@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Lowercased and stripped of accents, for matching search text: "amem" finds
+ * "amém" and "joao" finds "João".
+ */
+export function normalizeSearch(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+/**
  * A CSS url() for an arbitrary image address. Quoted and escaped, so an
  * address with spaces, parentheses or quotes (common in uploaded file names)
  * cannot silently break the declaration and drop the image.

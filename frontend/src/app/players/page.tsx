@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Trophy, Target, TrendingUp, User, Share2, UserPlus, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { playersAPI } from '@/lib/api';
+import { normalizeSearch } from '@/lib/utils';
 
 interface Player {
   _id: string;
@@ -39,7 +40,9 @@ export default function PlayersPage() {
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const response = await playersAPI.getAll();
+        // Everyone at once: the list endpoint pages at 25 by default, and
+        // search runs on what was loaded
+        const response = await playersAPI.getAll({ limit: 500 });
         const result = response.data;
         setPlayers(result.data || result);
       } catch (error) {
@@ -52,9 +55,9 @@ export default function PlayersPage() {
     fetchPlayers();
   }, []);
 
+  const needle = normalizeSearch(searchTerm.trim());
   const filteredPlayers = players.filter(player =>
-    player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (player.nickname && player.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+    normalizeSearch(`${player.name} ${player.nickname || ''}`).includes(needle)
   );
 
   const handleShareInvite = async () => {

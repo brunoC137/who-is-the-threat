@@ -24,6 +24,8 @@ import Link from 'next/link';
 import { gamesAPI, playersAPI, decksAPI } from '@/lib/api';
 import { ELIMINATION_CAUSES, ELIMINATION_CAUSE_KEYS } from '@/lib/eliminationCause';
 import type { EliminationCause } from '@/lib/eliminationCause';
+import { DeckPicker } from '@/components/DeckPicker';
+import type { PickerDeck } from '@/components/DeckPicker';
 
 interface Player {
   _id: string;
@@ -32,11 +34,7 @@ interface Player {
   profileImage?: string;
 }
 
-interface Deck {
-  _id: string;
-  name: string;
-  commander: string;
-  archived?: boolean;
+interface Deck extends PickerDeck {
   owner: {
     _id: string;
     name: string;
@@ -110,23 +108,21 @@ export default function EditGamePage() {
     notes: '',
   });
 
-  // State for managing borrowed deck toggles per player
-  const [borrowedDeckToggles, setBorrowedDeckToggles] = useState<{ [key: number]: boolean }>({});
-  const [deckOwners, setDeckOwners] = useState<{ [key: number]: string }>({});
-
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Fetch game data and other required data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch game, players, and decks in parallel
+        // Fetch game, players, and decks in parallel. The list endpoints
+        // paginate (players default to 25, decks to 100, newest first), so ask
+        // for everything: older decks must stay selectable.
         const [gameResponse, playersResponse, decksResponse] = await Promise.all([
           gamesAPI.getById(gameId),
-          playersAPI.getAll(),
+          playersAPI.getAll({ limit: 500 }),
           // A historical game may reference a deck that has since been
           // archived, so the edit form must still be able to render it
-          decksAPI.getAll({ includeArchived: true })
+          decksAPI.getAll({ includeArchived: true, limit: 500, withUsage: true })
         ]);
 
         const gameData = gameResponse.data.data || gameResponse.data;
@@ -152,18 +148,6 @@ export default function EditGamePage() {
           durationMinutes: gameData.durationMinutes ? gameData.durationMinutes.toString() : '',
           notes: gameData.notes || '',
         });
-
-        // Initialize borrowed deck toggles and deck owners
-        const initialToggles: { [key: number]: boolean } = {};
-        const initialOwners: { [key: number]: string } = {};
-        gamePlayersData.forEach((player: any, index: number) => {
-          initialToggles[index] = !!player.borrowedFrom;
-          if (player.borrowedFrom) {
-            initialOwners[index] = player.borrowedFrom;
-          }
-        });
-        setBorrowedDeckToggles(initialToggles);
-        setDeckOwners(initialOwners);
 
         setLoadingData(false);
       } catch (error) {
@@ -274,14 +258,10 @@ export default function EditGamePage() {
   };
 
   const addPlayer = () => {
-    const newIndex = formData.players.length;
     setFormData(prev => ({
       ...prev,
       players: [...prev.players, { player: '', deck: '' }]
     }));
-    // Initialize borrowed deck state for new player
-    setBorrowedDeckToggles(prev => ({ ...prev, [newIndex]: false }));
-    setDeckOwners(prev => ({ ...prev, [newIndex]: '' }));
   };
 
   const removePlayer = (index: number) => {
@@ -289,33 +269,6 @@ export default function EditGamePage() {
       ...prev,
       players: prev.players.filter((_, i) => i !== index)
     }));
-    
-    // Clean up borrowed deck state for removed player and reindex remaining players
-    setBorrowedDeckToggles(prev => {
-      const newToggles: { [key: number]: boolean } = {};
-      Object.keys(prev).forEach(key => {
-        const keyIndex = parseInt(key);
-        if (keyIndex < index) {
-          newToggles[keyIndex] = prev[keyIndex];
-        } else if (keyIndex > index) {
-          newToggles[keyIndex - 1] = prev[keyIndex];
-        }
-      });
-      return newToggles;
-    });
-    
-    setDeckOwners(prev => {
-      const newOwners: { [key: number]: string } = {};
-      Object.keys(prev).forEach(key => {
-        const keyIndex = parseInt(key);
-        if (keyIndex < index) {
-          newOwners[keyIndex] = prev[keyIndex];
-        } else if (keyIndex > index) {
-          newOwners[keyIndex - 1] = prev[keyIndex];
-        }
-      });
-      return newOwners;
-    });
   };
 
   const updatePlayer = (index: number, field: keyof GamePlayer, value: string | number | undefined) => {
@@ -326,22 +279,6 @@ export default function EditGamePage() {
       )
     }));
   };
-
-  // Archived decks are not offered as new choices, but one that is already on
-  // this game stays in the list so the existing selection is never dropped.
-  const selectableDecks = (ownerId: string, selectedDeckId?: string) =>
-    decks.filter(deck =>
-      deck.owner._id === ownerId && (!deck.archived || deck._id === selectedDeckId)
-    );
-
-  const getPlayerDecks = (playerId: string, selectedDeckId?: string) =>
-    selectableDecks(playerId, selectedDeckId);
-
-  const getDecksForBorrowing = (ownerId: string, selectedDeckId?: string) =>
-    selectableDecks(ownerId, selectedDeckId);
-
-  const deckOptionLabel = (deck: Deck) =>
-    `${deck.name} (${deck.commander})${deck.archived ? ` — ${t('decks.archived')}` : ''}`;
 
   const getPlayerById = (playerId: string) => {
     return players.find(p => p._id === playerId);
@@ -492,7 +429,6 @@ export default function EditGamePage() {
             {formData.players.map((gamePlayer, index) => {
               const selectedPlayer = getPlayerById(gamePlayer.player);
               const selectedDeck = getDeckById(gamePlayer.deck);
-              const playerDecks = gamePlayer.player ? getPlayerDecks(gamePlayer.player, gamePlayer.deck) : [];
 
               return (
                 <div key={index} className="p-4 border rounded-lg space-y-3">
@@ -521,9 +457,6 @@ export default function EditGamePage() {
                           updatePlayer(index, 'player', e.target.value);
                           updatePlayer(index, 'deck', ''); // Reset deck when player changes
                           updatePlayer(index, 'borrowedFrom', undefined); // Reset borrowed from
-                          // Reset borrowed deck state
-                          setBorrowedDeckToggles(prev => ({ ...prev, [index]: false }));
-                          setDeckOwners(prev => ({ ...prev, [index]: '' }));
                         }}
                         className="w-full p-2 border rounded-md"
                       >
@@ -555,97 +488,25 @@ export default function EditGamePage() {
                     </div>
                   </div>
 
-                  {/* Borrowed Deck Toggle */}
-                  {gamePlayer.player && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <input
-                        type="checkbox"
-                        id={`allowBorrowedDeck-${index}`}
-                        checked={borrowedDeckToggles[index] || false}
-                        onChange={(e) => {
-                          const isChecked = e.target.checked;
-                          setBorrowedDeckToggles(prev => ({ ...prev, [index]: isChecked }));
-                          if (!isChecked) {
-                            updatePlayer(index, 'deck', '');
-                            updatePlayer(index, 'borrowedFrom', undefined);
-                            setDeckOwners(prev => ({ ...prev, [index]: '' }));
-                          }
-                        }}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <label htmlFor={`allowBorrowedDeck-${index}`} className="text-sm font-medium text-blue-900 cursor-pointer">
-                        Allow Borrowed Deck
-                      </label>
-                    </div>
-                  )}
-
-                  {/* Conditional rendering based on borrowed deck toggle */}
-                  {gamePlayer.player && (
-                    borrowedDeckToggles[index] ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Deck Owner Selection */}
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Deck Owner</label>
-                          <select
-                            value={deckOwners[index] || ''}
-                            onChange={(e) => {
-                              const ownerId = e.target.value;
-                              setDeckOwners(prev => ({ ...prev, [index]: ownerId }));
-                              updatePlayer(index, 'deck', ''); // Reset deck when owner changes
-                              updatePlayer(index, 'borrowedFrom', ownerId);
-                            }}
-                            className="w-full p-2 border rounded-md"
-                          >
-                            <option value="">Select Deck Owner</option>
-                            {players.map(player => (
-                              <option key={player._id} value={player._id}>
-                                {player.nickname || player.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Deck Selection */}
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Deck</label>
-                          <select
-                            value={gamePlayer.deck}
-                            onChange={(e) => updatePlayer(index, 'deck', e.target.value)}
-                            className="w-full p-2 border rounded-md"
-                            disabled={!deckOwners[index]}
-                          >
-                            <option value="">Select Deck</option>
-                            {deckOwners[index] && getDecksForBorrowing(deckOwners[index], gamePlayer.deck).map(deck => (
-                              <option key={deck._id} value={deck._id}>
-                                {deckOptionLabel(deck)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        {/* Deck Selection */}
-                        <label className="text-sm font-medium mb-2 block">Deck</label>
-                        <select
-                          value={gamePlayer.deck}
-                          onChange={(e) => {
-                            updatePlayer(index, 'deck', e.target.value);
-                            updatePlayer(index, 'borrowedFrom', undefined);
-                          }}
-                          className="w-full p-2 border rounded-md"
-                          disabled={!gamePlayer.player}
-                        >
-                          <option value="">Select Deck</option>
-                          {playerDecks.map(deck => (
-                            <option key={deck._id} value={deck._id}>
-                              {deckOptionLabel(deck)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )
-                  )}
+                  {/* Their own decks first; another player's deck is recorded as borrowed */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">{t('deckPicker.deck')}</label>
+                    <DeckPicker
+                      decks={decks}
+                      playerId={gamePlayer.player}
+                      value={gamePlayer.deck}
+                      onChange={deck => {
+                        updatePlayer(index, 'deck', deck._id);
+                        updatePlayer(
+                          index,
+                          'borrowedFrom',
+                          deck.owner && deck.owner._id !== gamePlayer.player ? deck.owner._id : undefined
+                        );
+                      }}
+                      allowBorrowing
+                      t={t}
+                    />
+                  </div>
 
                   {/* Eliminated By and cause - Only show for non-winners */}
                   {gamePlayer.placement && gamePlayer.placement > 1 && (

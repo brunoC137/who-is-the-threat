@@ -2,14 +2,15 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Plus, Trophy, Calendar, Users, Clock, StickyNote, Filter } from 'lucide-react';
+import { Search, Plus, Trophy, Calendar, Users, Clock, StickyNote, ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { gamesAPI, statsAPI } from '@/lib/api';
 
 interface Game {
   _id: string;
@@ -38,75 +39,101 @@ interface Game {
   createdAt: string;
 }
 
+type SortBy = 'date' | 'players' | 'duration';
+type FilterBy = 'all' | 'my-games' | 'my-wins';
+
+const PAGE_SIZE = 25;
+/** How long typing must pause before the search goes to the server. */
+const SEARCH_DEBOUNCE_MS = 300;
+
+/** Whole-history numbers for the cards at the bottom, not just the loaded page. */
+interface Summary {
+  totalGames: number;
+  averageGameLength: number;
+  gamesPlayed: number;
+  wins: number;
+}
+
 export default function GamesPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const [games, setGames] = useState<Game[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'players' | 'duration'>('date');
-  const [filterBy, setFilterBy] = useState<'all' | 'my-games' | 'my-wins'>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('date');
+  const [filterBy, setFilterBy] = useState<FilterBy>('all');
+  const [summary, setSummary] = useState<Summary | null>(null);
+
+  // Only the latest request may touch the list, so a slow response for an
+  // older search can never overwrite a newer one
+  const requestId = useRef(0);
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!token) return;
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/games`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+  // Search, filters and sorting all run on the server: the history grows
+  // with every game, so it is only ever loaded a page at a time
+  const fetchGames = async (nextPage: number) => {
+    const id = ++requestId.current;
+    const params: Record<string, string | number> = { page: nextPage, limit: PAGE_SIZE, sort: sortBy };
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (filterBy === 'my-games' && user) params.player = user.id;
+    if (filterBy === 'my-wins' && user) params.winner = user.id;
 
-        if (response.ok) {
-          const result = await response.json();
-          setGames(result.data || result);
-        }
-      } catch (error) {
-        console.error('Error fetching games:', error);
-      } finally {
+    if (nextPage === 1) setRefreshing(true);
+    else setLoadingMore(true);
+
+    try {
+      const response = await gamesAPI.getAll(params);
+      if (id !== requestId.current) return;
+
+      const result = response.data;
+      const pageGames: Game[] = result.data || [];
+      setGames(current => (nextPage === 1 ? pageGames : [...current, ...pageGames]));
+      setTotal(result.total ?? pageGames.length);
+      setPage(nextPage);
+      setHasMore(Boolean(result.pagination?.next));
+    } catch (error) {
+      if (id === requestId.current) console.error('Error fetching games:', error);
+    } finally {
+      if (id === requestId.current) {
         setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       }
-    };
+    }
+  };
 
-    fetchGames();
-  }, []);
+  useEffect(() => {
+    if (authLoading) return;
+    fetchGames(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id, debouncedSearch, sortBy, filterBy]);
 
-  const filteredAndSortedGames = games
-    .filter(game => {
-      // Filter by search term
-      const matchesSearch = 
-        game.players.some(p => 
-          (p.player?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (p.player?.nickname && p.player.nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (p.deck?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (p.deck?.commander?.toLowerCase().includes(searchTerm.toLowerCase()))
-        ) ||
-        (game.notes && game.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+  useEffect(() => {
+    if (authLoading || !user) return;
 
-      // Filter by type
-      let matchesFilter = true;
-      if (filterBy === 'my-games') {
-        matchesFilter = game.players.some(p => p.player?._id === user?.id);
-      } else if (filterBy === 'my-wins') {
-        matchesFilter = game.players.some(p => p.player?._id === user?.id && p.placement === 1);
-      }
-
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        case 'players':
-          return b.players.length - a.players.length;
-        case 'duration':
-          return (b.durationMinutes || 0) - (a.durationMinutes || 0);
-        default:
-          return 0;
-      }
-    });
+    Promise.all([statsAPI.getGlobalStats(), statsAPI.getPlayerStats(user.id)])
+      .then(([globalResponse, playerResponse]) => {
+        const global = globalResponse.data?.data;
+        const own = playerResponse.data?.data?.statistics;
+        setSummary({
+          totalGames: global?.totalGames ?? 0,
+          averageGameLength: global?.averageGameLength ?? 0,
+          gamesPlayed: own?.totalGames ?? 0,
+          wins: own?.wins ?? 0,
+        });
+      })
+      .catch(error => console.error('Error fetching game summary:', error));
+  }, [authLoading, user]);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -208,9 +235,9 @@ export default function GamesPage() {
       </div>
 
       {/* Games List */}
-      {filteredAndSortedGames.length > 0 ? (
-        <div className="space-y-6">
-          {filteredAndSortedGames.map((game) => (
+      {games.length > 0 ? (
+        <div className={`space-y-6 transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
+          {games.map((game) => (
             <Card key={game._id} className="border-2 border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-glow-md">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -328,6 +355,22 @@ export default function GamesPage() {
               </CardContent>
             </Card>
           ))}
+
+          {hasMore && (
+            <div className="flex flex-col items-center pt-2">
+              <p className="mb-4 text-sm text-muted-foreground">
+                {t('games.showingGames')} {games.length} {t('games.ofGames')} {total} {t('games.gamesWord')}
+              </p>
+              <Button onClick={() => fetchGames(page + 1)} disabled={loadingMore} variant="outline" size="lg">
+                {loadingMore ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                )}
+                {loadingMore ? t('actions.loading') : t('games.showMoreGames')}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -348,35 +391,29 @@ export default function GamesPage() {
       )}
 
       {/* Quick Stats */}
-      {games.length > 0 && (
+      {summary && summary.totalGames > 0 && (
         <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{games.length}</CardTitle>
+              <CardTitle className="text-2xl">{summary.totalGames}</CardTitle>
               <CardDescription>{t('dashboard.totalGames')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player?._id === user.id)).length : 0}
-              </CardTitle>
+              <CardTitle className="text-2xl">{summary.gamesPlayed}</CardTitle>
               <CardDescription>{t('games.gamesYouPlayed')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                {user ? games.filter(g => g.players.some(p => p.player?._id === user.id && p.placement === 1)).length : 0}
-              </CardTitle>
+              <CardTitle className="text-2xl">{summary.wins}</CardTitle>
               <CardDescription>{t('games.gamesYouWon')}</CardDescription>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
-                {Math.round(games.reduce((acc, game) => acc + (game.durationMinutes || 0), 0) / games.length) || 0}m
-              </CardTitle>
+              <CardTitle className="text-2xl">{summary.averageGameLength}m</CardTitle>
               <CardDescription>{t('games.avgGameLength')}</CardDescription>
             </CardHeader>
           </Card>

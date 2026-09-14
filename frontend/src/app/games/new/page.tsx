@@ -41,6 +41,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DeckPicker } from '@/components/DeckPicker';
+import type { PickerDeck } from '@/components/DeckPicker';
 
 interface Player {
   _id: string;
@@ -49,10 +51,7 @@ interface Player {
   profileImage?: string;
 }
 
-interface Deck {
-  _id: string;
-  name: string;
-  commander: string;
+interface Deck extends PickerDeck {
   owner: {
     _id: string;
     name: string;
@@ -252,8 +251,6 @@ export default function NewGame2Page() {
   // Selection state for adding new players
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [selectedDeckId, setSelectedDeckId] = useState('');
-  const [allowBorrowedDeck, setAllowBorrowedDeck] = useState(false);
-  const [selectedDeckOwnerId, setSelectedDeckOwnerId] = useState('');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -274,11 +271,13 @@ export default function NewGame2Page() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
 
+        // The list endpoints paginate (players default to 25, decks to 100,
+        // newest first), so ask for everything: older decks must stay selectable.
         const [playersResponse, decksResponse] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players?limit=500`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/decks`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/decks?limit=500&withUsage=true`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -317,23 +316,19 @@ export default function NewGame2Page() {
       return;
     }
 
-    if (allowBorrowedDeck && !selectedDeckOwnerId) {
-      setErrors({ selection: 'Please select the deck owner' });
-      return;
-    }
+    // Picking someone else's deck is what makes it borrowed
+    const deckOwnerId = getDeckById(selectedDeckId)?.owner._id;
 
     const newGamePlayer: GamePlayer = {
       id: `${selectedPlayerId}-${selectedDeckId}-${Date.now()}`,
       player: selectedPlayerId,
       deck: selectedDeckId,
-      borrowedFrom: allowBorrowedDeck ? selectedDeckOwnerId : undefined,
+      borrowedFrom: deckOwnerId && deckOwnerId !== selectedPlayerId ? deckOwnerId : undefined,
     };
 
     setGamePlayers([...gamePlayers, newGamePlayer]);
     setSelectedPlayerId('');
     setSelectedDeckId('');
-    setAllowBorrowedDeck(false);
-    setSelectedDeckOwnerId('');
     setErrors({});
   };
 
@@ -355,14 +350,6 @@ export default function NewGame2Page() {
 
   const getDeckById = (deckId: string) => {
     return decks.find(d => d._id === deckId);
-  };
-
-  const getPlayerDecks = (playerId: string) => {
-    return decks.filter(deck => deck.owner._id === playerId);
-  };
-
-  const getDecksForBorrowing = (ownerId: string) => {
-    return decks.filter(deck => deck.owner._id === ownerId);
   };
 
   const validateForm = () => {
@@ -457,10 +444,6 @@ export default function NewGame2Page() {
     );
   }
 
-  const availableDecks = allowBorrowedDeck 
-    ? (selectedDeckOwnerId ? getDecksForBorrowing(selectedDeckOwnerId) : [])
-    : (selectedPlayerId ? getPlayerDecks(selectedPlayerId) : []);
-
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* Header */}
@@ -517,7 +500,6 @@ export default function NewGame2Page() {
                 onChange={(e) => {
                   setSelectedPlayerId(e.target.value);
                   setSelectedDeckId(''); // Reset deck when player changes
-                  setSelectedDeckOwnerId(''); // Reset deck owner
                 }}
                 className="w-full p-2 border rounded-md"
               >
@@ -530,84 +512,18 @@ export default function NewGame2Page() {
               </select>
             </div>
 
-            {/* Borrowed Deck Toggle */}
-            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <input
-                type="checkbox"
-                id="allowBorrowedDeck"
-                checked={allowBorrowedDeck}
-                onChange={(e) => {
-                  setAllowBorrowedDeck(e.target.checked);
-                  setSelectedDeckId('');
-                  setSelectedDeckOwnerId('');
-                }}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            {/* Their own decks first; another player's deck is recorded as borrowed */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t('deckPicker.deck')}</label>
+              <DeckPicker
+                decks={decks}
+                playerId={selectedPlayerId}
+                value={selectedDeckId}
+                onChange={deck => setSelectedDeckId(deck._id)}
+                allowBorrowing
+                t={t}
               />
-              <label htmlFor="allowBorrowedDeck" className="text-sm font-medium text-blue-900 cursor-pointer">
-                Allow Borrowed Deck
-              </label>
             </div>
-
-            {/* Conditional rendering based on borrowed deck toggle */}
-            {allowBorrowedDeck ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Deck Owner Selection */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Deck Owner</label>
-                  <select
-                    value={selectedDeckOwnerId}
-                    onChange={(e) => {
-                      setSelectedDeckOwnerId(e.target.value);
-                      setSelectedDeckId(''); // Reset deck when owner changes
-                    }}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Select Deck Owner</option>
-                    {players.map(player => (
-                      <option key={player._id} value={player._id}>
-                        {player.nickname || player.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Deck Selection */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Deck</label>
-                  <select
-                    value={selectedDeckId}
-                    onChange={(e) => setSelectedDeckId(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                    disabled={!selectedDeckOwnerId}
-                  >
-                    <option value="">Select Deck</option>
-                    {availableDecks.map(deck => (
-                      <option key={deck._id} value={deck._id}>
-                        {deck.name} ({deck.commander})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div>
-                {/* Deck Selection */}
-                <label className="text-sm font-medium mb-2 block">Deck</label>
-                <select
-                  value={selectedDeckId}
-                  onChange={(e) => setSelectedDeckId(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  disabled={!selectedPlayerId}
-                >
-                  <option value="">Select Deck</option>
-                  {availableDecks.map(deck => (
-                    <option key={deck._id} value={deck._id}>
-                      {deck.name} ({deck.commander})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <Button 
               type="button" 
