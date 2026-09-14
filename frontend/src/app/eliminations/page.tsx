@@ -79,7 +79,8 @@ export default function EliminationsPage() {
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats/eliminations`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
+          // The list endpoint pages at 25 by default; the selector needs everyone
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players?limit=500`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);

@@ -349,7 +349,10 @@ PUT    /api/decks/:id/archive                owner or admin
 PUT    /api/decks/:id/unarchive              owner or admin
 DELETE /api/decks/:id                        owner or admin; 409 if the deck has any games
 
-GET    /api/games                            page, limit (default 25), startDate, endDate, player, deck
+GET    /api/games                            page, limit (default 25), startDate, endDate, player, deck,
+                                             winner (player who placed 1st), search (player,
+                                             deck, commander or notes; accent-insensitive),
+                                             sort=date|players|duration
 POST   /api/games
 GET    /api/games/:id
 PUT    /api/games/:id                        creator or admin

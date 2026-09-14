@@ -347,6 +347,10 @@ export const translations = {
       gamesYouWon: 'Games You Won',
       avgGameLength: 'Avg Game Length',
       player: 'player',
+      showingGames: 'Showing',
+      ofGames: 'of',
+      gamesWord: 'games',
+      showMoreGames: 'Show More Games',
       // Game detail page
       gameNotFound: 'Game not found',
       backToGames: 'Back to Games',
@@ -1037,6 +1041,10 @@ export const translations = {
       gamesYouWon: 'Partidas que Você Ganhou',
       avgGameLength: 'Duração Média da Partida',
       player: 'jogador',
+      showingGames: 'Mostrando',
+      ofGames: 'de',
+      gamesWord: 'partidas',
+      showMoreGames: 'Mostrar Mais Partidas',
       // Game detail page
       gameNotFound: 'Partida não encontrada',
       backToGames: 'Voltar às Partidas',

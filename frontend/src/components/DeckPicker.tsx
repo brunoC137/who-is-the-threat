@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, cssUrl } from '@/lib/utils';
+import { cn, cssUrl, normalizeSearch } from '@/lib/utils';
 
 export interface PickerDeck {
   _id: string;
@@ -52,10 +52,6 @@ const MANA_CLASSES: Record<string, string> = {
   G: 'bg-mana-green',
   C: 'bg-mana-colorless',
 };
-
-// Accent-insensitive, so "amem" still finds "amém"
-const normalize = (text: string) =>
-  text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 const ownerName = (deck: PickerDeck) =>
   deck.owner ? deck.owner.nickname || deck.owner.name : '';
@@ -200,13 +196,14 @@ function DeckPickerSheet({
   );
 
   const list = tab === 'own' ? ownDecks : otherDecks;
-  const needle = normalize(query.trim());
+  // Accent-insensitive, so "amem" still finds "amém"
+  const needle = normalizeSearch(query.trim());
 
   const matches = needle
     ? list.filter(deck =>
-        normalize(`${deck.name} ${deck.commander} ${tab === 'others' ? ownerName(deck) : ''}`).includes(
-          needle
-        )
+        normalizeSearch(
+          `${deck.name} ${deck.commander} ${tab === 'others' ? ownerName(deck) : ''}`
+        ).includes(needle)
       )
     : list;
 

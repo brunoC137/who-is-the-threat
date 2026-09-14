@@ -1,10 +1,41 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Game = require('../models/Game');
 const Deck = require('../models/Deck');
+const Player = require('../models/Player');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Letters the group's (mostly Portuguese) names carry accents on
+const ACCENT_CLASSES = {
+  a: 'aáàâãä',
+  e: 'eéèêë',
+  i: 'iíìîï',
+  o: 'oóòôõö',
+  u: 'uúùûü',
+  c: 'cç',
+  n: 'nñ'
+};
+
+/**
+ * A case- and accent-insensitive regex for text typed into a search box, so
+ * "joao" finds "João". The text is escaped first and can never act as a
+ * pattern of its own.
+ */
+const searchPattern = (text) => {
+  const escaped = text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const source = escaped.replace(/[aeioucn]/gi, letter => `[${ACCENT_CLASSES[letter.toLowerCase()]}]`);
+  return new RegExp(source, 'i');
+};
+
+// Query ids arrive as strings; aggregation pipelines do not cast them
+const toObjectId = (value) =>
+  mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
 
 /**
  * Archived decks are out of rotation, so a *new* game must not be recorded with
@@ -85,9 +116,19 @@ router.get('/', protect, async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 25;
     const startIndex = (page - 1) * limit;
 
-    // Build query object
-    let query = {};
-    
+    for (const param of ['player', 'deck', 'winner']) {
+      if (req.query[param] && !toObjectId(req.query[param])) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid ${param} id`
+        });
+      }
+    }
+
+    // Build query object. Ids are cast up front because the player-count
+    // sort runs as an aggregation, which does not cast strings like find().
+    const query = {};
+
     // Filter by date range
     if (req.query.startDate || req.query.endDate) {
       query.date = {};
@@ -98,27 +139,72 @@ router.get('/', protect, async (req, res, next) => {
         query.date.$lte = new Date(req.query.endDate);
       }
     }
-    
+
     // Filter by player
     if (req.query.player) {
-      query['players.player'] = req.query.player;
-    }
-    
-    // Filter by deck
-    if (req.query.deck) {
-      query['players.deck'] = req.query.deck;
+      query['players.player'] = toObjectId(req.query.player);
     }
 
+    // Filter by deck
+    if (req.query.deck) {
+      query['players.deck'] = toObjectId(req.query.deck);
+    }
+
+    // Games a player won
+    if (req.query.winner) {
+      query.players = { $elemMatch: { player: toObjectId(req.query.winner), placement: 1 } };
+    }
+
+    // Free-text search over who played, what they played, and the notes.
+    // Player and deck names live in their own collections, so find the
+    // matching ids first and then the games that reference them.
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    if (search) {
+      const pattern = searchPattern(search);
+      const [playerIds, deckIds] = await Promise.all([
+        Player.find({ $or: [{ name: pattern }, { nickname: pattern }] }).distinct('_id'),
+        Deck.find({ $or: [{ name: pattern }, { commander: pattern }] }).distinct('_id')
+      ]);
+      query.$or = [
+        { 'players.player': { $in: playerIds } },
+        { 'players.deck': { $in: deckIds } },
+        { notes: pattern }
+      ];
+    }
+
+    const populate = [
+      { path: 'createdBy', select: 'name nickname' },
+      { path: 'players.player', select: 'name nickname profileImage' },
+      { path: 'players.deck', select: 'name commander deckImage' },
+      { path: 'players.eliminatedBy', select: 'name nickname profileImage' },
+      { path: 'players.borrowedFrom', select: 'name nickname profileImage' }
+    ];
+
     const total = await Game.countDocuments(query);
-    const games = await Game.find(query)
-      .populate('createdBy', 'name nickname')
-      .populate('players.player', 'name nickname profileImage')
-      .populate('players.deck', 'name commander deckImage')
-      .populate('players.eliminatedBy', 'name nickname profileImage')
-      .populate('players.borrowedFrom', 'name nickname profileImage')
-      .skip(startIndex)
-      .limit(limit)
-      .sort({ date: -1 });
+
+    // _id breaks ties so paging never repeats or skips a game
+    let games;
+    if (req.query.sort === 'players') {
+      // find() cannot sort by array length, so this one sort aggregates
+      const rows = await Game.aggregate([
+        { $match: query },
+        { $addFields: { playerCount: { $size: '$players' } } },
+        { $sort: { playerCount: -1, date: -1, _id: -1 } },
+        { $skip: startIndex },
+        { $limit: limit },
+        { $project: { playerCount: 0 } }
+      ]);
+      games = await Game.populate(rows, populate);
+    } else {
+      const sort = req.query.sort === 'duration'
+        ? { durationMinutes: -1, date: -1, _id: -1 }
+        : { date: -1, _id: -1 };
+      games = await Game.find(query)
+        .populate(populate)
+        .sort(sort)
+        .skip(startIndex)
+        .limit(limit);
+    }
 
     const pagination = {};
     if (startIndex + limit < total) {
