@@ -68,6 +68,36 @@ router.get('/', protect, async (req, res, next) => {
       .limit(limit)
       .sort({ createdAt: -1 });
 
+    // Opt-in usage for deck pickers: how often and how recently each deck
+    // was played. Derived from games on every request rather than stored,
+    // like every other statistic.
+    let data = decks;
+    if (isTruthyFlag(req.query.withUsage) && decks.length > 0) {
+      const deckIds = decks.map(deck => deck._id);
+      const usage = await Game.aggregate([
+        { $match: { 'players.deck': { $in: deckIds } } },
+        { $unwind: '$players' },
+        { $match: { 'players.deck': { $in: deckIds } } },
+        {
+          $group: {
+            _id: '$players.deck',
+            gamesPlayed: { $sum: 1 },
+            lastPlayedAt: { $max: '$date' }
+          }
+        }
+      ]);
+      const usageByDeck = new Map(usage.map(entry => [entry._id.toString(), entry]));
+
+      data = decks.map(deck => {
+        const entry = usageByDeck.get(deck._id.toString());
+        return {
+          ...deck.toJSON(),
+          gamesPlayed: entry ? entry.gamesPlayed : 0,
+          lastPlayedAt: entry ? entry.lastPlayedAt : null
+        };
+      });
+    }
+
     const pagination = {};
     if (startIndex + limit < total) {
       pagination.next = {
@@ -87,7 +117,7 @@ router.get('/', protect, async (req, res, next) => {
       count: decks.length,
       total,
       pagination,
-      data: decks
+      data
     });
   } catch (error) {
     next(error);

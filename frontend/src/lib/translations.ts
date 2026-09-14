@@ -281,6 +281,24 @@ export const translations = {
       noGamesYet: "This deck hasn't been used in any games yet. Play some games to see statistics!",
       recordAGame: 'Record a Game',
     },
+    // Deck picker — shared by every place a deck is chosen
+    deckPicker: {
+      deck: 'Deck',
+      title: 'Choose a deck',
+      chooseDeck: 'Choose a deck...',
+      pickPlayerFirst: 'Pick a player first',
+      ownDecks: 'Their decks',
+      borrowDeck: 'Borrow a deck',
+      search: 'Search deck or commander',
+      recentlyPlayed: 'Recently played',
+      allDecks: 'All decks',
+      noDecks: 'This player has no decks yet',
+      noOtherDecks: 'No other decks to borrow',
+      noResults: 'No decks match your search',
+      borrowedFrom: 'borrowed from',
+      game: 'game',
+      games: 'games',
+    },
     // Games
     games: {
       title: 'Games',
@@ -952,6 +970,24 @@ export const translations = {
       noGamesRecorded: 'Nenhuma Partida Registrada',
       noGamesYet: 'Este deck ainda não foi usado em nenhuma partida. Jogue algumas partidas para ver as estatísticas!',
       recordAGame: 'Registrar uma Partida',
+    },
+    // Seletor de deck — usado em todo lugar onde se escolhe um deck
+    deckPicker: {
+      deck: 'Deck',
+      title: 'Escolha um deck',
+      chooseDeck: 'Escolha um deck...',
+      pickPlayerFirst: 'Escolha um jogador primeiro',
+      ownDecks: 'Decks do jogador',
+      borrowDeck: 'Pegar emprestado',
+      search: 'Buscar deck ou comandante',
+      recentlyPlayed: 'Jogados recentemente',
+      allDecks: 'Todos os decks',
+      noDecks: 'Este jogador ainda não tem decks',
+      noOtherDecks: 'Nenhum outro deck para pegar emprestado',
+      noResults: 'Nenhum deck corresponde à busca',
+      borrowedFrom: 'emprestado de',
+      game: 'partida',
+      games: 'partidas',
     },
     // Games
     games: {
