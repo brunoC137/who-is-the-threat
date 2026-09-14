@@ -274,11 +274,13 @@ export default function NewGame2Page() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
 
+        // The list endpoints paginate (players default to 25, decks to 100,
+        // newest first), so ask for everything: older decks must stay selectable.
         const [playersResponse, decksResponse] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players?limit=500`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/decks`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/decks?limit=500`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);

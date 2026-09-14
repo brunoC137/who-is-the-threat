@@ -120,13 +120,15 @@ export default function EditGamePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch game, players, and decks in parallel
+        // Fetch game, players, and decks in parallel. The list endpoints
+        // paginate (players default to 25, decks to 100, newest first), so ask
+        // for everything: older decks must stay selectable.
         const [gameResponse, playersResponse, decksResponse] = await Promise.all([
           gamesAPI.getById(gameId),
-          playersAPI.getAll(),
+          playersAPI.getAll({ limit: 500 }),
           // A historical game may reference a deck that has since been
           // archived, so the edit form must still be able to render it
-          decksAPI.getAll({ includeArchived: true })
+          decksAPI.getAll({ includeArchived: true, limit: 500 })
         ]);
 
         const gameData = gameResponse.data.data || gameResponse.data;
