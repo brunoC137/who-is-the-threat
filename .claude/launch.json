@@ -21,7 +21,7 @@
         "-e",
         "bash",
         "-c",
-        "export PATH=/home/user/.nvm/versions/node/v24.13.1/bin:$PATH && cd ~/wit-preview/frontend && node node_modules/next/dist/bin/next dev --webpack -p 3002"
+        "export PATH=/home/user/.nvm/versions/node/v24.13.1/bin:$PATH && cd ~/wit-preview/frontend && FLAG=$(node -p \"Number(require('next/package.json').version.split('.')[0]) >= 16 ? '--webpack' : ''\") && node node_modules/next/dist/bin/next dev $FLAG -p 3002"
       ],
       "port": 3002,
       "autoPort": false
