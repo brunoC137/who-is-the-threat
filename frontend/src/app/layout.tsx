@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 import { Navigation } from '@/components/Navigation'
+import { VercelAnalytics } from '@/components/VercelAnalytics'
 
 export const metadata: Metadata = {
   title: {
@@ -78,6 +79,7 @@ export default function RootLayout({
             {children}
           </Navigation>
         </Providers>
+        <VercelAnalytics />
       </body>
     </html>
   )
