@@ -187,10 +187,12 @@ function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps
     <button
       type="button"
       aria-label={ariaLabel}
-      className="group flex h-full flex-1 items-center justify-center text-white/25 transition-colors active:bg-white/10 active:text-white/70"
+      className="group flex h-full flex-1 items-center justify-center transition-colors active:bg-white/10"
       {...holdHandlers}
     >
-      <span className="text-2xl font-light leading-none">{label}</span>
+      <span className="cg-life-number text-4xl font-bold leading-none text-white/85 transition-colors group-active:text-white sm:text-5xl">
+        {label}
+      </span>
     </button>
   );
 }
