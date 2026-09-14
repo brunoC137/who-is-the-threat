@@ -337,7 +337,10 @@
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
-.cg-life-number {
+/* Shared by the life total and the − / + glyphs beside it: anything that has
+   to read over arbitrary deck art gets the same halo. */
+.cg-life-number,
+.cg-tap-glyph {
   text-shadow:
     0 0 2px rgba(0, 0, 0, 0.95),
     0 0 7px rgba(0, 0, 0, 0.85),
@@ -348,7 +351,8 @@
 /* paint-order keeps the stroke behind the glyph so the letterform stays
    crisp. Without it the stroke would eat into the number, so it is opt-in. */
 @supports (paint-order: stroke) {
-  .cg-life-number {
+  .cg-life-number,
+  .cg-tap-glyph {
     -webkit-text-stroke: 2.5px rgba(0, 0, 0, 0.6);
     paint-order: stroke fill;
   }

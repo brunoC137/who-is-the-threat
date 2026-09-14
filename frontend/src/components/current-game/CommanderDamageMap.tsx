@@ -22,6 +22,15 @@ interface CommanderDamageMapProps {
 const MAP_WIDTH = 84;
 const MAP_HEIGHT = 52;
 
+/**
+ * Space the map takes up inside a panel, in the panel's own coordinates: a
+ * quarter-turned panel sees the map's axes swapped.
+ */
+export const mapFootprint = (rotation: SeatRotation) =>
+  isQuarterTurn(rotation)
+    ? { width: MAP_HEIGHT, height: MAP_WIDTH }
+    : { width: MAP_WIDTH, height: MAP_HEIGHT };
+
 const damageColor = (damage: number): string => {
   if (damage >= LETHAL_COMMANDER_DAMAGE) return 'text-destructive';
   if (damage >= 15) return 'text-warning';
