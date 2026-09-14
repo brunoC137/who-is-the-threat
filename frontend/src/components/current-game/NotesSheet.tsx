@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CommentaryEntry } from './types';
@@ -13,6 +14,32 @@ interface NotesSheetProps {
   onNotesChange: (notes: string) => void;
   onClose: () => void;
   t: (key: string) => string;
+}
+
+/**
+ * The part of the screen the on-screen keyboard leaves visible. Mobile
+ * browsers shrink the visual viewport for the keyboard but not the layout
+ * viewport a fixed overlay is sized against, so without this the text box
+ * being typed into can sit behind the keyboard.
+ */
+function useVisualViewport(): { top: number; height: number } | null {
+  const [box, setBox] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const update = () => setBox({ top: viewport.offsetTop, height: viewport.height });
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  return box;
 }
 
 export function NotesSheet({
@@ -32,9 +59,18 @@ export function NotesSheet({
     setDraft('');
   };
 
-  return (
+  const viewport = useVisualViewport();
+
+  if (typeof document === 'undefined') return null;
+
+  // Portalled to <body>, outside the game's LandscapeFrame. The board is
+  // turned sideways on an upright phone, but typing sideways against a
+  // keyboard at the phone's real bottom edge is miserable, so this sheet
+  // always follows how the phone is actually held.
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm"
+      className="fixed inset-x-0 top-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm"
+      style={viewport ? { top: viewport.top, height: viewport.height } : { bottom: 0 }}
       onClick={onClose}
     >
       <div
@@ -120,6 +156,7 @@ export function NotesSheet({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

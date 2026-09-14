@@ -5,7 +5,7 @@ import { Crown, Droplet, Skull } from 'lucide-react';
 import { GamePlayer } from './types';
 import { BoardLayout, SeatEdge, SeatRotation, isSideSeat } from './layout';
 import { LETHAL_POISON } from './gameReducer';
-import { CommanderDamageMap } from './CommanderDamageMap';
+import { CommanderDamageMap, mapFootprint } from './CommanderDamageMap';
 import {
   formatLifeDelta,
   formatPlacement,
@@ -75,6 +75,11 @@ function LivePanel({
   const compact = isSideSeat(edge);
   const inDanger = gamePlayer.life <= 5 || gamePlayer.poison >= LETHAL_POISON - 2;
 
+  // The damage map sits in the bottom-right corner (6px in from the edges).
+  // Centring the − and + glyphs in the space above it keeps the + from
+  // disappearing under the map, and keeps both glyphs level.
+  const glyphLift = showCommanderMap ? mapFootprint(rotation).height + 6 : 0;
+
   return (
     <div
       className={`relative h-full w-full overflow-hidden rounded-xl border transition-shadow duration-300 ${
@@ -94,6 +99,8 @@ function LivePanel({
         <LifeTapZone
           label="−"
           delta={-1}
+          compact={compact}
+          lift={glyphLift}
           onLifeChange={onLifeChange}
           ariaLabel={t('currentGame.decreaseLife')}
         />
@@ -110,6 +117,8 @@ function LivePanel({
         <LifeTapZone
           label="+"
           delta={1}
+          compact={compact}
+          lift={glyphLift}
           onLifeChange={onLifeChange}
           ariaLabel={t('currentGame.increaseLife')}
         />
@@ -173,11 +182,15 @@ function LivePanel({
 interface LifeTapZoneProps {
   label: string;
   delta: number;
+  /** Side seats read along a shorter axis, so the glyph steps down a size. */
+  compact: boolean;
+  /** Pixels kept clear at the bottom, so the glyph centres above the damage map. */
+  lift: number;
   onLifeChange: (delta: number) => void;
   ariaLabel: string;
 }
 
-function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps) {
+function LifeTapZone({ label, delta, compact, lift, onLifeChange, ariaLabel }: LifeTapZoneProps) {
   const holdHandlers = useHoldRepeat(() => {
     haptic();
     onLifeChange(delta);
@@ -187,10 +200,21 @@ function LifeTapZone({ label, delta, onLifeChange, ariaLabel }: LifeTapZoneProps
     <button
       type="button"
       aria-label={ariaLabel}
-      className="group flex h-full flex-1 items-center justify-center text-white/25 transition-colors active:bg-white/10 active:text-white/70"
+      className="group flex h-full flex-1 items-center justify-center transition-colors active:bg-white/10"
+      style={{ paddingBottom: lift }}
       {...holdHandlers}
     >
-      <span className="text-2xl font-light leading-none">{label}</span>
+      {/* The same legibility treatment as the life total (halo and stroke, so
+          it reads over any deck art), tinted like the running change it
+          produces: red takes life, green gives it. A step smaller and a little
+          softer than the number, so the total stays the focus. */}
+      <span
+        className={`cg-tap-glyph font-bold leading-none opacity-80 transition-opacity group-active:opacity-100 ${getLifeDeltaColor(
+          delta
+        )} ${compact ? 'text-3xl' : 'text-4xl sm:text-5xl'}`}
+      >
+        {label}
+      </span>
     </button>
   );
 }
